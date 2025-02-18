@@ -7,6 +7,9 @@ import {
     ThumbsUp,
     AlertTriangle,
     ArrowLeft,
+    CirclePlay,
+    Trash,
+    X
 } from "lucide-react"// 引入图标
 
 export default function UploadVideoPage() {
@@ -23,6 +26,7 @@ export default function UploadVideoPage() {
     const [isCountingDown, setIsCountingDown] = useState(false);
     const [countdown, setCountdown] = useState(4);
     const countdownIntervalRef = useRef<NodeJS.Timeout>(null);
+    const [isPopupVisible, setIsPopupVisible] = useState(false);
     // 处理文件上传
     const handleFileUpload = () => {
         // const file = event.target.files[0];
@@ -33,33 +37,16 @@ export default function UploadVideoPage() {
         //     alert("文件大小超过限制，请上传小于10MB的文件。");
         // }
     };
+    const openPopup = () => {
+        setIsPopupVisible(true);
+    };
+
+    const closePopup = () => {
+        setIsPopupVisible(false);
+    };
     // 开始倒计时
     const startCountdown = async () => {
         try {
-            // 开始倒计时
-            let count = 3;
-            setCountdown(count);
-            countdownIntervalRef.current = setInterval(() => {
-                if (count <= 0) {
-                    if (countdownIntervalRef.current) {
-                        clearInterval(countdownIntervalRef.current);
-                    }
-                    startRecording();
-                    return;
-                }
-                setCountdown(count);
-                count--;
-            }, 1000);
-
-        } catch (error) {
-            console.error('设备访问失败:', error)
-            toast.error("无法访问摄像头/麦克风，请检查权限设置");
-        }
-    };
-    const startRecording = async () => {
-        try {
-            setIsCountingDown(true);
-            // 请求设备权限
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: { width: 1280, height: 720 },
                 audio: true
@@ -77,10 +64,32 @@ export default function UploadVideoPage() {
                     console.error("视频自动播放失败:", error);
                 });
             }
+            // 开始倒计时
+            let count = 3;
+            setCountdown(count);
+            countdownIntervalRef.current = setInterval(() => {
+                if (count <= 0) {
+                    if (countdownIntervalRef.current) {
+                        clearInterval(countdownIntervalRef.current);
+                    }
+                    startRecording(stream);
+                    return;
+                }
+                setCountdown(count);
+                count--;
+            }, 1000);
 
+        } catch (error) {
+            console.error('设备访问失败:', error)
+            toast.error("无法访问摄像头/麦克风，请检查权限设置");
+        }
+    };
+    const startRecording = async (stream:MediaStream) => {
+        try {
+            setIsCountingDown(true);
             // 初始化媒体录制器
             const mediaRecorder = new MediaRecorder(stream, {
-                mimeType: "video/webm; codecs=vp9"
+                mimeType: "video/mp4; codecs=vp9"
             });
 
             mediaRecorderRef.current = mediaRecorder;
@@ -108,7 +117,7 @@ export default function UploadVideoPage() {
             // 录制结束事件
             mediaRecorder.onstop = () => {
                 const videoBlob = new Blob(recordedChunks.current, {
-                    type: "video/webm"
+                    type: "video/mp4"
                 });
                 const url = URL.createObjectURL(videoBlob);
                 setVideoUrl(url);
@@ -137,7 +146,6 @@ export default function UploadVideoPage() {
             mediaRecorderRef.current.stop();
         }
     };
-
 
     return (
         <div className="flex">
@@ -196,7 +204,7 @@ export default function UploadVideoPage() {
                                 </Button>
                                 {!isCountingDown && (
                                     <Button onClick={startCountdown}>
-                                        {countdown==4 ? "录制" : countdown}
+                                        {countdown == 4 ? "录制" : countdown}
                                     </Button>
                                 )}
                                 <video
@@ -221,6 +229,23 @@ export default function UploadVideoPage() {
                         )}
                     </div>
                 </div>
+                {videoUrl && (
+                    <div className="flex justify-between items-center mt-4">
+                        <div className="flex flex-col ml-52">
+                            <span className="font-bold">视频标题</span>
+                            <span
+                                className="text-sm text-gray-500">{new Date(recordingDuration * 1000).toISOString().slice(14, 19)}</span>
+                        </div>
+                        <div className="flex space-x-10 mr-52">
+                            <CirclePlay className="w-6 h-6 cursor-pointer"
+                                        onClick={() => {
+                                            openPopup();
+                                        }
+                            }>播放</CirclePlay>
+                            <Trash className="w-6 h-6 cursor-pointer" onClick={() => setVideoUrl(null)}></Trash>
+                        </div>
+                    </div>
+                )}
                 <div className="flex justify-end items-center">
                     <Button
                         className="mt-8 flex justify-end mr-4"
@@ -234,17 +259,18 @@ export default function UploadVideoPage() {
                         <Button>下一步</Button>
                     </div>
                 </div>
-                <div>
-                    {/* 录制回放视频（录制完成后显示） */}
-                    {videoUrl && (
+            </div>
+            {isPopupVisible && videoUrl && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <div className="bg-white p-4 rounded-lg">
+                        <X onClick={closePopup} className="top-2 right-2 cursor-pointer" />
                         <video controls className="mt-4 w-full h-full">
-                            <source src={videoUrl} type="video/webm"/>
+                            <source src={videoUrl} type="video/mp4" />
                             Your browser does not support the video tag.
                         </video>
-                    )}
+                    </div>
                 </div>
-
-            </div>
+            )}
         </div>
     );
 }
