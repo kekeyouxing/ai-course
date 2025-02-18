@@ -1,6 +1,6 @@
 import {  useState, useRef } from "react";
 import { Button } from "@/components/ui/button"; // 从 Shadcn UI 引入按钮组件
-
+import { toast } from "sonner"
 import {
     VolumeX,
     UploadCloud,
@@ -10,6 +10,7 @@ import {
 } from "lucide-react"// 引入图标
 
 export default function UploadVideoPage() {
+    // 定义一个整型枚举 4代表倒计时未开始或者已经结束
     const [isRecording, setIsRecording] = useState(false);
     const [recordingDuration, setRecordingDuration] = useState(0);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -19,7 +20,9 @@ export default function UploadVideoPage() {
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
     const videoPreviewRef = useRef<HTMLVideoElement>(null);
     const recordedChunks = useRef<Blob[]>([]);
-
+    const [isCountingDown, setIsCountingDown] = useState(false);
+    const [countdown, setCountdown] = useState(4);
+    const countdownIntervalRef = useRef<NodeJS.Timeout>(null);
     // 处理文件上传
     const handleFileUpload = () => {
         // const file = event.target.files[0];
@@ -30,27 +33,49 @@ export default function UploadVideoPage() {
         //     alert("文件大小超过限制，请上传小于10MB的文件。");
         // }
     };
+    // 开始倒计时
+    const startCountdown = async () => {
+        try {
+            // 开始倒计时
+            let count = 3;
+            setCountdown(count);
+            countdownIntervalRef.current = setInterval(() => {
+                if (count <= 0) {
+                    if (countdownIntervalRef.current) {
+                        clearInterval(countdownIntervalRef.current);
+                    }
+                    startRecording();
+                    return;
+                }
+                setCountdown(count);
+                count--;
+            }, 1000);
 
+        } catch (error) {
+            console.error('设备访问失败:', error)
+            toast.error("无法访问摄像头/麦克风，请检查权限设置");
+        }
+    };
     const startRecording = async () => {
         try {
-            // 请求摄像头权限并获取视频流
+            setIsCountingDown(true);
+            // 请求设备权限
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    facingMode: "user" // 使用前置摄像头
-                }
+                video: { width: 1280, height: 720 },
+                audio: true
             });
 
+            // 显示预览
+            if (videoPreviewRef.current) {
+                videoPreviewRef.current.srcObject = stream;
+                videoPreviewRef.current.play().catch(console.error);
+            }
             // 设置预览视频源
             if (videoPreviewRef.current) {
-                console.log("Video element found:", videoPreviewRef.current);
                 videoPreviewRef.current.srcObject = stream;
                 videoPreviewRef.current.play().catch(error => {
                     console.error("视频自动播放失败:", error);
                 });
-            }else {
-                console.log("Video element not found");
             }
 
             // 初始化媒体录制器
@@ -106,6 +131,8 @@ export default function UploadVideoPage() {
     };
     // 停止录制函数
     const stopRecording = () => {
+        setCountdown(4);
+        setIsCountingDown(false);
         if (mediaRecorderRef.current?.state === "recording") {
             mediaRecorderRef.current.stop();
         }
@@ -167,9 +194,9 @@ export default function UploadVideoPage() {
                                 >
                                     <ArrowLeft className="w-4 h-4"/>返回
                                 </Button>
-                                {!isRecording && (
-                                    <Button variant="outline" onClick={startRecording}>
-                                        开始录制
+                                {!isCountingDown && (
+                                    <Button onClick={startCountdown}>
+                                        {countdown==4 ? "录制" : countdown}
                                     </Button>
                                 )}
                                 <video
@@ -194,18 +221,6 @@ export default function UploadVideoPage() {
                         )}
                     </div>
                 </div>
-
-                {/*<Button*/}
-                {/*    className="absolute bottom-2 left-2 flex items-center"*/}
-                {/*    style={{*/}
-                {/*        display: isRecording ? "block" : "none",*/}
-                {/*    }}*/}
-                {/*    onClick={stopRecording} variant="destructive">*/}
-                {/*    结束录制*/}
-                {/*</Button>*/}
-                {/*<div className="mt-8 flex justify-end pr-48">*/}
-                {/*    <Button>下一步</Button>*/}
-                {/*</div>*/}
                 <div className="flex justify-end items-center">
                     <Button
                         className="mt-8 flex justify-end mr-4"
