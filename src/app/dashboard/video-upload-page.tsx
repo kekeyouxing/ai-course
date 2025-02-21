@@ -1,18 +1,9 @@
-import {  useState, useRef } from "react";
-import { Button } from "@/components/ui/button"; // 从 Shadcn UI 引入按钮组件
-import { toast } from "sonner"
-import {
-    VolumeX,
-    UploadCloud,
-    ThumbsUp,
-    AlertTriangle,
-    ArrowLeft,
-    CirclePlay,
-    Trash,
-    X
-} from "lucide-react"// 引入图标
+import {useRef, useState} from "react";
+import {Button} from "@/components/ui/button"; // 从 Shadcn UI 引入按钮组件
+import {toast} from "sonner"
+import {AlertTriangle, ArrowLeft, CirclePlay, ThumbsUp, Trash, UploadCloud, VolumeX, X} from "lucide-react" // 引入图标
 
-export default function UploadVideoPage() {
+export default function VideoUploadPage() {
     // 定义一个整型枚举 4代表倒计时未开始或者已经结束
     const [isRecording, setIsRecording] = useState(false);
     const [recordingDuration, setRecordingDuration] = useState(0);
@@ -48,7 +39,7 @@ export default function UploadVideoPage() {
     const startCountdown = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: 1280, height: 720 },
+                video: {width: 1280, height: 720},
                 audio: true
             });
 
@@ -84,7 +75,7 @@ export default function UploadVideoPage() {
             toast.error("无法访问摄像头/麦克风，请检查权限设置");
         }
     };
-    const startRecording = async (stream:MediaStream) => {
+    const startRecording = async (stream: MediaStream) => {
         try {
             setIsCountingDown(true);
             // 初始化媒体录制器
@@ -230,23 +221,23 @@ export default function UploadVideoPage() {
                     </div>
                 </div>
                 {videoUrl && (
-                    <div className="flex justify-between items-center mt-4">
-                        <div className="flex flex-col ml-52">
+                    <div className="flex  justify-center items-center mt-4 gap-120">
+                        <div className="flex flex-col">
                             <span className="font-bold">视频标题</span>
                             <span
                                 className="text-sm text-gray-500">{new Date(recordingDuration * 1000).toISOString().slice(14, 19)}</span>
                         </div>
-                        <div className="flex space-x-10 mr-52">
+                        <div className="flex space-x-10">
                             <CirclePlay className="w-6 h-6 cursor-pointer"
                                         onClick={() => {
                                             openPopup();
                                         }
-                            }>播放</CirclePlay>
+                                        }>播放</CirclePlay>
                             <Trash className="w-6 h-6 cursor-pointer" onClick={() => setVideoUrl(null)}></Trash>
                         </div>
                     </div>
                 )}
-                <div className="flex justify-end items-center">
+                <div className="flex justify-center items-center">
                     <Button
                         className="mt-8 flex justify-end mr-4"
                         style={{
@@ -255,7 +246,7 @@ export default function UploadVideoPage() {
                         onClick={stopRecording} variant="destructive">
                         结束录制
                     </Button>
-                    <div className="mt-8 flex justify-end pr-48">
+                    <div className="mt-8 flex justify-end mr-4">
                         <Button>下一步</Button>
                     </div>
                 </div>
@@ -263,9 +254,9 @@ export default function UploadVideoPage() {
             {isPopupVisible && videoUrl && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                     <div className="bg-white p-4 rounded-lg">
-                        <X onClick={closePopup} className="top-2 right-2 cursor-pointer" />
-                        <video controls className="mt-4 w-full h-full">
-                            <source src={videoUrl} type="video/mp4" />
+                        <X onClick={closePopup} className="top-2 right-2 cursor-pointer"/>
+                        <video controls className="mt-4 w-192 h-112">
+                            <source src={videoUrl} type="video/mp4"/>
                             Your browser does not support the video tag.
                         </video>
                     </div>
