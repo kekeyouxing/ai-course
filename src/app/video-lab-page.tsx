@@ -1,6 +1,6 @@
 import {ArrowLeftToLine, Edit, Plus, Trash, User, X} from "lucide-react";
 import {Button} from "@/components/ui/button";
-import AlertDialogDiv from "@/app/dashboard/alert-dialog.tsx";
+import AlertDialogDiv from "@/app/alert-dialog.tsx";
 import {Card} from "@/components/ui/card.tsx";
 import {Label} from "@radix-ui/react-label";
 import {useState} from "react";

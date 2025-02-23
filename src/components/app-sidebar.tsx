@@ -1,4 +1,4 @@
-import {Home, Inbox} from "lucide-react"
+import {Briefcase, Home, Inbox, ShoppingCart} from "lucide-react"
 
 import {
     Sidebar,
@@ -14,7 +14,7 @@ import {
     SidebarRail,
 } from "@/components/ui/sidebar"
 import {NavHome} from "@/components/nav-home.tsx";
-import {useBreadcrumb} from "@/app/dashboard/breadcrumb-context.tsx";
+import {useBreadcrumb} from "@/app/breadcrumb-context.tsx";
 import {useNavigate} from "react-router-dom";
 import {NavUser} from "@/components/nav-user.tsx";
 
@@ -36,6 +36,16 @@ const items = [
         title: "角色库",
         url: "/videolab",
         icon: Inbox,
+    },
+    {
+        title: "项目详情",
+        url: "/project",
+        icon: Briefcase,
+    },
+    {
+        title: "价格",
+        url: "/appprice",
+        icon: ShoppingCart,
     },
 ]
 
