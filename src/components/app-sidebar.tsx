@@ -39,7 +39,7 @@ const items = [
     },
     {
         title: "项目详情",
-        url: "/project",
+        url: "/projects",
         icon: Briefcase,
     },
     {

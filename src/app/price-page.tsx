@@ -1,4 +1,4 @@
-"use client"
+""
 
 import {ArrowDownToDot, Zap} from "lucide-react"
 import {PricingSection} from "@/components/ui/pricing-section"

@@ -2,12 +2,12 @@ import Page from "@/app/page";
 import VideoLabPage from "@/app/video-lab-page";
 import VideoUploadPage from "@/app/video-upload-page.tsx";
 import {RouteObject} from "react-router";
-import LoginPage from "@/app/login-page";
 import {PricePage} from "@/app/price-page";
 import NotFound from "@/app/404-page.tsx";
-import ProjectDetailPage from "@/app/project-detail-page.tsx";
 import HomePage from "@/app/home-page.tsx";
 import AuthRoute from "@/components/AuthRoute.tsx";
+import ProjectCollectionPage from "@/app/ProjectCollectionPage.tsx";
+import ProjectDetailPage from "@/app/project-detail-page.tsx";
 
 export const routes: RouteObject[] = [
     {
@@ -17,7 +17,7 @@ export const routes: RouteObject[] = [
             {
                 path: "home",
                 // element:<HomePage/>,
-                element: <AuthRoute><HomePage/></AuthRoute>,
+                element: <AuthRoute key={Date.now()}><HomePage/></AuthRoute>,
                 handle: {
                     breadcrumb: "主页", // 面包屑标题
                     pathSegments: ["home"] // 标记路径层级
@@ -48,19 +48,22 @@ export const routes: RouteObject[] = [
                 }
             },
             {
-                // todo ProjectDetailPage
-                path: "project",
-                element: <ProjectDetailPage/>,
+                path: "projects",
+                element: <ProjectCollectionPage/>,
+                handle: {
+                    breadcrumb: "项目",
+                    pathSegments: ["projects"] // 明确层级关系
+                }
+            },
+            {
+                path: "projects/:id", // 独立路径
+                element: <ProjectDetailPage/>, // 独立页面
                 handle: {
                     breadcrumb: "项目详情",
-                    pathSegments: ["project"] // 明确层级关系
+                    pathSegments: ["projects", ":id"] // 明确层级关系
                 }
-            }
+            },
         ]
-    },
-    {
-        path: "login",
-        element: <LoginPage/>
     },
     {
         path: "price",

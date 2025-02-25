@@ -2,7 +2,6 @@
 import {RouteObject} from "react-router";
 
 // 递归查找匹配路径段的路由
-
 const findRouteByPathSegments = (
     routes: RouteObject[],
     targetSegments: string[]
@@ -16,7 +15,7 @@ const findRouteByPathSegments = (
             // 检查是否匹配目标路径段
             if (
                 routeSegments.length === targetSegments.length &&
-                routeSegments.every((seg: string, i: number) => seg === targetSegments[i])
+                routeSegments.every((seg: string, i: number) => seg === targetSegments[i] || seg.startsWith(":"))
             ) {
                 return route;
             }

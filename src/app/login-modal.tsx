@@ -1,18 +1,38 @@
-"use client"
+""
 
 import {useEffect, useState} from "react"
 import {X} from "lucide-react"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
+import {useAuth} from "@/hooks/use-auth.ts";
+import axios from "axios";
+import {useMutation} from "@tanstack/react-query"
 
 interface LoginModalProps {
     isOpen: boolean
     onClose: () => void
+    onSuccess: () => void
 }
 
-export default function LoginModal({isOpen, onClose}: LoginModalProps) {
+export default function LoginModal({isOpen, onClose, onSuccess}: LoginModalProps) {
+    const [phone, setPhone] = useState("")
+    const [code, setCode] = useState("")
     const [countdown, setCountdown] = useState(0)
+    const {login} = useAuth()
 
+    const sendCodeMutation = useMutation({
+        mutationFn: () =>
+            axios.post("/api/sendSms", {phone})
+    })
+
+    const loginMutation = useMutation({
+        mutationFn: () =>
+            axios.post("/api/login", {phone, code}),
+        onSuccess: (res) => {
+            login(res.data.token)
+            onSuccess()
+        }
+    })
     useEffect(() => {
         if (countdown > 0) {
             const timer = setTimeout(() => setCountdown(countdown - 1), 1000)
@@ -23,6 +43,7 @@ export default function LoginModal({isOpen, onClose}: LoginModalProps) {
     const handleGetCode = () => {
         setCountdown(60)
         // Here you would typically call an API to send the verification code
+        sendCodeMutation.mutate()
     }
 
     if (!isOpen) return null
@@ -58,9 +79,19 @@ export default function LoginModal({isOpen, onClose}: LoginModalProps) {
                 <div className="flex-1 p-12 bg-gray-50">
                     <h2 className="text-2xl font-bold mb-8">手机号登录</h2>
                     <div className="space-y-8">
-                        <Input type="tel" placeholder="请输入手机号" className="h-12 bg-white"/>
+                        <Input
+                            type="tel"
+                            placeholder="请输入手机号"
+                            className="h-12 bg-white"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}/>
                         <div className="flex gap-2">
-                            <Input type="text" placeholder="请输入验证码" className="h-12 bg-white"/>
+                            <Input
+                                type="text"
+                                placeholder="请输入验证码"
+                                value={code}
+                                onChange={(e) => setCode(e.target.value)}
+                                className="h-12 bg-white"/>
                             <Button
                                 variant="outline"
                                 className="whitespace-nowrap h-12 px-2"
@@ -71,6 +102,8 @@ export default function LoginModal({isOpen, onClose}: LoginModalProps) {
                             </Button>
                         </div>
                         <Button
+                            disabled={loginMutation.isPending}
+                            onClick={() => loginMutation.mutate()}
                             className="w-full h-12 text-lg font-medium bg-gradient-to-r from-[#FFE4E1] via-[#E6E6FA] to-[#E0FFFF] hover:opacity-90 text-gray-800">
                             立即登录
                         </Button>

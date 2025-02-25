@@ -1,12 +1,12 @@
-"use client"
+""
 
 import {useCallback, useState} from "react"
-import {AppSidebar} from "@/components/sidebar"
 import {type Slide, slides} from "@/data/slides"
 import {InfoDisplay} from "@/components/info-display.tsx";
 import {OperationFunctions} from "@/components/operation-functions.tsx";
 import {TextEditor} from "@/components/text-editor.tsx";
 import {InputSend} from "@/components/input-send.tsx";
+import {AppSidebar} from "@/components/sidebar.tsx";
 
 export default function ProjectDetailPage() {
     const [selectedSlideId, setSelectedSlideId] = useState(slides[0].id)
@@ -33,13 +33,13 @@ export default function ProjectDetailPage() {
     const selectedSlide = slidesData.find((slide) => slide.id === selectedSlideId) || slidesData[0]
 
     return (
-        <div className="flex h-screen overflow-hidden">
+        <div className="flex flex-row h-screen min-h-0">
             <AppSidebar
                 slides={slidesData}
                 selectedSlideId={selectedSlideId}
                 onSelectSlide={handleSelectSlide}
             />
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-h-0">
                 <InfoDisplay image={selectedSlide.image} name={`Slide ${selectedSlide.id}`}/>
                 <OperationFunctions/>
                 <div className="flex-grow">
