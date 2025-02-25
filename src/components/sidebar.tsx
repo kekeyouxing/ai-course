@@ -17,12 +17,12 @@ interface AppSidebarProps {
 export function AppSidebar({slides, selectedSlideId, onSelectSlide}: AppSidebarProps) {
     return (
         <SidebarProvider>
-            <Sidebar layout={"relative"} className="w-60 flex-shrink-0 border-r">
-                <SidebarHeader className="h-14 border-b px-4 flex items-center">
+            <Sidebar layout={"relative"} className="w-60 flex-shrink-0 border-r flex flex-col h-full">
+                <SidebarHeader className="h-14 border-b border-t px-4 flex items-center">
                     <h2 className="font-semibold">Slides</h2>
                 </SidebarHeader>
-                <SidebarContent>
-                    <SidebarGroup>
+                <SidebarContent className="flex-1 overflow-y-auto">
+                    <SidebarGroup className="h-min">
                         <SidebarGroupContent>
                             <div className="grid gap-2 p-2">
                                 {slides.map((slide) => (

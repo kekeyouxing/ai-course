@@ -35,5 +35,15 @@ export const slides: Slide[] = [
         image: "https://kzminw9exrlbk6u65e7q.lite.vusercontent.net/placeholder.svg?height=100&width=150",
         content: "Content for Slide 3",
     },
+    {
+        id: "7",
+        image: "https://kzminw9exrlbk6u65e7q.lite.vusercontent.net/placeholder.svg?height=100&width=150",
+        content: "Content for Slide 2",
+    },
+    {
+        id: "8",
+        image: "https://kzminw9exrlbk6u65e7q.lite.vusercontent.net/placeholder.svg?height=100&width=150",
+        content: "Content for Slide 3",
+    },
 ]
 

@@ -2,11 +2,11 @@
 
 import {useCallback, useState} from "react"
 import {AppSidebar} from "@/components/sidebar"
-import {TextEditor} from "@/components/text-editor"
-import {InfoDisplay} from "@/components/info-display"
-import {OperationFunctions} from "@/components/operation-functions"
-import {InputSend} from "@/components/input-send"
 import {type Slide, slides} from "@/data/slides"
+import {InfoDisplay} from "@/components/info-display.tsx";
+import {OperationFunctions} from "@/components/operation-functions.tsx";
+import {TextEditor} from "@/components/text-editor.tsx";
+import {InputSend} from "@/components/input-send.tsx";
 
 export default function ProjectDetailPage() {
     const [selectedSlideId, setSelectedSlideId] = useState(slides[0].id)
@@ -33,8 +33,12 @@ export default function ProjectDetailPage() {
     const selectedSlide = slidesData.find((slide) => slide.id === selectedSlideId) || slidesData[0]
 
     return (
-        <div className="flex h-full">
-            <AppSidebar slides={slidesData} selectedSlideId={selectedSlideId} onSelectSlide={handleSelectSlide}/>
+        <div className="flex h-screen overflow-hidden">
+            <AppSidebar
+                slides={slidesData}
+                selectedSlideId={selectedSlideId}
+                onSelectSlide={handleSelectSlide}
+            />
             <div className="flex-1 flex flex-col">
                 <InfoDisplay image={selectedSlide.image} name={`Slide ${selectedSlide.id}`}/>
                 <OperationFunctions/>

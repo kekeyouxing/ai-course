@@ -9,9 +9,11 @@ export default function Page() {
         <SidebarProvider>
             <AppSidebar/>
             <SidebarInset>
-                <HeaderBreadcrumb/>
-                <div className="flex flex-1 overflow-auto flex-col gap-4 p-4 pt-0">
-                    <Outlet/>
+                <div className="flex flex-col h-screen">
+                    <HeaderBreadcrumb/>
+                    <div className="flex flex-1 overflow-auto flex-col gap-4 p-4 pt-0">
+                        <Outlet/>
+                    </div>
                 </div>
             </SidebarInset>
         </SidebarProvider>
