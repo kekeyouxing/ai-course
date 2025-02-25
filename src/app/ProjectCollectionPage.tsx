@@ -22,7 +22,7 @@ export default function ProjectCollectionPage() {
                     <Plus/>创建项目
                 </Button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Suspense fallback={<div>Loading projects...</div>}>
                     {projects.map((project) => (
                         <ProjectCard key={project.id} project={project}/>

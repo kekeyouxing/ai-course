@@ -18,7 +18,7 @@ export function AppSidebar({slides, selectedSlideId, onSelectSlide}: AppSidebarP
     return (
         <SidebarProvider>
             <Sidebar layout={"relative"}
-                     className="w-70 flex-shrink-0 border-x flex flex-col h-screen min-h-0">
+                     className="w-60 flex-shrink-0 border-x flex flex-col h-screen min-h-0">
                 <SidebarHeader className="h-14 border-b border-t px-4 flex items-center">
                     <h2 className="font-semibold">Slides</h2>
                 </SidebarHeader>

@@ -5,6 +5,7 @@ import {Card, CardContent, CardFooter} from "@/components/ui/card"
 import {Button} from "@/components/ui/button"
 import {deleteProject} from "@/api/project"
 import {Link} from "react-router-dom"
+import {Trash} from "lucide-react";
 
 interface ProjectCardProps {
     project: {
@@ -32,13 +33,13 @@ export default function ProjectCard({project}: ProjectCardProps) {
     return (
         <Card className="relative">
             <Button
-                variant="destructive"
+                variant="outline"
                 size="sm"
                 className="absolute top-2 right-2 z-10"
                 onClick={handleDelete}
                 disabled={isDeleting}
             >
-                {isDeleting ? "Deleting..." : "Delete"}
+                <Trash/>
             </Button>
             <Link to={`/projects/${project.id}`}>
                 <CardContent className="p-0">

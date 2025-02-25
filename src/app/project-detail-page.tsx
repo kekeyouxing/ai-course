@@ -1,12 +1,12 @@
-""
-
+import {AppSidebar} from "@/components/sidebar.tsx";
 import {useCallback, useState} from "react"
 import {type Slide, slides} from "@/data/slides"
 import {InfoDisplay} from "@/components/info-display.tsx";
 import {OperationFunctions} from "@/components/operation-functions.tsx";
 import {TextEditor} from "@/components/text-editor.tsx";
 import {InputSend} from "@/components/input-send.tsx";
-import {AppSidebar} from "@/components/sidebar.tsx";
+
+""
 
 export default function ProjectDetailPage() {
     const [selectedSlideId, setSelectedSlideId] = useState(slides[0].id)
@@ -33,7 +33,7 @@ export default function ProjectDetailPage() {
     const selectedSlide = slidesData.find((slide) => slide.id === selectedSlideId) || slidesData[0]
 
     return (
-        <div className="flex flex-row h-screen min-h-0">
+        <div className="flex h-screen min-h-0">
             <AppSidebar
                 slides={slidesData}
                 selectedSlideId={selectedSlideId}
