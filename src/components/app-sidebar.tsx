@@ -1,4 +1,4 @@
-import {Briefcase, Home, Inbox, ShoppingCart} from "lucide-react"
+import {Briefcase, Home, Users} from "lucide-react"
 
 import {
     Sidebar,
@@ -33,20 +33,20 @@ const items = [
         icon: Home,
     },
     {
-        title: "角色库",
+        title: "我的数字人",
         url: "/videolab",
-        icon: Inbox,
+        icon: Users,
     },
     {
         title: "项目详情",
         url: "/projects",
         icon: Briefcase,
     },
-    {
-        title: "价格",
-        url: "/appprice",
-        icon: ShoppingCart,
-    },
+    // {
+    //     title: "价格",
+    //     url: "/appprice",
+    //     icon: ShoppingCart,
+    // },
 ]
 
 export function AppSidebar() {

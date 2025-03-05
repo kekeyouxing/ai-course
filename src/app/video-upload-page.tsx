@@ -1,7 +1,11 @@
 import {useRef, useState} from "react";
 import {Button} from "@/components/ui/button"; // 从 Shadcn UI 引入按钮组件
 import {toast} from "sonner"
-import {AlertTriangle, ArrowLeft, CirclePlay, ThumbsUp, Trash, UploadCloud, VolumeX, X} from "lucide-react" // 引入图标
+import {AlertTriangle, ArrowLeft, CirclePlay, ThumbsUp, Trash, UploadCloud, VolumeX, X} from "lucide-react"
+import {Label} from "@radix-ui/react-label";
+import {Input} from "@/components/ui/input.tsx";
+import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
+import LanguageSwitcher from "@/components/language-switcher.tsx"; // 引入图标
 
 export default function VideoUploadPage() {
     // 定义一个整型枚举 4代表倒计时未开始或者已经结束
@@ -141,18 +145,18 @@ export default function VideoUploadPage() {
     return (
         <div className="flex">
             {/* 主内容 */}
-            <div className="flex-1 p-24">
-                <div className="mt-6 flex flex-wrap items-center justify-center">
-                    <div className="flex items-start mx-4 flex-col w-48">
-                        <VolumeX className="w-6 h-6 mb-2"/>
-                        <span className="font-bold">在安静环境下录制</span>
-                        <span className="text-sm text-gray-500 block text-justify">避免在嘈杂的环境附近录制。以确保录制的视频更加清晰、纯净，避免影响音频质量。
-                        </span>
-                    </div>
+            <div className="flex-1">
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
                     <div className="flex items-start mx-4 flex-col w-48">
                         <ThumbsUp className="w-6 h-6 mb-2"/>
                         <span className="font-bold">检查设备良好</span>
                         <span className="text-sm text-gray-500 block text-justify">确保麦克风，摄像头正常工作，镜头清洁、无遮挡，且对焦准确，避免画面模糊。
+                        </span>
+                    </div>
+                    <div className="flex items-start mx-4 flex-col w-48">
+                        <VolumeX className="w-6 h-6 mb-2"/>
+                        <span className="font-bold">在安静环境下录制</span>
+                        <span className="text-sm text-gray-500 block text-justify">避免在嘈杂的环境附近录制。以确保录制的视频更加清晰、纯净，避免影响音频质量。
                         </span>
                     </div>
                     <div className="flex items-start mx-4 flex-col w-48">
@@ -162,8 +166,42 @@ export default function VideoUploadPage() {
                         </span>
                     </div>
                 </div>
+                <div className="flex mt-8 justify-center items-center">
+                    <div className="items-center w-20">
+                        <Label htmlFor="email">分身名称</Label>
+                    </div>
+                    <div className="items-center w-60">
+                        <Input placeholder="请输入分身名称"/>
+
+                    </div>
+                    <div className="w-80"></div>
+                </div>
+                <div className="flex mt-8 justify-center items-center">
+                    <div className="items-center w-20">
+                        <Label>性别</Label>
+                    </div>
+                    <div className="items-center w-60">
+                        <Select>
+                            <SelectTrigger>
+                                <SelectValue placeholder="性别"/>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectItem value="male">男</SelectItem>
+                                    <SelectItem value="felmale">女</SelectItem>
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="w-80"></div>
+
+                </div>
+                <div className="flex mt-8 justify-center items-center ">
+                    <LanguageSwitcher/>
+                </div>
+
                 {/* 上传或录音部分 */}
-                <div className="mt-8">
+                <div className="mt-24">
                     <div className="flex justify-center">
                         {!showRecordingLabel ? (
                             <label htmlFor="file-upload"

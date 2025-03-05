@@ -1,0 +1,40 @@
+"use client"
+
+import {Button} from "@/components/ui/button"
+import {VideoRecorder} from "./VideoRecorder"
+import {ScriptReader} from "./ScriptReader"
+
+export default function RecordingScreen({onBack}: { onBack: () => void }) {
+    return (
+        <div className="min-h-screen flex flex-col">
+            {/* Header */}
+            <div className="flex justify-between items-center p-6 bg-white shadow-sm">
+                <h1 className="text-xl font-medium text-gray-800">Clone your voice</h1>
+                <Button variant="outline" className="rounded-full text-gray-700 border-gray-300 hover:bg-gray-50">
+                    Discard voice cloning
+                </Button>
+            </div>
+
+            {/* Main Content - Left-Right Layout */}
+            <div className="flex-grow flex flex-col md:flex-row">
+                {/* Left Column - Video Recording Area */}
+                <div className="w-full md:w-1/2 border-r border-gray-200">
+                    <VideoRecorder/>
+                </div>
+
+                {/* Right Column - Script */}
+                <div className="w-full md:w-1/2">
+                    <ScriptReader/>
+                </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 bg-white border-t border-gray-200">
+                <Button variant="outline" className="rounded-full border-gray-300 text-gray-700" onClick={onBack}>
+                    Back
+                </Button>
+            </div>
+        </div>
+    )
+}
+

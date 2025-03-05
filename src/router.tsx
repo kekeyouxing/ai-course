@@ -5,9 +5,9 @@ import {RouteObject} from "react-router";
 import {PricePage} from "@/app/price-page";
 import NotFound from "@/app/404-page.tsx";
 import HomePage from "@/app/home-page.tsx";
-import AuthRoute from "@/components/AuthRoute.tsx";
-import ProjectCollectionPage from "@/app/ProjectCollectionPage.tsx";
-import ProjectDetailPage from "@/app/project-detail-page.tsx";
+import ProjectCollectionPage from "@/app/project-collection-page.tsx";
+import VideoEditor from "@/app/video-edioter.tsx";
+import VoiceCloningUI from "@/components/voice-cloning-ui.tsx";
 
 export const routes: RouteObject[] = [
     {
@@ -16,8 +16,8 @@ export const routes: RouteObject[] = [
         children: [
             {
                 path: "home",
-                // element:<HomePage/>,
-                element: <AuthRoute key={Date.now()}><HomePage/></AuthRoute>,
+                element: <HomePage/>,
+                // element: <AuthRoute key={Date.now()}><HomePage/></AuthRoute>,
                 handle: {
                     breadcrumb: "主页", // 面包屑标题
                     pathSegments: ["home"] // 标记路径层级
@@ -27,7 +27,7 @@ export const routes: RouteObject[] = [
                 path: "videolab",
                 element: <VideoLabPage/>,
                 handle: {
-                    breadcrumb: "角色库",
+                    breadcrumb: "我的数字人",
                     pathSegments: ["videolab"] // 明确层级关系
                 }
             },
@@ -35,7 +35,7 @@ export const routes: RouteObject[] = [
                 path: "videolab/videoupload", // 独立路径
                 element: <VideoUploadPage/>, // 独立页面
                 handle: {
-                    breadcrumb: "自定义角色",
+                    breadcrumb: "自定义分身",
                     pathSegments: ["videolab", "videoupload"] // 明确层级关系
                 }
             },
@@ -54,20 +54,20 @@ export const routes: RouteObject[] = [
                     breadcrumb: "项目",
                     pathSegments: ["projects"] // 明确层级关系
                 }
-            },
-            {
-                path: "projects/:id", // 独立路径
-                element: <ProjectDetailPage/>, // 独立页面
-                handle: {
-                    breadcrumb: "项目详情",
-                    pathSegments: ["projects", ":id"] // 明确层级关系
-                }
-            },
+            }
         ]
     },
     {
         path: "price",
         element: <PricePage/>,
+    },
+    {
+        path: "projects/:id", // 独立路径
+        element: <VideoEditor/>, // 独立页面
+    },
+    {
+        path: "clone", // 独立路径
+        element: <VoiceCloningUI/>, // 独立页面
     },
     {
         path: "*",

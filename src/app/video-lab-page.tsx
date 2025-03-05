@@ -35,10 +35,10 @@ export default function VideoLabPage() {
                 <div className="flex justify-between items-start">
                     {/* 左侧内容区域 */}
                     <div className="space-y-2 flex-1">
-                        <h3 className="text-lg font-semibold">角色库</h3>
+                        <h3 className="text-lg font-semibold">分身库</h3>
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-muted-foreground">
-                              已使用 3/10 个角色
+                              已使用 3/10 个分身
                             </span>
                         </div>
                     </div>
@@ -47,7 +47,7 @@ export default function VideoLabPage() {
                         <Button size="sm" className="pl-2 pr-3"
                                 onClick={() => window.location.href = '/videolab/videoupload'}>
                             <Plus className="h-3 w-3"/>
-                            添加角色
+                            添加分身
                         </Button>
                     </div>
                 </div>
@@ -92,7 +92,7 @@ export default function VideoLabPage() {
 
                         <div className="space-y-4">
                             <div>
-                                <label className="text-sm text-muted-foreground">角色描述</label>
+                                <label className="text-sm text-muted-foreground">分身信息</label>
                                 <p className="mt-1">{selectedUser.description}</p>
                             </div>
 
@@ -112,7 +112,7 @@ export default function VideoLabPage() {
                                     buttonIcon={<Trash/>}
                                     buttonText="删除"
                                     title="确定删除？"
-                                    description="每个角色人物价值10元，删除后将无法恢复，确定要删除吗？"
+                                    description="每个分身人物价值10元，删除后将无法恢复，确定要删除吗？"
                                     confirmText="删除"
                                     cancelText="取消"
                                     onConfirm={() => console.log("退出登录")}
