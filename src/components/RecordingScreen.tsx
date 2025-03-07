@@ -1,8 +1,8 @@
 "use client"
 
 import {Button} from "@/components/ui/button"
-import {VideoRecorder} from "./VideoRecorder"
-import {ScriptReader} from "./ScriptReader"
+import {VideoRecorder} from "./video-recorder.tsx"
+import {ScriptReader} from "./script-reader.tsx"
 
 export default function RecordingScreen({onBack}: { onBack: () => void }) {
     return (
