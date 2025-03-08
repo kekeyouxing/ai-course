@@ -33,7 +33,7 @@ const items = [
         icon: Home,
     },
     {
-        title: "我的数字人",
+        title: "我的虚拟形象",
         url: "/videolab",
         icon: Users,
     },

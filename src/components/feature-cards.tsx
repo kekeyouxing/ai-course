@@ -5,7 +5,7 @@ export default function FeatureCards() {
         <div className="w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Voice Clone Card */}
             <div
-                onClick={() => window.location.href = '/videolab/videoupload'}
+                onClick={() => window.location.href = '/clone'}
                 className=" rounded-xl p-6 h-full flex flex-col bg-gradient-to-br from-orange-400 via-orange-300 to-amber-200 cursor-pointer">
                 <div className="flex justify-between items-start mb-6">
                     <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center">
@@ -17,7 +17,7 @@ export default function FeatureCards() {
                     </div>
                 </div>
                 <div className="mt-auto">
-                    <h3 className="text-2xl font-bold text-white mb-2">克隆分身</h3>
+                    <h3 className="text-2xl font-bold text-white mb-2">创建虚拟形象</h3>
                     <p className="text-white/90">录制一段30秒的视频，并用你的声音为所有角色和旁白配音</p>
                 </div>
             </div>

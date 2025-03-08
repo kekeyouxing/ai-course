@@ -1,6 +1,5 @@
 import Page from "@/app/page";
 import VideoLabPage from "@/app/video-lab-page";
-import VideoUploadPage from "@/app/video-upload-page.tsx";
 import {RouteObject} from "react-router";
 import {PricePage} from "@/app/price-page";
 import NotFound from "@/app/404-page.tsx";
@@ -8,6 +7,7 @@ import HomePage from "@/app/home-page.tsx";
 import ProjectCollectionPage from "@/app/project-collection-page.tsx";
 import VideoEditor from "@/app/video-edioter.tsx";
 import VoiceCloningUI from "@/components/voice-cloning-ui.tsx";
+import {VoiceCloningProvider} from '@/hooks/VoiceCloningContext';
 
 export const routes: RouteObject[] = [
     {
@@ -29,14 +29,6 @@ export const routes: RouteObject[] = [
                 handle: {
                     breadcrumb: "我的数字人",
                     pathSegments: ["videolab"] // 明确层级关系
-                }
-            },
-            {
-                path: "videolab/videoupload", // 独立路径
-                element: <VideoUploadPage/>, // 独立页面
-                handle: {
-                    breadcrumb: "自定义分身",
-                    pathSegments: ["videolab", "videoupload"] // 明确层级关系
                 }
             },
             {
@@ -67,7 +59,7 @@ export const routes: RouteObject[] = [
     },
     {
         path: "clone", // 独立路径
-        element: <VoiceCloningUI/>, // 独立页面
+        element: <VoiceCloningProvider><VoiceCloningUI/></VoiceCloningProvider>, // 独立页面
     },
     {
         path: "*",

@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 
-const SCRIPTS = {
+const SCRIPTS: { [key: string]: string } = {
     english: `In the era of digital transformation, Artificial Intelligence, or AI, emerges as a pivotal tool in boosting productivity. It's not just a technological leap; it's a revolution in how we work, analyze, and innovate.
 
 AI's power lies in its ability to swiftly process and analyze large data sets, offering businesses crucial insights and trends. This leads to informed, efficient decision-making, saving time and enhancing strategic planning. In sectors like healthcare, finance, and retail, AI-driven analytics are transforming operations and improving customer experiences.
@@ -19,29 +19,29 @@ AI的影响不仅限于自动化。它正在重塑整个行业，从个性化医
 };
 
 export function ScriptReader() {
-    const [language, setLanguage] = useState('english');
+    const [language, setLanguage] = useState('chinese');
 
     return (
         <div className="h-full flex flex-col p-6 bg-white">
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-medium text-gray-800">Script</h2>
-                <Select defaultValue="english" onValueChange={setLanguage}>
+                <Select defaultValue="chinese" onValueChange={setLanguage}>
                     <SelectTrigger className="w-[180px] border-gray-300">
                         <div className="flex items-center gap-2">
                             <SelectValue placeholder="Select language"/>
                         </div>
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="english">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs">🇬🇧</span>
-                                English
-                            </div>
-                        </SelectItem>
                         <SelectItem value="chinese">
                             <div className="flex items-center gap-2">
                                 <span className="text-xs">🇨🇳</span>
                                 中文
+                            </div>
+                        </SelectItem>
+                        <SelectItem value="english">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs">🇬🇧</span>
+                                English
                             </div>
                         </SelectItem>
                     </SelectContent>
