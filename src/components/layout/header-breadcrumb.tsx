@@ -10,7 +10,7 @@ import {
 // import {useBreadcrumb} from "@/app/dashboard/breadcrumb-context.tsx";
 import {useLocation} from "react-router-dom";
 import React from "react";
-import {getBreadcrumbs} from "@/components/getBreadcrumbs.ts";
+import {getBreadcrumbs} from "@/components/common/getBreadcrumbs";
 import {routes} from "@/router.tsx";
 
 

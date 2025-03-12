@@ -1,8 +1,8 @@
-import {AppSidebar} from "@/components/app-sidebar"
+import {AppSidebar} from "@/components/layout/app-sidebar"
 
 import {SidebarInset, SidebarProvider,} from "@/components/ui/sidebar"
 import {Outlet} from "react-router-dom";
-import {HeaderBreadcrumb} from "@/components/header-breadcrumb.tsx";
+import {HeaderBreadcrumb} from "@/components/layout/header-breadcrumb";
 
 export default function Page() {
     return (

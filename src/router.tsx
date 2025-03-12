@@ -5,9 +5,10 @@ import {PricePage} from "@/app/price-page";
 import NotFound from "@/app/404-page.tsx";
 import HomePage from "@/app/home-page.tsx";
 import ProjectCollectionPage from "@/app/project-collection-page.tsx";
-import VideoEditor from "@/app/video-edioter.tsx";
-import VoiceCloningUI from "@/components/voice-cloning-ui.tsx";
+import VideoEditor from "@/app/video-edioter";
+import VoiceCloningUI from "@/components/voice/voice-cloning-ui";
 import {VoiceCloningProvider} from '@/hooks/VoiceCloningContext';
+import AuthRoute from "@/components/auth/AuthRoute";
 
 export const routes: RouteObject[] = [
     {
@@ -16,8 +17,8 @@ export const routes: RouteObject[] = [
         children: [
             {
                 path: "home",
-                element: <HomePage/>,
-                // element: <AuthRoute key={Date.now()}><HomePage/></AuthRoute>,
+                // element: <HomePage/>,
+                element: <AuthRoute key={Date.now()}><HomePage/></AuthRoute>,
                 handle: {
                     breadcrumb: "主页", // 面包屑标题
                     pathSegments: ["home"] // 标记路径层级

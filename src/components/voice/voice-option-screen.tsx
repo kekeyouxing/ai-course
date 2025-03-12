@@ -3,8 +3,8 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { CloudIcon as CloudMusic, Mic } from "lucide-react"
-import UploadScreen from "./upload-screen"
-import RecordingSetup from "./recording-setup"
+import UploadScreen from "@/components/media/upload-screen"
+import RecordingSetup from "@/components/recording/recording-setup"
 import { useVoiceCloning } from '@/hooks/VoiceCloningContext';
 export default function VoiceOptionScreen({ onBack }: { onBack: () => void }) {
     const [selectedOption, setSelectedOption] = useState<"record" | "upload">("upload")

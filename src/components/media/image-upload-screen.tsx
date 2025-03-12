@@ -1,15 +1,17 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Upload, X, Image as ImageIcon, CheckCircle } from "lucide-react"
+import { Upload, X, Image as ImageIcon, CheckCircle, Crop } from "lucide-react"
 import { useVoiceCloning } from '@/hooks/VoiceCloningContext'
 import instance_oss from "@/api/axios-oss"
 import instance from '@/api/axios'
 import { v4 as uuidv4 } from 'uuid'
 import { toast } from "sonner"
-import VoiceOptionScreen from "@/components/voice-option-screen"
-import avatarImage from "@/assets/avatar.png"
+import VoiceOptionScreen from "@/components/voice/voice-option-screen"
+import Cropper from 'react-easy-crop'
+import { Area } from 'react-easy-crop'
+import { faceDetect } from "@/api/aliyun"
 export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
     const [isDragging, setIsDragging] = useState(false)
     const [selectedImage, setSelectedImage] = useState<string | null>(null)
@@ -18,12 +20,38 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
     const [uploadComplete, setUploadComplete] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [showOption, setShowOption] = useState(false)
-    const { setAvatarUrl } = useVoiceCloning()
+    const { setAvatarUrl, setDetectionResult} = useVoiceCloning()
 
-    if (showOption) {
-        return <VoiceOptionScreen onBack={() => setShowOption(false)}/>
-    }
-    
+    // 新增状态
+    const [aspectRatio, setAspectRatio] = useState<"1:1" | "3:4">("1:1")
+    const [crop, setCrop] = useState({ x: 0, y: 0 })
+    const [zoom, setZoom] = useState(1)
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
+    const [originalImage, setOriginalImage] = useState<string | null>(null)
+    const [isCropping, setIsCropping] = useState(false)
+    const [isDetecting, setIsDetecting] = useState(false)
+
+    // 检查图片尺寸
+    const checkImageDimensions = (img: HTMLImageElement): boolean => {
+        const { width, height } = img;
+
+        // 检查最小边长和最大边长
+        const minSide = Math.min(width, height);
+        const maxSide = Math.max(width, height);
+
+        if (minSide < 400) {
+            toast.error('图片最小边长需要≥400像素');
+            return false;
+        }
+
+        if (maxSide > 7000) {
+            toast.error('图片最大边长需要≤7000像素');
+            return false;
+        }
+
+        return true;
+    };
+
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault()
         setIsDragging(true)
@@ -48,6 +76,7 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
         }
     }
 
+    // 修改 handleImageFile 函数
     const handleImageFile = (file: File) => {
         // 检查文件类型
         if (!file.type.startsWith('image/')) {
@@ -64,12 +93,120 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
         const reader = new FileReader()
         reader.onload = (e) => {
             const imageResult = e.target?.result as string
-            setSelectedImage(imageResult)
 
-            // 选择图片后自动上传
-            uploadImage(imageResult, file.type)
+            // 创建图片对象以获取尺寸
+            const img = new Image();
+            img.onload = () => {
+                if (checkImageDimensions(img)) {
+                    setOriginalImage(imageResult);
+                    setIsCropping(true);
+                }
+            };
+            img.src = imageResult;
         }
         reader.readAsDataURL(file)
+    }
+    // 裁剪完成后的回调
+    const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
+        setCroppedAreaPixels(croppedAreaPixels);
+    }, []);
+
+    // 生成裁剪后的图片
+    const createCroppedImage = async () => {
+        if (!originalImage || !croppedAreaPixels) return;
+
+        try {
+            const croppedImage = await getCroppedImg(
+                originalImage,
+                croppedAreaPixels
+            );
+
+            setSelectedImage(croppedImage);
+            setIsCropping(false);
+
+            // 检测人脸
+            detectFace(croppedImage);
+        } catch (e) {
+            console.error('裁剪失败:', e);
+            toast.error('图片裁剪失败');
+        }
+    };
+
+    // 裁剪图片的工具函数
+    const getCroppedImg = (imageSrc: string, pixelCrop: Area): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.src = imageSrc;
+
+            image.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                if (!ctx) {
+                    reject(new Error('无法获取canvas上下文'));
+                    return;
+                }
+
+                // 设置canvas尺寸为裁剪区域大小
+                canvas.width = pixelCrop.width;
+                canvas.height = pixelCrop.height;
+
+                // 绘制裁剪后的图像
+                ctx.drawImage(
+                    image,
+                    pixelCrop.x,
+                    pixelCrop.y,
+                    pixelCrop.width,
+                    pixelCrop.height,
+                    0,
+                    0,
+                    pixelCrop.width,
+                    pixelCrop.height
+                );
+
+                // 转换为base64
+                resolve(canvas.toDataURL('image/jpeg', 0.9));
+            };
+
+            image.onerror = () => {
+                reject(new Error('图片加载失败'));
+            };
+        });
+    };
+    // 人脸检测
+    const detectFace = async (imageData: string) => {
+        setIsDetecting(true);
+        try {
+            // 将 base64 转换回文件并上传
+            const base64Response = await fetch(imageData);
+            const blob = await base64Response.blob();
+            const file = new File([blob], 'temp.jpg', { type: 'image/jpeg' });
+
+            // 上传图片文件获取URL
+            const objectKey = `temp-${uuidv4()}`;
+            const presignedURL = await generatePresignedURL(objectKey);
+            await uploadToTencentCloud(file, presignedURL.data, file.type);
+
+            const imageUrl = `https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/${objectKey}`;
+
+            // 调用人脸检测API
+            const result = await faceDetect({
+                image_url: imageUrl,
+                ratio: aspectRatio === "1:1" ? "1:1" : "3:4"
+            });
+            if (!result.checkPass) {
+                return;
+            }
+            setDetectionResult(result);
+            // 检测通过后上传最终图片
+            uploadImage(imageData, 'image/jpeg');
+
+        } catch (error) {
+            console.error('人脸检测失败:', error);
+            toast.error('人脸检测失败，请重试');
+        } finally {
+            setIsDetecting(false);
+        }
     }
 
     const uploadToTencentCloud = async (file: File, presignedURL: string, contentType: string) => {
@@ -115,11 +252,11 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
             const blob = await base64Response.blob()
             const file = new File([blob], 'avatar.jpg', { type: contentType })
 
-            // 上传图片文件
-            const objectKey = `avatar-${uuidv4()}`
+            // 上传图片文件，添加文件扩展名到 objectKey
+            const fileExtension = contentType.split('/').pop() || 'jpg'
+            const objectKey = `avatar-${uuidv4()}.${fileExtension}`
             const presignedURL = await generatePresignedURL(objectKey)
 
-            toast.info('正在上传图片...')
             await uploadToTencentCloud(file, presignedURL.data, file.type)
 
             const imageUrlTemp = `https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/${objectKey}`
@@ -144,7 +281,9 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
             fileInputRef.current.value = ''
         }
     }
-
+    if (showOption) {
+        return <VoiceOptionScreen onBack={() => setShowOption(false)} />
+    }
     return (
         <div className="min-h-screen bg-gray-100">
             <div className="flex justify-between items-center p-6">
@@ -159,7 +298,83 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
                     回到主页
                 </Button>
             </div>
-
+{/* 添加裁剪界面 */}
+            {isCropping && originalImage && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex flex-col items-center justify-center p-4">
+                    <div className="bg-white rounded-lg w-full max-w-3xl p-6">
+                        <h3 className="text-xl font-medium text-gray-800 mb-4">裁剪图片</h3>
+                        
+                        {/* 画幅选择 */}
+                        <div className="flex gap-4 mb-4">
+                            <button
+                                onClick={() => setAspectRatio("1:1")}
+                                className={`flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm ${
+                                    aspectRatio === "1:1" 
+                                        ? "bg-gray-200 text-gray-800 font-medium" 
+                                        : "bg-white text-gray-500 border border-gray-200"
+                                }`}
+                            >
+                                <Crop className="w-4 h-4" />
+                                1:1 (头像)
+                            </button>
+                            <button
+                                onClick={() => setAspectRatio("3:4")}
+                                className={`flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm ${
+                                    aspectRatio === "3:4" 
+                                        ? "bg-gray-200 text-gray-800 font-medium" 
+                                        : "bg-white text-gray-500 border border-gray-200"
+                                }`}
+                            >
+                                <Crop className="w-4 h-4" />
+                                3:4 (半身像)
+                            </button>
+                        </div>
+                        
+                        {/* 裁剪区域 */}
+                        <div className="relative h-80 w-full mb-4">
+                            <Cropper
+                                image={originalImage}
+                                crop={crop}
+                                zoom={zoom}
+                                aspect={aspectRatio === "1:1" ? 1 : 3/4}
+                                onCropChange={setCrop}
+                                onZoomChange={setZoom}
+                                onCropComplete={onCropComplete}
+                            />
+                        </div>
+                        
+                        {/* 缩放控制 */}
+                        <div className="flex items-center mb-4">
+                            <span className="text-sm text-gray-600 mr-2">缩放:</span>
+                            <input
+                                type="range"
+                                value={zoom}
+                                min={1}
+                                max={3}
+                                step={0.1}
+                                onChange={(e) => setZoom(Number(e.target.value))}
+                                className="flex-1"
+                            />
+                        </div>
+                        
+                        {/* 操作按钮 */}
+                        <div className="flex justify-end gap-2">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => {
+                                    setIsCropping(false);
+                                    setOriginalImage(null);
+                                }}
+                            >
+                                取消
+                            </Button>
+                            <Button onClick={createCroppedImage}>
+                                确认裁剪
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
             {/* Main Content */}
             <div className="flex justify-center items-center px-4">
                 <div className="bg-white rounded-lg shadow-sm w-full max-w-3xl p-8">
@@ -174,25 +389,6 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
                         <p className="text-gray-600">
                             希望检测确认的画幅，可选 "1:1"或"3:4"，1:1适用于头像图片，3:4适用于半身像图片。
                         </p>
-                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <div className="flex items-center mb-2">
-                                <h3 className="text-md font-medium text-gray-700">示例照片</h3>
-                            </div>
-                            <div className="flex flex-wrap gap-4 justify-center">
-                                <div className="text-center">
-                                    <img 
-                                        src={avatarImage}
-                                        alt="示例头像 1" 
-                                        className="w-24 h-24 object-cover rounded-lg border border-green-300"
-                                    />
-                                    <p className="text-xs text-green-600 mt-1">✓ 推荐</p>
-                                </div>
-
-                            </div>
-                            <p className="text-xs text-gray-500 mt-3 text-center">
-                                请上传清晰的正面照片，避免侧脸、遮挡面部或模糊的照片
-                            </p>
-                        </div>
                         {!selectedImage ? (
                             <div
                                 className={`border-2 border-dashed rounded-lg p-12 text-center ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
@@ -241,7 +437,12 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
                                         <X className="w-5 h-5" />
                                     </button>
                                 </div>
-
+                                {isDetecting && (
+                                    <div className="flex items-center justify-center text-blue-500 space-x-2">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                                        <span>正在检测人脸...</span>
+                                    </div>
+                                )}
                                 {isUploading && !uploadComplete && (
                                     <div className="space-y-2">
                                         <div className="flex justify-between text-sm">
@@ -278,10 +479,10 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
 
                             <Button
                                 className="bg-gray-900 hover:bg-gray-800 text-white rounded-full px-6"
-                                onClick={()=>{
+                                onClick={() => {
                                     setShowOption(true)
                                 }}
-                                disabled={!uploadComplete} // 只有上传完成后才能进入下一步
+                                disabled={!uploadComplete || isDetecting} // 只有上传完成且不在检测中才能进入下一步
                             >
                                 下一步
                             </Button>

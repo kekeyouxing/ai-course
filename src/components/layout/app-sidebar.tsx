@@ -13,18 +13,10 @@ import {
     SidebarMenuItem,
     SidebarRail,
 } from "@/components/ui/sidebar"
-import {NavHome} from "@/components/nav-home.tsx";
+import {NavHome} from "@/components/layout/nav-home";
 import {useBreadcrumb} from "@/app/breadcrumb-context.tsx";
 import {useNavigate} from "react-router-dom";
-import {NavUser} from "@/components/nav-user.tsx";
-
-const data = {
-    user: {
-        name: "shadcn",
-        email: "m@example.com",
-        avatar: "/avatars/shadcn.jpg",
-    },
-}
+import {NavUser} from "@/components/layout/nav-user";
 // Menu items.
 const items = [
     {
@@ -42,11 +34,6 @@ const items = [
         url: "/projects",
         icon: Briefcase,
     },
-    // {
-    //     title: "价格",
-    //     url: "/appprice",
-    //     icon: ShoppingCart,
-    // },
 ]
 
 export function AppSidebar() {
@@ -56,7 +43,6 @@ export function AppSidebar() {
     const handleNavigation = (path: string, title: string) => {
         // 更新面包屑
         setBreadcrumbs([
-            // {title: "首页", path: "/"},
             {title, path}
         ])
         // 导航到目标页面
@@ -95,7 +81,7 @@ export function AppSidebar() {
                 </SidebarGroup>
             </SidebarContent>
             <SidebarFooter>
-                <NavUser user={data.user}/>
+                <NavUser/>
             </SidebarFooter>
             <SidebarRail/>
         </Sidebar>

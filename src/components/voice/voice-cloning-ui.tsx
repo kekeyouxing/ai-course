@@ -4,16 +4,36 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { UserIcon as Male, UserIcon as Female } from "lucide-react"
-import ImageUploadScreen from "./image-upload-screen"
+import ImageUploadScreen from "@/components/media/image-upload-screen"
 import { useVoiceCloning } from '@/hooks/VoiceCloningContext';
 
 export default function VoiceCloningUI() {
     const { voiceName, setVoiceName, gender, setGender, language, setLanguage, discardData } = useVoiceCloning();
-
+    const [nameError, setNameError] = useState<string>("");
     const [currentScreen, setCurrentScreen] = useState<"naming" | "upload">("naming")
 
+    // 验证名称长度
+    const validateName = (name: string) => {
+        if (name.length < 2 || name.length > 20) {
+            setNameError("名称长度必须在2到20个字符之间");
+            return false;
+        }
+        setNameError("");
+        return true;
+    };
+
+    // 处理名称输入变化
+    const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newName = e.target.value;
+        setVoiceName(newName);
+        validateName(newName);
+    };
+
     const handleCreateVoice = () => {
-        setCurrentScreen("upload")
+        // 在进入下一步前验证名称
+        if (validateName(voiceName)) {
+            setCurrentScreen("upload");
+        }
     }
 
     const handleBack = () => {
@@ -51,9 +71,12 @@ export default function VoiceCloningUI() {
 
                             <Input
                                 value={voiceName}
-                                onChange={(e) => setVoiceName(e.target.value)}
-                                className="border-b border-t-0 border-l-0 border-r-0 rounded-none px-0 focus:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none"
+                                onChange={handleNameChange}
+                                className={`border-b border-t-0 border-l-0 border-r-0 rounded-none px-0 focus:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none ${nameError ? "border-red-500" : ""}`}
                             />
+                            {nameError && (
+                                <p className="text-red-500 text-xs mt-1">{nameError}</p>
+                            )}
                         </div>
 
                         {/* Gender Selection */}
@@ -109,6 +132,7 @@ export default function VoiceCloningUI() {
                             <Button
                                 className="bg-gray-900 hover:bg-gray-800 text-white rounded-full px-6"
                                 onClick={handleCreateVoice}
+                                disabled={!voiceName || nameError !== ""}
                             >
                                 下一步
                             </Button>

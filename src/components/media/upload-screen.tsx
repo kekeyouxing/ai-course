@@ -12,16 +12,27 @@ export default function UploadScreen({ onBack }: { onBack: () => void }) {
     const [file, setFile] = useState<File | null>(null)
     const [uploadProgress, setUploadProgress] = useState<number>(0)
     const [uploadComplete, setUploadComplete] = useState<boolean>(false)
-    const { voiceName, gender, audioUrl, setAudioUrl, language, discardData, submitData } = useVoiceCloning();
+    const [isCloning, setIsCloning] = useState(false);
+    const { voiceName, gender, audioUrl, setAudioUrl, language, voiceId, setVoiceId, fileId, setFileId, discardData, submitData } = useVoiceCloning();
     const INVALID_FILE_ERROR = '文件大小或格式无效!';
-    const isFormComplete = voiceName && gender && audioUrl && language;
+    const isFormComplete = voiceName && gender && audioUrl && language && voiceId;
 
     const clearData = () => {
         setUploadProgress(0);
         setUploadComplete(false);
         setAudioUrl('');
     }
-
+    const handleSubmit = async () => {
+        try {
+            await submitData();
+            toast.success('提交成功！');
+            
+            window.location.href = "/videolab";
+        } catch (error) {
+            console.error('提交失败:', error);
+            toast.error('提交失败，请重试');
+        }
+    };
     const onDrop = useCallback((acceptedFiles: File[]) => {
         // 当用户重新上传文件时，重置所有相关状态
         clearData();
@@ -44,7 +55,7 @@ export default function UploadScreen({ onBack }: { onBack: () => void }) {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
         accept: {
-            "audio/*": [".mp3", ".wav", ".m4a", ".aac", ".ogg"],
+            "audio/*": [".mp3", ".wav", ".m4a"],
         },
         maxSize: 20 * 1024 * 1024, // 20MB
     })
@@ -87,18 +98,44 @@ export default function UploadScreen({ onBack }: { onBack: () => void }) {
             return;
         }
         try {
-            // 上传音频文件
-            const objectKey = `audio-${uuidv4()}`; // 生成唯一的objectKey
+            // 获取文件扩展名
+            const fileExtension = uploadFile.name.split('.').pop() || '';
+
+            // 上传音频文件，添加文件扩展名到 objectKey
+            const objectKey = `audio-${uuidv4()}.${fileExtension}`; // 生成唯一的objectKey并添加文件扩展名
             const presignedURL = await generatePresignedURL(objectKey)
-            
+
             toast.info('正在上传音频...');
             await uploadToTencentCloud(uploadFile, presignedURL.data)
             setUploadComplete(true)
-            
+
             const audioUrlTemp = `https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/${objectKey}`;
             setAudioUrl(audioUrlTemp);
-            
-            toast.success('音频上传成功!')
+
+            toast.success('音频上传成功!');
+
+            // 调用声音克隆接口
+            setIsCloning(true);
+            try {
+                const response = await instance.post('/characters/uploadCharacterVoice', { audioUrl: audioUrlTemp });
+                
+                // 判断返回结果
+                if (response.data && response.data.data) {
+                    toast.success('声音克隆成功!');
+                    setVoiceId(response.data.data.voiceId);
+                    setFileId(response.data.data.fileId);
+                } else {
+                    // 如果后端返回了错误信息，则显示该信息
+                    const errorMessage = response.data?.msg || '声音克隆失败，请重试!';
+                    console.error('声音克隆失败:', errorMessage);
+                    toast.error(errorMessage);
+                }
+            } catch (error) {
+                console.error('声音克隆失败:', error);
+                toast.error('声音克隆失败，请重试!');
+            } finally {
+                setIsCloning(false);
+            }
         } catch (error) {
             console.log(error)
             toast.error('音频上传失败!')
@@ -110,7 +147,7 @@ export default function UploadScreen({ onBack }: { onBack: () => void }) {
         //跳转到 home页面
         window.location.href = "/home";
     }
-    
+
     return (
         <div className="min-h-screen bg-gray-100">
             <div className="flex justify-between items-center p-6">
@@ -135,20 +172,27 @@ export default function UploadScreen({ onBack }: { onBack: () => void }) {
                         </div>
 
                         <div
-                            {...getRootProps()}
+                            {...(isCloning ? {} : getRootProps())}
                             className={`
-                            border-2 border-dashed rounded-lg p-8
-                            flex flex-col items-center justify-center
-                            cursor-pointer transition-colors
-                            ${isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300"}
-                          `}
+                                border-2 border-dashed rounded-lg p-8
+                                flex flex-col items-center justify-center
+                                ${isCloning ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}
+                                transition-colors
+                                ${isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300"}
+                                `}
                         >
-                            <input {...getInputProps()} />
+                            <input {...(isCloning ? {} : getInputProps())} disabled={isCloning} />
                             <Music className="w-8 h-8 text-gray-400 mb-4" />
                             <div className="text-center">
-                                <p className="text-blue-600 font-medium">点击上传文件</p>
-                                <p className="text-gray-600">或拖放文件到此处</p>
-                                <p className="text-sm text-gray-500 mt-2">音频文件，每个最大20MB</p>
+                                <p className="text-blue-600 font-medium">
+                                    {isCloning ? '正在克隆声音...' : '点击上传文件'}
+                                </p>
+                                {!isCloning && (
+                                    <>
+                                        <p className="text-gray-600">或拖放文件到此处</p>
+                                        <p className="text-sm text-gray-500 mt-2">音频文件，每个最大20MB</p>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -184,12 +228,15 @@ export default function UploadScreen({ onBack }: { onBack: () => void }) {
                                 返回
                             </Button>
                             {isFormComplete && (
-                                <Button onClick={submitData} className="rounded-full border-gray-300 ">
-                                    完成
+                                <Button
+                                    onClick={handleSubmit}
+                                    className="rounded-full border-gray-300"
+                                    disabled={isCloning}
+                                >
+                                    {isCloning ? '克隆中...' : '完成'}
                                 </Button>
                             )}
                         </div>
-
                     </div>
                 </div>
             </div>

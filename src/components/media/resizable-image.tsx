@@ -1,9 +1,7 @@
 "use client"
-
-import type React from "react"
 import {useCallback} from "react"
 import {Rnd} from "react-rnd"
-
+import {DraggableData, DraggableEvent} from "react-draggable"
 interface ResizableImageProps {
     src: string
     width: number
@@ -16,7 +14,6 @@ interface ResizableImageProps {
     isSelected: boolean
 }
 
-
 export function ResizableImage({
                                    src,
                                    width,
@@ -28,6 +25,7 @@ export function ResizableImage({
                                    onSelect,
                                    isSelected,
                                }: ResizableImageProps) {
+                                
     const handleResizeStop = useCallback(
         (
             e: MouseEvent | TouchEvent,
@@ -47,20 +45,10 @@ export function ResizableImage({
     )
 
     const handleDragStop = useCallback(
-        (e: MouseEvent | TouchEvent, data: { x: number; y: number }) => {
+        (_: DraggableEvent, data: DraggableData) => {
             onResize({x: data.x, y: data.y})
         },
         [onResize],
-    )
-
-    const handleRotate = useCallback(
-        (event: MouseEvent) => {
-            const centerX = x + width / 2
-            const centerY = y + height / 2
-            const angle = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI)
-            onResize({rotation: angle})
-        },
-        [x, y, width, height, onResize],
     )
 
     return (
@@ -69,15 +57,14 @@ export function ResizableImage({
             position={{x, y}}
             onDragStop={handleDragStop}
             onResizeStop={handleResizeStop}
-            onMouseDown={(e: globalThis.MouseEvent) => {
-                console.log(e)
+            onMouseDown={(e: MouseEvent) => {
                 e.stopPropagation()
                 onSelect()
             }}
             style={{transform: `rotate(${rotation}deg)`}}
         >
             <div className={`w-full h-full ${isSelected ? "outline outline-1 outline-blue-500" : ""}`}>
-                <img src={src || "/placeholder.svg"} alt="Resizable element" className="w-full h-full object-cover"/>
+                <img src={src} alt="Resizable element" draggable="false" className="w-full h-full object-cover"/>
                 {isSelected && (
                     <>
                         <div
@@ -97,23 +84,6 @@ export function ResizableImage({
                         </div>
                         <div
                             className="absolute left-0 top-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-ew-resize">
-                            <div
-                                className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"/>
-                        </div>
-                        <div
-                            className="absolute top-0 right-0 w-3 h-3 bg-white border border-blue-500 rounded-full translate-x-1/2 -translate-y-1/2 cursor-pointer"
-                            onMouseDown={(e) => {
-                                e.stopPropagation()
-                                document.addEventListener("mousemove", handleRotate)
-                                document.addEventListener(
-                                    "mouseup",
-                                    () => {
-                                        document.removeEventListener("mousemove", handleRotate)
-                                    },
-                                    {once: true},
-                                )
-                            }}
-                        >
                             <div
                                 className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"/>
                         </div>

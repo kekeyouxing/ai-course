@@ -1,9 +1,17 @@
 // src/context/VoiceCloningContext.tsx
+import instance from '@/api/axios';
 import React, {createContext, Dispatch, SetStateAction, useContext, useState} from 'react';
+interface AliyunImageProcessResponse {
+    checkPass: boolean;
+    faceBBox: number[];
+    extBBox: number[];
+}
 
 interface VoiceCloningContextProps {
     voiceName: string;
     setVoiceName: (name: string) => void;
+    voiceId: string;
+    setVoiceId: (id: string) => void;
     language: "chinese" | "english";
     setLanguage: Dispatch<SetStateAction<"chinese" | "english">>;
     gender: "male" | "female";
@@ -12,6 +20,10 @@ interface VoiceCloningContextProps {
     setAudioUrl: (url: string | null) => void;
     avatarUrl: string | null;
     setAvatarUrl: (url: string | null) => void;
+    detectionResult: AliyunImageProcessResponse | null;
+    setDetectionResult: (result: AliyunImageProcessResponse) => void;
+    fileId: number;
+    setFileId: (id: number) => void;
     submitData: () => void;
     discardData: () => void;
 }
@@ -24,22 +36,22 @@ export const VoiceCloningProvider: React.FC<{ children: React.ReactNode }> = ({c
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [language, setLanguage] = useState<"chinese" | "english">("chinese");
+    const [detectionResult, setDetectionResult] = useState<AliyunImageProcessResponse | null>(null);
+    const [voiceId, setVoiceId] = useState("");
+    const [fileId, setFileId] = useState(0);
     const submitData = async () => {
-        const data = {voiceName, gender, avatarUrl};
+        const data = {voiceName, gender, avatarUrl, detectionResult, audioUrl, voiceId, language, fileId};
         try {
-            const response = await fetch('/api/submit', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-            if (!response.ok) {
-                throw new Error('Failed to submit data');
+            const response = await instance.post('/characters/create', data);
+            if (response.status !== 200) {
+                throw new Error('提交数据失败');
             }
-            console.log('Data submitted successfully');
+            if (response.data.code !== 0) {
+                throw new Error('创建失败');
+            }
+            console.log('数据提交成功');
         } catch (error) {
-            console.error('Error submitting data:', error);
+            console.error('提交数据时出错:', error);
         }
     };
 
@@ -57,6 +69,8 @@ export const VoiceCloningProvider: React.FC<{ children: React.ReactNode }> = ({c
             value={{
                 voiceName,
                 setVoiceName,
+                voiceId,
+                setVoiceId,
                 gender,
                 setGender,
                 audioUrl,
@@ -65,6 +79,10 @@ export const VoiceCloningProvider: React.FC<{ children: React.ReactNode }> = ({c
                 discardData,
                 avatarUrl,
                 setAvatarUrl,
+                detectionResult,
+                setDetectionResult,
+                fileId,
+                setFileId,
                 language,
                 setLanguage,
             }}>

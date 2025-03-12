@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, CirclePlay, Trash, X, FileIcon, Mic, MicOff } from "lucide-react"
+import { CheckCircle, CirclePlay, Trash, X, FileIcon, Mic} from "lucide-react"
 import { toast } from "sonner";
 import { useVoiceCloning } from '@/hooks/VoiceCloningContext';
 import instance_oss from "@/api/axios-oss";
@@ -164,11 +164,11 @@ export function VideoRecorder() {
                     return;
                 }
                 try {
-                    // 上传音频文件
-                    const objectKey = `audio-${uuidv4()}`; // 生成唯一的objectKey
+                    // 上传音频文件，添加文件扩展名到 objectKey
+                    const fileExtension = audioBlob.type.split('/').pop() || 'mp3';
+                    const objectKey = `audio-${uuidv4()}.${fileExtension}`; // 生成唯一的objectKey并添加文件扩展名
                     const presignedURL = await generatePresignedURL(objectKey);
                 
-                    toast.info('正在上传音频...');
                     await uploadToTencentCloud(audioBlob, presignedURL.data, 'audio/mp3');
                     setUploadComplete(true);
                     
