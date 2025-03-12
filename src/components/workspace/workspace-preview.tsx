@@ -1,9 +1,9 @@
 "use client"
 
 import { useRef } from "react"
-import { ResizableText } from "@/components/media/resizable-text"
-import { ResizableImage } from "@/components/media/resizable-image"
-import { ResizableAvatar } from "@/components/media/resizable-avatar"
+import { ResizableText } from "@/components/workspace/resizable-text"
+import { ResizableImage } from "@/components/workspace/resizable-image"
+import { ResizableAvatar } from "@/components/workspace/resizable-avatar"
 
 interface TextElement {
     content: string

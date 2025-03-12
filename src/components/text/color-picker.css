@@ -1,0 +1,45 @@
+/* 自定义颜色选择器样式 */
+.custom-color-picker .react-colorful {
+    width: 100%;
+    height: 140px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  /* 减小圆点大小 */
+  .custom-color-picker .react-colorful__pointer {
+    width: 12px !important;
+    height: 12px !important;
+    border-radius: 6px !important;
+    border: 2px solid white !important;
+    box-shadow: 0 0 1px rgba(0, 0, 0, 0.5) !important;
+  }
+  
+  /* 改进饱和度/亮度选择器 */
+  .custom-color-picker .react-colorful__saturation {
+    border-radius: 4px !important;
+    border-bottom: none !important;
+    margin-bottom: 8px;
+  }
+  
+  /* 改进色相选择器 */
+  .custom-color-picker .react-colorful__hue {
+    height: 12px !important;
+    border-radius: 6px !important;
+  }
+  
+  /* 预设颜色按钮悬停效果 */
+  .custom-color-picker + div button:hover {
+    transform: scale(1.1);
+    transition: transform 0.2s ease;
+    z-index: 10;
+  }
+  
+  /* 颜色值显示框样式 */
+  .custom-color-picker + div + div > div:last-child {
+    font-family: monospace;
+    justify-content: center;
+    font-weight: 500;
+  }
+  
+  

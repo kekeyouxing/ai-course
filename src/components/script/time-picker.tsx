@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Clock, ChevronUp, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +20,9 @@ export default function TimePicker({
   isOpen,
   onToggle
 }: TimePickerProps) {
+  // 添加一个内部状态来跟踪输入框的值
+  const [inputValue, setInputValue] = useState<string>(value.toString());
+
   const increaseTime = () => {
     if (value < 99) {
       onChange(value + 1)
@@ -32,11 +36,28 @@ export default function TimePicker({
   }
 
   const handleTimeInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = parseInt(e.target.value)
+    const newInputValue = e.target.value;
+    setInputValue(newInputValue);
+    
+    // 只有当输入不为空且是有效数字时才更新父组件的值
+    const newValue = parseInt(newInputValue);
     if (!isNaN(newValue) && newValue >= 1 && newValue <= 99) {
-      onChange(newValue)
+      onChange(newValue);
     }
   }
+  
+  // 处理输入框失去焦点的情况
+  const handleBlur = () => {
+    // 如果输入为空或无效，恢复为当前有效值
+    if (inputValue === '' || isNaN(parseInt(inputValue))) {
+      setInputValue(value.toString());
+    }
+  }
+
+  // 确保内部状态与外部值同步
+  useEffect(() => {
+    setInputValue(value.toString());
+  }, [value]);
 
   return (
     <div className="relative">
@@ -55,12 +76,12 @@ export default function TimePicker({
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center">
               <Input
-                type="number"
-                min={1}
-                max={99}
-                value={value}
+                type="text"
+                inputMode="numeric"
+                value={inputValue}
                 onChange={handleTimeInputChange}
-                className="w-20 h-7 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                onBlur={handleBlur}
+                className="w-20 h-7 text-center"
               />
               <span className="ml-1 text-sm">秒</span>
             </div>

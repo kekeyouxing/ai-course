@@ -1,14 +1,15 @@
 "use client"
 import { useCallback, useEffect, useState } from "react"
 import { ResizablePanel, ResizablePanelGroup, ResizableHandle } from "@/components/ui/resizable"
-import ScriptContent from "@/components/editor/script-content";
-import { BackgroundContent } from "@/components/video/background-content";
-import { VideoHeader } from "@/components/video/video-header";
-import { VideoPreview } from "@/components/video/video-preview";
-import { VideoTimeline } from "@/components/video/video-timeline";
-import { VideoTabs } from "@/components/video/video-tabs";
+import ScriptContent from "@/components/script/script-content";
+import { BackgroundContent } from "@/components/background/background-content";
+import { VideoHeader } from "@/components/workspace/workspace-header";
+import { VideoPreview } from "@/components/workspace/workspace-preview";
+import { VideoTimeline } from "@/components/workspace/workspace-timeline";
+import { VideoTabs } from "@/components/workspace/workspace-tabs";
 import placeholderImage from "@/assets/avatar.png"
 import AvatarContent from "@/components/avatar/avatar-content";
+import TextContent from "@/components/text/text-content";
 
 interface TextElement {
     content: string
@@ -219,6 +220,8 @@ export default function VideoEditor() {
                 return <AvatarContent />
             case "Background":
                 return <BackgroundContent />
+            case "Text":
+                return <TextContent/>
             // Add more cases for other tabs
             default:
                 return <div>Content for {activeTab}</div>

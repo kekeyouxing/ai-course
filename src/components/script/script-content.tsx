@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import { Mic, Play, Sparkles, ImportIcon as Translate } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import CustomEditor from "@/components/editor/custom-editor"
-import TimePicker from "@/components/editor/time-picker"
+import CustomEditor from "@/components/script/custom-editor"
+import TimePicker from "@/components/script/time-picker"
 
 interface Avatar {
   id: string
