@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useCallback, useMemo, useImperativeHandle } from "react"
-import { createEditor, Descendant, Editor, Transforms, Text, Element as SlateElement, BaseEditor } from "slate"
+import { createEditor, Descendant, Editor, Transforms, Text, Element as SlateElement, BaseEditor, Range } from "slate"
 import { Slate, Editable, withReact, ReactEditor } from "slate-react"
 import { withHistory, HistoryEditor } from "slate-history"
 
@@ -162,6 +162,78 @@ const CustomEditor = React.forwardRef<
     Transforms.move(editor, { distance: 1 })
   }, [editor])
 
+  // 删除时间标签
+  const deleteTimeTag = useCallback(() => {
+    // 获取当前选择
+    const { selection } = editor
+    
+    if (selection) {
+      // 检查当前位置及其周围是否有时间标签
+      // 首先检查当前选择位置
+      const timeTagEntries = Array.from(Editor.nodes(editor, {
+        at: selection,
+        match: n => SlateElement.isElement(n) && n.type === 'time-tag',
+      }));
+      
+      let timeTagEntry = timeTagEntries.length > 0 ? timeTagEntries[0] : null;
+      
+      // 如果当前位置没有找到，检查前一个位置（用于退格键）
+      if (!timeTagEntry && !Range.isCollapsed(selection)) {
+        const [start] = Range.edges(selection);
+        const prevPoint = Editor.before(editor, start);
+        
+        if (prevPoint) {
+          const prevEntries = Array.from(Editor.nodes(editor, {
+            at: prevPoint,
+            match: n => SlateElement.isElement(n) && n.type === 'time-tag',
+          }));
+          
+          timeTagEntry = prevEntries.length > 0 ? prevEntries[0] : null;
+        }
+      }
+      
+      // 如果前一个位置没有找到，检查后一个位置（用于删除键）
+      if (!timeTagEntry) {
+        const [end] = Range.edges(selection);
+        const nextPoint = Editor.after(editor, end);
+        
+        if (nextPoint) {
+          const nextEntries = Array.from(Editor.nodes(editor, {
+            at: nextPoint,
+            match: n => SlateElement.isElement(n) && n.type === 'time-tag',
+          }));
+          
+          timeTagEntry = nextEntries.length > 0 ? nextEntries[0] : null;
+        }
+      }
+      
+      // 如果找到时间标签，删除它
+      if (timeTagEntry) {
+        Transforms.removeNodes(editor, { at: timeTagEntry[1] });
+        return true;
+      }
+    }
+    
+    return false;
+  }, [editor]);
+
+  // 处理键盘事件
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      // 当按下删除键或退格键时
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        // 尝试删除时间标签
+        const deleted = deleteTimeTag()
+        
+        // 如果成功删除了标签，阻止默认行为
+        if (deleted) {
+          event.preventDefault()
+        }
+      }
+    },
+    [deleteTimeTag]
+  )
+
   // 暴露方法给父组件
   useImperativeHandle(
     ref,
@@ -188,6 +260,7 @@ const CustomEditor = React.forwardRef<
           placeholder={placeholder}
           renderElement={Element}
           className="outline-none min-h-full"
+          onKeyDown={handleKeyDown}
         />
       </Slate>
     </div>
