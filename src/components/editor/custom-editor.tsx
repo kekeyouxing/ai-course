@@ -101,14 +101,16 @@ const deserialize = (text: string): Descendant[] => {
 
 // 自定义渲染元素
 const Element = (props: any) => {
-  const { attributes, children, element } = props
+  const { attributes, children, element, selected } = props
 
   switch (element.type) {
     case 'time-tag':
       return (
         <span
           {...attributes}
-          className="inline-flex items-center px-1.5 py-0.5 rounded bg-primary/10 text-primary text-xs font-medium mx-0.5"
+          className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium mx-0.5 ${
+            selected ? 'bg-primary/10 text-primary ring-2 ring-primary' : 'bg-primary/10 text-primary'
+          }`}
           contentEditable={false}
         >
           <span className="mr-1">暂停</span>
@@ -258,7 +260,14 @@ const CustomEditor = React.forwardRef<
       <Slate editor={editor} initialValue={internalValue} onChange={handleChange}>
         <Editable
           placeholder={placeholder}
-          renderElement={Element}
+          renderElement={(props) => {
+            // 添加选中状态到元素属性
+            const path = ReactEditor.findPath(editor, props.element);
+            const selected = editor.selection && path.every((node, i) => 
+              editor.selection && i < editor.selection.anchor.path.length && node === editor.selection.anchor.path[i]
+            );
+            return <Element {...props} selected={selected} />;
+          }}
           className="outline-none min-h-full"
           onKeyDown={handleKeyDown}
         />
