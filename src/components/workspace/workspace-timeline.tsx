@@ -30,13 +30,15 @@ interface AvatarElement {
     rotation: number
 }
 
+// Update the Scene interface in workspace-timeline.tsx to match the one in video-edioter.tsx
 interface Scene {
     title: string
     image: ImageElement | null
-    text: TextElement | null
+    texts: TextElement[]  // Changed from text: TextElement | null
     avatar: AvatarElement | null
 }
 
+// Update the component props
 interface VideoTimelineProps {
     scenes: Scene[]
     activeScene: number
@@ -44,12 +46,8 @@ interface VideoTimelineProps {
     addNewScene: () => void
 }
 
-export function VideoTimeline({
-    scenes,
-    activeScene,
-    handleSceneClick,
-    addNewScene
-}: VideoTimelineProps) {
+// Then in the component, update any references to scene.text to use scene.texts[0] or similar
+export function VideoTimeline({ scenes, activeScene, handleSceneClick, addNewScene }: VideoTimelineProps) {
     return (
         <div className="h-[200px] border-t bg-white py-8">
             <div className="flex items-center mb-4">

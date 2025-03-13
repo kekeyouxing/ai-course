@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { AlignLeft, AlignCenter, AlignRight, AlignJustify } from "lucide-react"
 
-type TextAlignment = "left" | "center" | "right" | "justify"
+type TextAlignment = "left" | "center" | "right"
 
 interface TextAlignmentSelectorProps {
   defaultAlignment?: TextAlignment
@@ -61,18 +61,6 @@ export function TextAlignmentSelector({
         aria-label="Align text right"
       >
         <AlignRight className="h-4 w-4" />
-      </button>
-
-      <button
-        type="button"
-        onClick={() => handleAlignmentChange("justify")}
-        className={`flex items-center justify-center h-9 w-9 rounded-md transition-colors ${
-          activeAlignment === "justify" ? "bg-white shadow-sm" : "hover:bg-gray-200"
-        }`}
-        aria-pressed={activeAlignment === "justify"}
-        aria-label="Justify text"
-      >
-        <AlignJustify className="h-4 w-4" />
       </button>
     </div>
   )

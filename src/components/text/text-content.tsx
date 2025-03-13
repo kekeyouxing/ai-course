@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Bold, Italic, RotateCcw, Type } from "lucide-react"
 import { HexColorPicker } from "react-colorful"
 import { Button } from "@/components/ui/button"
@@ -12,22 +12,49 @@ import { Input } from "@/components/ui/input"
 
 import "./color-picker.css" // 导入自定义样式
 
-type TextAlignment = "left" | "center" | "right" | "justify"
+type TextAlignment = "left" | "center" | "right"
+// 定义文本元素接口
+interface TextElement {
+  content: string;
+  fontSize?: number;
+  fontFamily?: string;
+  fontColor?: string;
+  backgroundColor?: string;
+  bold?: boolean;
+  italic?: boolean;
+  alignment?: TextAlignment;
+  rotation?: number;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+}
 
-export default function TextContent() {
+// 组件属性接口
+interface TextContentProps {
+  textElement?: TextElement;
+  onUpdate: (updates: Partial<TextElement>) => void;
+}
+
+export default function TextContent({ textElement, onUpdate }: TextContentProps) {
   const [activeTab, setActiveTab] = useState("format")
-  const [textAlignment, setTextAlignment] = useState<TextAlignment>("left")
-  const [fontColor, setFontColor] = useState("#000000")
-  const [backgroundColor, setBackgroundColor] = useState("#FFFFFF")
-  const [boldActive, setBoldActive] = useState(false)
-  const [italicActive, setItalicActive] = useState(false)
-  const [rotation, setRotation] = useState(0)
+  const [textAlignment, setTextAlignment] = useState<TextAlignment>(textElement?.alignment || "left")
+  const [fontColor, setFontColor] = useState(textElement?.fontColor || "#000000")
+  const [backgroundColor, setBackgroundColor] = useState(textElement?.backgroundColor || "#FFFFFF")
+  const [boldActive, setBoldActive] = useState(textElement?.bold || false)
+  const [italicActive, setItalicActive] = useState(textElement?.italic || false)
+  const [rotation, setRotation] = useState(textElement?.rotation || 0)
   const [layout, setLayout] = useState({
-    x: 0,
-    y: 0,
-    width: 100,
-    height: 100,
+    x: textElement?.x || 0,
+    y: textElement?.y || 0,
+    width: textElement?.width || 100,
+    height: textElement?.height || 100,
   })
+  const [fontFamily, setFontFamily] = useState(textElement?.fontFamily || "lora")
+  const [fontSize, setFontSize] = useState(textElement?.fontSize?.toString() || "24")
+
+  // 字体大小预设选项
+  const fontSizeOptions = [18, 24, 32, 36, 48, 56, 64, 72, 96, 120, 144, 180, 210, 225, 240];
 
   // 预设颜色
   const presetColors = [
@@ -66,28 +93,97 @@ export default function TextContent() {
     "#79B8FF",
   ]
 
+  // 处理文本对齐变化
   const handleTextAlignmentChange = (alignment: TextAlignment) => {
     setTextAlignment(alignment)
+    console.log("Text alignment changed:", alignment)
+    onUpdate({ alignment })
   }
 
+  // 处理字体样式变化
+  const handleBoldChange = () => {
+    const newValue = !boldActive
+    setBoldActive(newValue)
+    onUpdate({ bold: newValue })
+  }
+
+  const handleItalicChange = () => {
+    const newValue = !italicActive
+    setItalicActive(newValue)
+    onUpdate({ italic: newValue })
+  }
+
+  // 处理字体选择变化
+  const handleFontFamilyChange = (value: string) => {
+    setFontFamily(value)
+    onUpdate({ fontFamily: value })
+  }
+
+  // 处理字体大小变化
+  const handleFontSizeChange = (value: string) => {
+    setFontSize(value)
+    onUpdate({ fontSize: parseInt(value) })
+  }
+
+  // 处理颜色变化
+  const handleFontColorChange = (color: string) => {
+    setFontColor(color)
+    onUpdate({ fontColor: color })
+  }
+
+  const handleBackgroundColorChange = (color: string) => {
+    setBackgroundColor(color)
+    onUpdate({ backgroundColor: color })
+  }
+
+  // 处理旋转变化
+  const handleRotationChange = (value: number[]) => {
+    setRotation(value[0])
+    onUpdate({ rotation: value[0] })
+  }
+
+  // 处理布局变化
   const handleLayoutChange = (property: keyof typeof layout, value: number) => {
-    setLayout((prev) => ({
-      ...prev,
-      [property]: value,
-    }))
+    setLayout(prev => {
+      const newLayout = { ...prev, [property]: value }
+      onUpdate({ [property]: value })
+      return newLayout
+    })
   }
 
+  // 当 textElement 属性变化时更新本地状态
+  useEffect(() => {
+    if (textElement) {
+      setTextAlignment(textElement.alignment || "left");
+      setFontColor(textElement.fontColor || "#000000");
+      setBackgroundColor(textElement.backgroundColor || "#FFFFFF");
+      setBoldActive(textElement.bold || false);
+      setItalicActive(textElement.italic || false);
+      setRotation(textElement.rotation || 0);
+      setLayout({
+        x: textElement.x || 0,
+        y: textElement.y || 0,
+        width: textElement.width || 100,
+        height: textElement.height || 100,
+      });
+    }
+  }, [textElement]);
+
+    // 如果没有文本元素且有创建文本的回调，显示创建选项
+    if (!textElement) {
+      return (
+        <div className="p-4 flex flex-col items-center justify-center h-full">
+        </div>
+      );
+  }
   return (
     <div className="w-full max-w-md mx-auto overflow-hidden bg-white">
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-gray-100">
         <div className="flex items-center gap-4">
           <Type className="h-6 w-6" />
-          <span className="text-lg">Title text</span>
+          <span className="text-lg">文本</span>
         </div>
-        <Button variant="outline" className="rounded-full px-4 py-2">
-          Remove
-        </Button>
       </div>
 
       {/* Custom Tabs */}
@@ -119,8 +215,8 @@ export default function TextContent() {
             <div className="space-y-6">
               {/* Font Family */}
               <div className="flex items-center justify-between">
-                <label className="text-base font-normal text-gray-800">Font family</label>
-                <Select defaultValue="lora">
+                <label className="text-base font-normal text-gray-800">字体</label>
+                <Select value={fontFamily} onValueChange={handleFontFamilyChange}>
                   <SelectTrigger className="w-36">
                     <SelectValue placeholder="Select font" />
                   </SelectTrigger>
@@ -134,13 +230,13 @@ export default function TextContent() {
 
               {/* Font Style */}
               <div className="flex items-center justify-between">
-                <label className="text-base font-normal text-gray-800">Font style</label>
+                <label className="text-base font-normal text-gray-800">字体样式</label>
                 <div className="flex bg-gray-100 rounded-md p-1 gap-1">
                   <Button
                     variant="ghost"
                     size="sm"
                     className={`h-8 w-8 rounded-md ${boldActive ? "bg-white shadow-sm" : ""}`}
-                    onClick={() => setBoldActive(!boldActive)}
+                    onClick={handleBoldChange}
                   >
                     <Bold className="h-4 w-4" />
                   </Button>
@@ -148,7 +244,7 @@ export default function TextContent() {
                     variant="ghost"
                     size="sm"
                     className={`h-8 w-8 rounded-md ${italicActive ? "bg-white shadow-sm" : ""}`}
-                    onClick={() => setItalicActive(!italicActive)}
+                    onClick={handleItalicChange}
                   >
                     <Italic className="h-4 w-4" />
                   </Button>
@@ -157,18 +253,45 @@ export default function TextContent() {
 
               {/* Font Size */}
               <div className="flex items-center justify-between">
-                <label className="text-base font-normal text-gray-800">Font size</label>
-                <Select defaultValue="225">
-                  <SelectTrigger className="w-36">
-                    <SelectValue placeholder="Select size" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="100">100</SelectItem>
-                    <SelectItem value="150">150</SelectItem>
-                    <SelectItem value="225">225</SelectItem>
-                    <SelectItem value="300">300</SelectItem>
-                  </SelectContent>
-                </Select>
+                <label className="text-base font-normal text-gray-800">字体大小</label>
+                <div className="relative w-28">
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={fontSize}
+                    onChange={(e) => handleFontSizeChange(e.target.value)}
+                    className="h-8 text-sm pr-8"
+                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 absolute right-0 top-0 rounded-l-none"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="m6 9 6 6 6-6"/>
+                        </svg>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-28 p-0" align="end" alignOffset={0} sideOffset={5}>
+                      <div className="max-h-[200px] overflow-auto">
+                        {fontSizeOptions.map((size) => (
+                          <Button
+                            key={size}
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleFontSizeChange(size.toString())}
+                            className="w-full justify-start rounded-none text-sm h-8"
+                          >
+                            {size}
+                          </Button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
 
               {/* Text Align - Using our new component */}
@@ -192,7 +315,7 @@ export default function TextContent() {
                   </PopoverTrigger>
                   <PopoverContent className="w-64 p-3">
                     <div className="mb-3 custom-color-picker">
-                      <HexColorPicker color={fontColor} onChange={setFontColor} />
+                      <HexColorPicker color={fontColor} onChange={handleFontColorChange} />
                     </div>
                     <div className="grid grid-cols-5 gap-2 mb-3">
                       {presetColors.map((color) => (
@@ -201,7 +324,7 @@ export default function TextContent() {
                           variant="outline"
                           className="h-6 w-6 p-0 rounded-md"
                           style={{ backgroundColor: color }}
-                          onClick={() => setFontColor(color)}
+                          onClick={() => handleFontColorChange(color)}
                         />
                       ))}
                     </div>
@@ -230,7 +353,7 @@ export default function TextContent() {
                   </PopoverTrigger>
                   <PopoverContent className="w-64 p-3">
                     <div className="mb-3 custom-color-picker">
-                      <HexColorPicker color={backgroundColor} onChange={setBackgroundColor} />
+                      <HexColorPicker color={backgroundColor} onChange={handleBackgroundColorChange} />
                     </div>
                     <div className="grid grid-cols-5 gap-2 mb-3">
                       {backgroundPresetColors.map((color) => (
@@ -239,7 +362,7 @@ export default function TextContent() {
                           variant="outline"
                           className="h-6 w-6 p-0 rounded-md"
                           style={{ backgroundColor: color }}
-                          onClick={() => setBackgroundColor(color)}
+                          onClick={() => handleBackgroundColorChange(color)}
                         />
                       ))}
                     </div>
@@ -268,7 +391,7 @@ export default function TextContent() {
                     min={0}
                     max={360}
                     step={1}
-                    onValueChange={(value) => setRotation(value[0])}
+                    onValueChange={handleRotationChange}
                     className="w-full"
                   />
                 </div>

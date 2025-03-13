@@ -12,6 +12,12 @@ interface ResizableTextProps {
     width: number
     height: number
     rotation: number
+    fontFamily?: string
+    fontColor?: string
+    backgroundColor?: string
+    bold?: boolean
+    italic?: boolean
+    alignment?: "left" | "center" | "right"
     onTextChange: (newText: string) => void
     onResize: (newSize: Partial<ResizableTextProps>) => void
     onSelect: (e: MouseEvent) => void
@@ -26,6 +32,12 @@ export function ResizableText({
     width,
     height,
     rotation,
+    fontFamily = "lora",
+    fontColor = "#000000",
+    backgroundColor = "#FFFFFF",
+    bold = false,
+    italic = false,
+    alignment = "center",
     onTextChange,
     onResize,
     onSelect,
@@ -63,6 +75,17 @@ export function ResizableText({
         [onResize],
     )
 
+    // 生成文本样式
+    const textStyle = {
+        fontSize: `${fontSize}px`,
+        fontFamily,
+        color: fontColor,
+        backgroundColor,
+        fontWeight: bold ? 'bold' : 'normal',
+        fontStyle: italic ? 'italic' : 'normal',
+        textAlign: alignment,
+    };
+
     return (
         <Rnd
             size={{ width, height }}
@@ -73,11 +96,13 @@ export function ResizableText({
                 e.stopPropagation()
                 onSelect(e)
             }}
-            style={{ transform: `rotate(${rotation}deg)` }}
         >
             <div
-                className={`w-full h-full flex items-center justify-center ${isSelected ? "outline outline-1 outline-blue-500" : ""}`}
-                style={{ fontSize: `${fontSize}px` }}
+                className={`w-full h-full flex items-center ${isSelected ? "outline outline-1 outline-blue-500" : ""}`}
+                style={{
+                    ...textStyle,
+                    transform: `rotate(${rotation}deg)`
+                }}
                 onDoubleClick={() => setIsEditing(true)}
             >
                 {isEditing ? (
@@ -89,12 +114,16 @@ export function ResizableText({
                             setIsEditing(false)
                             onTextChange(localContent)
                         }}
-                        className="w-full h-full text-center bg-transparent outline-none"
-                        style={{ fontSize: "inherit" }}
+                        onMouseDown={(e) => e.stopPropagation()} // 阻止事件冒泡
+                        className="w-full h-full bg-transparent outline-none"
+                        style={{ fontSize: "inherit", fontFamily: "inherit", color: "inherit", fontWeight: "inherit", fontStyle: "inherit", textAlign: "inherit" }}
                     />
                 ) : (
-                    localContent
+                    <div className="w-full" style={{ textAlign: "inherit" }}>
+                        {localContent}
+                    </div>
                 )}
+                {/* 保持原有的控制点代码 */}
                 {isSelected && (
                     <>
                         <div

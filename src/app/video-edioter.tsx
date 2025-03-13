@@ -1,15 +1,17 @@
 "use client"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { ResizablePanel, ResizablePanelGroup, ResizableHandle } from "@/components/ui/resizable"
 import ScriptContent from "@/components/script/script-content";
 import { BackgroundContent } from "@/components/background/background-content";
 import { VideoHeader } from "@/components/workspace/workspace-header";
-import { VideoPreview } from "@/components/workspace/workspace-preview";
 import { VideoTimeline } from "@/components/workspace/workspace-timeline";
 import { VideoTabs } from "@/components/workspace/workspace-tabs";
 import placeholderImage from "@/assets/avatar.png"
 import AvatarContent from "@/components/avatar/avatar-content";
 import TextContent from "@/components/text/text-content";
+import { ResizableText } from "@/components/workspace/resizable-text"
+import { ResizableImage } from "@/components/workspace/resizable-image"
+import { ResizableAvatar } from "@/components/workspace/resizable-avatar"
 
 interface TextElement {
     content: string
@@ -19,6 +21,12 @@ interface TextElement {
     width: number
     height: number
     rotation: number
+    fontFamily?: string
+    fontColor?: string
+    backgroundColor?: string
+    bold?: boolean
+    italic?: boolean
+    alignment?: "left" | "center" | "right"
 }
 
 interface ImageElement {
@@ -42,8 +50,13 @@ interface AvatarElement {
 interface Scene {
     title: string
     image: ImageElement | null
-    text: TextElement | null
+    texts: TextElement[]  // 修改为数组类型
     avatar: AvatarElement | null
+}
+// 定义选中元素的类型
+interface SelectedElementType {
+    type: "text" | "image" | "avatar"
+    index?: number
 }
 
 export default function VideoEditor() {
@@ -53,13 +66,41 @@ export default function VideoEditor() {
         {
             title: "Title",
             image: { src: placeholderImage, width: 200, height: 300, x: 0, y: 0, rotation: 0 },
-            text: { content: "Title", fontSize: 56, x: 0, y: 0, width: 300, height: 100, rotation: 0 },
+            texts: [{  // 修改为数组
+                content: "Title",
+                fontSize: 56,
+                x: 0,
+                y: 0,
+                width: 300,
+                height: 100,
+                rotation: 0,
+                fontFamily: "lora",
+                fontColor: "#000000",
+                backgroundColor: "#FFFFFF",
+                bold: false,
+                italic: false,
+                alignment: "center"
+            }],
             avatar: null
         },
         {
             title: "Introduction",
             image: { src: placeholderImage, width: 200, height: 300, x: 0, y: 0, rotation: 0 },
-            text: { content: "Introduction", fontSize: 48, x: 0, y: 0, width: 300, height: 100, rotation: 0 },
+            texts: [{  // 修改为数组
+                content: "Introduction",
+                fontSize: 48,
+                x: 0,
+                y: 0,
+                width: 300,
+                height: 100,
+                rotation: 0,
+                fontFamily: "lora",
+                fontColor: "#000000",
+                backgroundColor: "#FFFFFF",
+                bold: false,
+                italic: false,
+                alignment: "center"
+            }],
             avatar: null
         },
     ])
@@ -77,16 +118,15 @@ export default function VideoEditor() {
     ]
     const [history, setHistory] = useState<Scene[][]>([scenes])
     const [historyIndex, setHistoryIndex] = useState<number>(0)
-    const [selectedElement, setSelectedElement] = useState<"text" | "image" | "avatar" | null>(null)
-    
-    // Function to handle element selection and update activeTab accordingly
-    const handleElementSelect = useCallback((element: "text" | "image" | "avatar" | null) => {
+    const [selectedElement, setSelectedElement] = useState<SelectedElementType | null>(null)
+
+    const handleElementSelect = useCallback((element: SelectedElementType | null) => {
         setSelectedElement(element)
-        
+
         // Update activeTab based on selected element
-        if (element === "text") {
+        if (element?.type === "text") {
             setActiveTab("Text")
-        } else if (element === "avatar") {
+        } else if (element?.type === "avatar") {
             setActiveTab("Avatar")
         }
     }, [])
@@ -112,24 +152,31 @@ export default function VideoEditor() {
 
     const handleTextChange = useCallback(
         (newText: string) => {
+            if (!selectedElement || selectedElement.type !== "text" || selectedElement.index === undefined) return;
+            
             const newScenes = [...scenes]
-            if (newScenes[activeScene].text) {
-                newScenes[activeScene].text.content = newText
+            if (newScenes[activeScene].texts[selectedElement.index]) {
+                newScenes[activeScene].texts[selectedElement.index].content = newText
             }
             updateHistory(newScenes)
         },
-        [scenes, activeScene, updateHistory],
+        [scenes, activeScene, selectedElement, updateHistory],
     )
 
-    const handleTextResize = useCallback(
-        (newSize: Partial<TextElement>) => {
+    const handleTextUpdate = useCallback(
+        (newProps: Partial<TextElement>) => {
+            if (!selectedElement || selectedElement.type !== "text" || selectedElement.index === undefined) return;
+            
             const newScenes = [...scenes]
-            if (newScenes[activeScene].text) {
-                newScenes[activeScene].text = { ...newScenes[activeScene].text, ...newSize } as TextElement
+            if (newScenes[activeScene].texts[selectedElement.index]) {
+                newScenes[activeScene].texts[selectedElement.index] = { 
+                    ...newScenes[activeScene].texts[selectedElement.index], 
+                    ...newProps 
+                } as TextElement
             }
             updateHistory(newScenes)
         },
-        [scenes, activeScene, updateHistory],
+        [scenes, activeScene, selectedElement, updateHistory],
     )
 
     const handleImageResize = useCallback(
@@ -179,7 +226,7 @@ export default function VideoEditor() {
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
                 return;
             }
-            
+
             if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
                 e.preventDefault();
                 handleUndo();
@@ -192,7 +239,7 @@ export default function VideoEditor() {
                 handleDeleteElement();
             }
         }
-        
+
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleUndo, handleRedo, selectedElement]);
@@ -200,18 +247,65 @@ export default function VideoEditor() {
     // 添加删除元素的处理函数
     const handleDeleteElement = useCallback(() => {
         if (!selectedElement) return;
-        
+
         const newScenes = [...scenes];
-        // 将选中的元素设置为 null
-        newScenes[activeScene][selectedElement] = null;
         
+        if (selectedElement.type === "text" && selectedElement.index !== undefined) {
+            // 删除指定索引的文本元素
+            newScenes[activeScene].texts.splice(selectedElement.index, 1);
+        } else if (selectedElement.type === "image") {
+            // 将选中的元素设置为 null
+            newScenes[activeScene].image = null;
+        } else if (selectedElement.type === "avatar") {
+            // 将选中的元素设置为 null
+            newScenes[activeScene].avatar = null;
+        }
+
         // 更新历史记录
         updateHistory(newScenes);
-        
+
         // 清除选中状态
         setSelectedElement(null);
     }, [scenes, activeScene, selectedElement, updateHistory]);
 
+    // 添加处理文本类型选择的函数
+    const handleSelectTextType = useCallback(
+        (type: "title" | "subtitle" | "body") => {
+            const newScenes = [...scenes]
+            // 创建新的文本元素
+            const newText: TextElement = {
+                content: type === "title" ? "标题" : type === "subtitle" ? "副标题" : "正文",
+                fontSize: type === "title" ? 56 : type === "subtitle" ? 36 : 24,
+                x: 50,
+                y: 50,
+                width: 300,
+                height: 100,
+                rotation: 0,
+                fontFamily: "lora",
+                fontColor: "#000000",
+                backgroundColor: "#FFFFFF",
+                bold: type === "title",
+                italic: false,
+                alignment: "center"
+            }
+
+            // 在当前场景中添加新的文本元素
+            if (!newScenes[activeScene].texts) {
+                newScenes[activeScene].texts = [];
+            }
+            newScenes[activeScene].texts.push(newText);
+            updateHistory(newScenes);
+
+            // 选中新添加的文本元素
+            setSelectedElement({ 
+                type: "text", 
+                index: newScenes[activeScene].texts.length - 1 
+            });
+            setActiveTab("Text");
+        },
+        [scenes, activeScene, updateHistory]
+    )
+    
     const renderTabContent = () => {
         switch (activeTab) {
             case "Script":
@@ -221,49 +315,57 @@ export default function VideoEditor() {
             case "Background":
                 return <BackgroundContent />
             case "Text":
-                return <TextContent/>
+                return <TextContent
+                    textElement={selectedElement?.type === "text" && selectedElement.index !== undefined 
+                        ? scenes[activeScene].texts[selectedElement.index] 
+                        : undefined}
+                    onUpdate={handleTextUpdate}
+                />
             // Add more cases for other tabs
             default:
                 return <div>Content for {activeTab}</div>
         }
     }
-    
+
     const [videoTitle, setVideoTitle] = useState<string>("编辑您的项目名称")
-    
+
     const addNewScene = useCallback(() => {
         const newScene: Scene = {
             title: `Scene ${scenes.length + 1}`,
             image: null,
-            text: null,
+            texts: [],  // 初始化为空数组
             avatar: null
         }
         updateHistory([...scenes, newScene])
         setActiveScene(scenes.length)
     }, [scenes, updateHistory])
-            // 在 VideoEditor 组件中添加处理头像选择的函数
-            const handleSelectAvatar = useCallback(
-                (profile: { id: string; name: string; image: string }) => {
-                    const newScenes = [...scenes]
-                    // 创建新的头像元素
-                    const newAvatar: AvatarElement = {
-                        src: profile.image,
-                        width: 150,
-                        height: 150,
-                        x: 50,
-                        y: 50,
-                        rotation: 0
-                    }
-                    
-                    // 更新当前场景的头像
-                    newScenes[activeScene].avatar = newAvatar
-                    updateHistory(newScenes)
-                    
-                    // 选中头像元素
-                    setSelectedElement("avatar")
-                    setActiveTab("Avatar")
-                },
-                [scenes, activeScene, updateHistory]
-            )
+    // 在 VideoEditor 组件中添加处理头像选择的函数
+    const handleSelectAvatar = useCallback(
+        (profile: { id: string; name: string; image: string }) => {
+            const newScenes = [...scenes]
+            // 创建新的头像元素
+            const newAvatar: AvatarElement = {
+                src: profile.image,
+                width: 150,
+                height: 150,
+                x: 50,
+                y: 50,
+                rotation: 0
+            }
+
+            // 更新当前场景的头像
+            newScenes[activeScene].avatar = newAvatar
+            updateHistory(newScenes)
+
+            // 选中头像元素
+            // setSelectedElement("avatar")
+            setActiveTab("Avatar")
+        },
+        [scenes, activeScene, updateHistory]
+    )
+    // 添加 editorRef
+    const editorRef = useRef<HTMLDivElement>(null)
+
     return (
         <div className="flex flex-col h-screen bg-white">
             {/* Top Navigation */}
@@ -275,14 +377,15 @@ export default function VideoEditor() {
                 historyIndex={historyIndex}
                 historyLength={history.length}
             />
-        
+
             <VideoTabs
                 tabs={tabs}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 onSelectAvatar={handleSelectAvatar}
+                onSelectTextType={handleSelectTextType} // 添加文本类型选择处理函数
             />
-            
+
             {/* Main Content */}
             <ResizablePanelGroup direction="horizontal" className="flex-1">
                 {/* Left Sidebar - Tools */}
@@ -294,20 +397,49 @@ export default function VideoEditor() {
                 {/* Main Editor Area */}
                 <ResizablePanel defaultSize={75}>
                     <div className="h-full flex flex-col bg-gray-100">
-                        {/* Video Preview */}
-                        <VideoPreview 
-                            scenes={scenes}
-                            activeScene={activeScene}
-                            selectedElement={selectedElement}
-                            handleTextChange={handleTextChange}
-                            handleTextResize={handleTextResize}
-                            handleImageResize={handleImageResize}
-                            handleAvatarResize={handleAvatarResize}
-                            setSelectedElement={handleElementSelect}
-                        />
+                        {/* 直接集成 VideoPreview 的内容 */}
+                        <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
+                            <div
+                                ref={editorRef}
+                                className="bg-white w-full max-w-3xl aspect-video shadow-md relative"
+                                onClick={(e: React.MouseEvent) => {
+                                    if (e.target === e.currentTarget) {
+                                        setSelectedElement(null)
+                                    }
+                                }}
+                            >
+                                {scenes[activeScene].texts.map((text, index) => (
+                                    <ResizableText
+                                        key={index}
+                                        {...text}
+                                        onTextChange={handleTextChange}
+                                        onResize={handleTextUpdate}
+                                        onSelect={() => handleElementSelect({ type: "text", index })}
+                                        isSelected={selectedElement?.type === "text" && selectedElement.index === index}
+                                    />
+                                ))}
+                                {scenes[activeScene].image && (
+                                    <ResizableImage
+                                        {...scenes[activeScene].image}
+                                        onResize={handleImageResize}
+                                        onSelect={() => handleElementSelect({ type: "image" })}
+                                        isSelected={selectedElement?.type === "image"}
+                                    />
+                                )}
+
+                                {scenes[activeScene].avatar && (
+                                    <ResizableAvatar
+                                        {...scenes[activeScene].avatar}
+                                        onResize={handleAvatarResize}
+                                        onSelect={() => handleElementSelect({ type: "avatar" })}
+                                        isSelected={selectedElement?.type === "avatar"}
+                                    />
+                                )}
+                            </div>
+                        </div>
 
                         {/* Timeline */}
-                        <VideoTimeline 
+                        <VideoTimeline
                             scenes={scenes}
                             activeScene={activeScene}
                             handleSceneClick={handleSceneClick}

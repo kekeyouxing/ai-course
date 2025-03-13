@@ -15,7 +15,6 @@ export { default as TimePicker } from './script/time-picker';
 // Video components
 export { BackgroundContent } from './background/background-content';
 export { VideoHeader } from './workspace/workspace-header';
-export { VideoPreview } from './workspace/workspace-preview';
 export { VideoRecorder } from './recording/video-recorder';
 export { VideoTabs } from './workspace/workspace-tabs';
 export { VideoTimeline } from './workspace/workspace-timeline';
