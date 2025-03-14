@@ -28,6 +28,13 @@
     border-radius: 6px !important;
   }
   
+  /* 改进透明度选择器 */
+  .custom-color-picker .react-colorful__alpha {
+    height: 12px !important;
+    border-radius: 6px !important;
+    margin-top: 8px;
+  }
+  
   /* 预设颜色按钮悬停效果 */
   .custom-color-picker + div button:hover {
     transform: scale(1.1);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Bold, Italic, RotateCcw, Type } from "lucide-react"
-import { HexColorPicker } from "react-colorful"
+import { HexColorPicker, RgbaColor, RgbaColorPicker } from "react-colorful"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -40,7 +40,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
   const [activeTab, setActiveTab] = useState("format")
   const [textAlignment, setTextAlignment] = useState<TextAlignment>(textElement?.alignment || "left")
   const [fontColor, setFontColor] = useState(textElement?.fontColor || "#000000")
-  const [backgroundColor, setBackgroundColor] = useState(textElement?.backgroundColor || "#FFFFFF")
+  const [backgroundColor, setBackgroundColor] = useState(textElement?.backgroundColor || "rgba(255, 255, 255, 0)")
   const [boldActive, setBoldActive] = useState(textElement?.bold || false)
   const [italicActive, setItalicActive] = useState(textElement?.italic || false)
   const [rotation, setRotation] = useState(textElement?.rotation || 0)
@@ -131,9 +131,38 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
     onUpdate({ fontColor: color })
   }
 
-  const handleBackgroundColorChange = (color: string) => {
-    setBackgroundColor(color)
-    onUpdate({ backgroundColor: color })
+  // 解析RGBA字符串为对象
+  const parseRgbaString = (rgba: string): RgbaColor => {
+    // 默认值
+    const defaultColor: RgbaColor = { r: 255, g: 255, b: 255, a: 1 };
+    
+    // 如果不是rgba格式，返回默认白色
+    if (!rgba.startsWith('rgba(')) {
+      return defaultColor;
+    }
+    
+    // 提取rgba值
+    const values = rgba.replace('rgba(', '').replace(')', '').split(',');
+    if (values.length !== 4) {
+      return defaultColor;
+    }
+    
+    return {
+      r: parseInt(values[0].trim()),
+      g: parseInt(values[1].trim()),
+      b: parseInt(values[2].trim()),
+      a: parseFloat(values[3].trim())
+    };
+  };
+
+  const handleBackgroundColorChange = (color: any) => {
+    // 如果是rgba对象，转换为rgba字符串
+    const rgbaColor = typeof color === 'object' && color.r !== undefined
+      ? `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a})`
+      : color;
+    
+    setBackgroundColor(rgbaColor)
+    onUpdate({ backgroundColor: rgbaColor })
   }
 
   // 处理旋转变化
@@ -156,7 +185,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
     if (textElement) {
       setTextAlignment(textElement.alignment || "left");
       setFontColor(textElement.fontColor || "#000000");
-      setBackgroundColor(textElement.backgroundColor || "#FFFFFF");
+      setBackgroundColor(textElement.backgroundColor || "rgba(255, 255, 255, 0)");
       setBoldActive(textElement.bold || false);
       setItalicActive(textElement.italic || false);
       setRotation(textElement.rotation || 0);
@@ -353,7 +382,10 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
                   </PopoverTrigger>
                   <PopoverContent className="w-64 p-3">
                     <div className="mb-3 custom-color-picker">
-                      <HexColorPicker color={backgroundColor} onChange={handleBackgroundColorChange} />
+                      <RgbaColorPicker 
+                        color={backgroundColor.startsWith("rgba") ? parseRgbaString(backgroundColor) : { r: 255, g: 255, b: 255, a: 1 }} 
+                        onChange={handleBackgroundColorChange} 
+                      />
                     </div>
                     <div className="grid grid-cols-5 gap-2 mb-3">
                       {backgroundPresetColors.map((color) => (
@@ -367,8 +399,8 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
                       ))}
                     </div>
                     <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium">Hex</div>
-                      <div className="flex h-8 w-24 rounded-md border border-input bg-background px-3 py-1 text-sm items-center">
+                      <div className="text-sm font-medium">Color</div>
+                      <div className="flex h-8 w-36 rounded-md border border-input bg-background px-3 py-1 text-sm items-center">
                         {backgroundColor}
                       </div>
                     </div>

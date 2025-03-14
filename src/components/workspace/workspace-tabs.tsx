@@ -115,10 +115,6 @@ export function VideoTabs({ tabs, activeTab, setActiveTab, onSelectAvatar, onSel
                         {tab === "Avatar" && <User className="h-5 w-5 mb-1" />}
                         {tab === "Background" && <Layers className="h-5 w-5 mb-1" />}
                         {tab === "Media" && <Image className="h-5 w-5 mb-1" />}
-                        {tab === "Music" && <Music className="h-5 w-5 mb-1" />}
-                        {tab === "Transition" && <Transition className="h-5 w-5 mb-1" />}
-                        {tab === "Interaction" && <Wand2 className="h-5 w-5 mb-1" />}
-                        {tab === "Comments" && <MessageSquare className="h-5 w-5 mb-1" />}
                         {tab}
                     </button>
                 )

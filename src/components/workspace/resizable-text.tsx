@@ -22,6 +22,11 @@ interface ResizableTextProps {
     onResize: (newSize: Partial<ResizableTextProps>) => void
     onSelect: (e: MouseEvent) => void
     isSelected: boolean
+    // 添加视频画布尺寸和实际显示尺寸
+    canvasWidth?: number
+    canvasHeight?: number
+    containerWidth?: number
+    containerHeight?: number
 }
 
 export function ResizableText({
@@ -42,9 +47,26 @@ export function ResizableText({
     onResize,
     onSelect,
     isSelected,
+    // 默认标准视频尺寸为1920x1080，容器尺寸默认与画布相同
+    canvasWidth = 1920,
+    canvasHeight = 1080,
+    containerWidth,
+    containerHeight,
 }: ResizableTextProps) {
     const [isEditing, setIsEditing] = useState(false)
     const [localContent, setLocalContent] = useState(content)
+    
+    // 计算实际显示尺寸与标准尺寸的比例
+    const scaleX = (containerWidth || canvasWidth) / canvasWidth;
+    const scaleY = (containerHeight || canvasHeight) / canvasHeight;
+    
+    // 将标准坐标和尺寸转换为实际显示尺寸
+    const displayX = x * scaleX;
+    const displayY = y * scaleY;
+    const displayWidth = width * scaleX;
+    const displayHeight = height * scaleY;
+    const displayFontSize = fontSize * Math.min(scaleX, scaleY); // 字体大小按比例缩放
+    
     // 确保组件在接收新的 content 时更新本地状态
     useEffect(() => {
         setLocalContent(content);
@@ -58,29 +80,34 @@ export function ResizableText({
             delta: { width: number; height: number },
             position: { x: number; y: number },
         ) => {
+            // 将实际显示尺寸转换回标准尺寸
             onResize({
-                width: Number.parseInt(ref.style.width),
-                height: Number.parseInt(ref.style.height),
-                x: position.x,
-                y: position.y,
+                width: Number.parseInt(ref.style.width) / scaleX,
+                height: Number.parseInt(ref.style.height) / scaleY,
+                x: position.x / scaleX,
+                y: position.y / scaleY,
             })
         },
-        [onResize],
+        [onResize, scaleX, scaleY],
     )
 
     const handleDragStop = useCallback(
         (_: DraggableEvent, data: DraggableData) => {
-            onResize({ x: data.x, y: data.y })
+            // 将实际显示位置转换回标准位置
+            onResize({ 
+                x: data.x / scaleX, 
+                y: data.y / scaleY 
+            })
         },
-        [onResize],
+        [onResize, scaleX, scaleY],
     )
 
     // 生成文本样式
     const textStyle = {
-        fontSize: `${fontSize}px`,
+        fontSize: `${displayFontSize}px`, // 使用缩放后的字体大小
         fontFamily,
         color: fontColor,
-        backgroundColor,
+        backgroundColor, // 直接使用backgroundColor，支持rgba格式
         fontWeight: bold ? 'bold' : 'normal',
         fontStyle: italic ? 'italic' : 'normal',
         textAlign: alignment,
@@ -88,8 +115,8 @@ export function ResizableText({
 
     return (
         <Rnd
-            size={{ width, height }}
-            position={{ x, y }}
+            size={{ width: displayWidth, height: displayHeight }} // 使用缩放后的尺寸
+            position={{ x: displayX, y: displayY }} // 使用缩放后的位置
             onDragStop={handleDragStop}
             onResizeStop={handleResizeStop}
             onMouseDown={(e: MouseEvent) => {

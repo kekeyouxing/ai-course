@@ -76,7 +76,7 @@ export default function VideoEditor() {
                 rotation: 0,
                 fontFamily: "lora",
                 fontColor: "#000000",
-                backgroundColor: "#FFFFFF",
+                backgroundColor: "rgba(255, 255, 255, 0)",
                 bold: false,
                 italic: false,
                 alignment: "center"
@@ -96,7 +96,7 @@ export default function VideoEditor() {
                 rotation: 0,
                 fontFamily: "lora",
                 fontColor: "#000000",
-                backgroundColor: "#FFFFFF",
+                backgroundColor: "rgba(255, 255, 255, 0)",
                 bold: false,
                 italic: false,
                 alignment: "center"
@@ -111,10 +111,6 @@ export default function VideoEditor() {
         "Background",
         "Media",
         "Text",
-        "Music",
-        "Transition",
-        "Interaction",
-        "Comments",
     ]
     const [history, setHistory] = useState<Scene[][]>([scenes])
     const [historyIndex, setHistoryIndex] = useState<number>(0)
@@ -153,7 +149,7 @@ export default function VideoEditor() {
     const handleTextChange = useCallback(
         (newText: string) => {
             if (!selectedElement || selectedElement.type !== "text" || selectedElement.index === undefined) return;
-            
+
             const newScenes = [...scenes]
             if (newScenes[activeScene].texts[selectedElement.index]) {
                 newScenes[activeScene].texts[selectedElement.index].content = newText
@@ -166,12 +162,12 @@ export default function VideoEditor() {
     const handleTextUpdate = useCallback(
         (newProps: Partial<TextElement>) => {
             if (!selectedElement || selectedElement.type !== "text" || selectedElement.index === undefined) return;
-            
+
             const newScenes = [...scenes]
             if (newScenes[activeScene].texts[selectedElement.index]) {
-                newScenes[activeScene].texts[selectedElement.index] = { 
-                    ...newScenes[activeScene].texts[selectedElement.index], 
-                    ...newProps 
+                newScenes[activeScene].texts[selectedElement.index] = {
+                    ...newScenes[activeScene].texts[selectedElement.index],
+                    ...newProps
                 } as TextElement
             }
             updateHistory(newScenes)
@@ -249,7 +245,7 @@ export default function VideoEditor() {
         if (!selectedElement) return;
 
         const newScenes = [...scenes];
-        
+
         if (selectedElement.type === "text" && selectedElement.index !== undefined) {
             // 删除指定索引的文本元素
             newScenes[activeScene].texts.splice(selectedElement.index, 1);
@@ -275,15 +271,16 @@ export default function VideoEditor() {
             // 创建新的文本元素
             const newText: TextElement = {
                 content: type === "title" ? "标题" : type === "subtitle" ? "副标题" : "正文",
-                fontSize: type === "title" ? 56 : type === "subtitle" ? 36 : 24,
-                x: 50,
-                y: 50,
-                width: 300,
-                height: 100,
+                fontSize: type === "title" ? 216 : type === "subtitle" ? 130 : 65,
+                x: 1920 / 2 - 400, // 水平居中，考虑宽度
+                y: 1080 / 2 - 100, // 垂直居中，考虑高度
+                // 调整宽高以更好地包围文本
+                width: 800, // 增加宽度以适应文本
+                height: 200, // 增加高度以适应文本
                 rotation: 0,
                 fontFamily: "lora",
                 fontColor: "#000000",
-                backgroundColor: "#FFFFFF",
+                backgroundColor: "rgba(255, 255, 255, 0)",
                 bold: type === "title",
                 italic: false,
                 alignment: "center"
@@ -297,15 +294,15 @@ export default function VideoEditor() {
             updateHistory(newScenes);
 
             // 选中新添加的文本元素
-            setSelectedElement({ 
-                type: "text", 
-                index: newScenes[activeScene].texts.length - 1 
+            setSelectedElement({
+                type: "text",
+                index: newScenes[activeScene].texts.length - 1
             });
             setActiveTab("Text");
         },
         [scenes, activeScene, updateHistory]
     )
-    
+
     const renderTabContent = () => {
         switch (activeTab) {
             case "Script":
@@ -316,8 +313,8 @@ export default function VideoEditor() {
                 return <BackgroundContent />
             case "Text":
                 return <TextContent
-                    textElement={selectedElement?.type === "text" && selectedElement.index !== undefined 
-                        ? scenes[activeScene].texts[selectedElement.index] 
+                    textElement={selectedElement?.type === "text" && selectedElement.index !== undefined
+                        ? scenes[activeScene].texts[selectedElement.index]
                         : undefined}
                     onUpdate={handleTextUpdate}
                 />
@@ -363,8 +360,35 @@ export default function VideoEditor() {
         },
         [scenes, activeScene, updateHistory]
     )
+    // 添加预览容器尺寸状态
+    const [previewDimensions, setPreviewDimensions] = useState({
+        width: 0,
+        height: 0
+    });
+    
     // 添加 editorRef
-    const editorRef = useRef<HTMLDivElement>(null)
+    const editorRef = useRef<HTMLDivElement>(null);
+    
+    // 使用 ResizeObserver 监听预览容器尺寸变化
+    useEffect(() => {
+        if (!editorRef.current) return;
+        
+        const resizeObserver = new ResizeObserver(entries => {
+            for (const entry of entries) {
+                const { width, height } = entry.contentRect;
+                setPreviewDimensions({
+                    width,
+                    height
+                });
+            }
+        });
+        
+        resizeObserver.observe(editorRef.current);
+        
+        return () => {
+            resizeObserver.disconnect();
+        };
+    }, []);
 
     return (
         <div className="flex flex-col h-screen bg-white">
@@ -402,6 +426,8 @@ export default function VideoEditor() {
                             <div
                                 ref={editorRef}
                                 className="bg-white w-full max-w-3xl aspect-video shadow-md relative"
+                                data-width="1920"
+                                data-height="1080"
                                 onClick={(e: React.MouseEvent) => {
                                     if (e.target === e.currentTarget) {
                                         setSelectedElement(null)
@@ -412,6 +438,10 @@ export default function VideoEditor() {
                                     <ResizableText
                                         key={index}
                                         {...text}
+                                        canvasWidth={1920}
+                                        canvasHeight={1080}
+                                        containerWidth={previewDimensions.width}
+                                        containerHeight={previewDimensions.height}
                                         onTextChange={handleTextChange}
                                         onResize={handleTextUpdate}
                                         onSelect={() => handleElementSelect({ type: "text", index })}
