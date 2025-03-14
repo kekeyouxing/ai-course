@@ -453,8 +453,54 @@ export default function VideoEditor() {
                                         className="absolute inset-0 w-full h-full object-cover"
                                         src={(scenes[activeScene].background as VideoBackground).src}
                                         autoPlay
-                                        loop
-                                        muted
+                                        loop={(scenes[activeScene].background as VideoBackground).displayMode === "loop"}
+                                        muted={(scenes[activeScene].background as VideoBackground).volume === 0}
+                                        onEnded={(e) => {
+                                            const videoBackground = scenes[activeScene].background as VideoBackground;
+                                            if (videoBackground.displayMode === "freeze") {
+                                                // 暂停在最后一帧
+                                                e.currentTarget.currentTime = e.currentTarget.duration;
+                                                e.currentTarget.pause();
+                                            } else if (videoBackground.displayMode === "hide") {
+                                                // 隐藏视频
+                                                e.currentTarget.style.display = "none";
+                                            }
+                                            // loop模式会自动循环播放
+                                        }}
+                                        ref={(el) => {
+                                            if (el) {
+                                                // 设置音量
+                                                el.volume = (scenes[activeScene].background as VideoBackground).volume || 0;
+                                                
+                                                // 使用自定义属性存储上次的显示模式，避免重复播放
+                                                const videoBackground = scenes[activeScene].background as VideoBackground;
+                                                const lastDisplayMode = el.getAttribute('data-display-mode');
+                                                const currentDisplayMode = videoBackground.displayMode || 'loop';
+                                                
+                                                // 只有在显示模式变化或首次加载时才重置视频状态
+                                                if (lastDisplayMode !== currentDisplayMode || !el.getAttribute('data-initialized')) {
+                                                    // 重置显示状态
+                                                    el.style.display = "block";
+                                                    
+                                                    if (videoBackground.displayMode === "freeze") {
+                                                        // 对于freeze模式，总是从头开始播放一次
+                                                        el.currentTime = 0;
+                                                        el.play();
+                                                    } else if (videoBackground.displayMode === "loop") {
+                                                        el.currentTime = 0;
+                                                        el.play();
+                                                    } else if (videoBackground.displayMode === "hide") {
+                                                        el.currentTime = 0;
+                                                        el.play();
+                                                    }
+                                                    
+                                                    // 标记为已初始化
+                                                    el.setAttribute('data-initialized', 'true');
+                                                    // 存储当前显示模式
+                                                    el.setAttribute('data-display-mode', currentDisplayMode);
+                                                }
+                                            }
+                                        }}
                                     />
                                 )}
                                 {scenes[activeScene].texts.map((text, index) => (

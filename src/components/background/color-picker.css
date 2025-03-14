@@ -49,4 +49,46 @@
     font-weight: 500;
   }
   
-  
+  /* 添加音量滑块的自定义样式 */
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #6c757d; /* 灰色系 */
+  cursor: pointer;
+  border: 1.5px solid white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  margin-top: -4px; /* 调整垂直位置 */
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #6c757d; /* 灰色系 */
+  cursor: pointer;
+  border: 1.5px solid white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.volume-slider:focus::-webkit-slider-thumb {
+  background: #495057; /* 深灰色，聚焦时 */
+}
+
+.volume-slider:focus::-moz-range-thumb {
+  background: #495057; /* 深灰色，聚焦时 */
+}
+
+.volume-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  background: #e9ecef;
+  border-radius: 2px;
+}
+
+.volume-slider::-moz-range-track {
+  height: 4px;
+  background: #e9ecef;
+  border-radius: 2px;
+}

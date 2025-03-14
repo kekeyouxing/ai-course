@@ -60,6 +60,8 @@ export interface VideoBackground extends BackgroundBase {
     title: string;
     duration: string;
     thumbnail?: string; // 添加缩略图字段
+    volume?: number; // 音量，0-1之间
+    displayMode?: "freeze" | "hide" | "loop"; // 显示模式
 }
 
 // 背景联合类型
