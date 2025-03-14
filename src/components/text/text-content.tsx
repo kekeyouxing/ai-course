@@ -6,7 +6,6 @@ import { HexColorPicker, RgbaColor, RgbaColorPicker } from "react-colorful"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { TextAlignmentSelector } from "@/components//text/text-alignment-selector"
 import { Slider } from "@/components/ui/slider"
 import { Input } from "@/components/ui/input"
 
@@ -92,11 +91,9 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
     "#C8E1FF",
     "#79B8FF",
   ]
-
   // 处理文本对齐变化
   const handleTextAlignmentChange = (alignment: TextAlignment) => {
     setTextAlignment(alignment)
-    console.log("Text alignment changed:", alignment)
     onUpdate({ alignment })
   }
 
@@ -195,6 +192,8 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
         width: textElement.width || 100,
         height: textElement.height || 100,
       });
+      setFontFamily(textElement.fontFamily || "lora");
+      setFontSize(textElement.fontSize?.toString() || "24");
     }
   }, [textElement]);
 
@@ -323,10 +322,50 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
                 </div>
               </div>
 
-              {/* Text Align - Using our new component */}
+              {/* Text Align - 直接在组件内实现，不再使用 TextAlignmentSelector */}
               <div className="flex items-center justify-between">
-                <label className="text-base font-normal text-gray-800">Text align</label>
-                <TextAlignmentSelector defaultAlignment={textAlignment} onChange={handleTextAlignmentChange} />
+                <label className="text-base font-normal text-gray-800">文本对齐</label>
+                <div className="flex bg-gray-100 rounded-md p-1 gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`h-8 w-8 rounded-md ${textAlignment === "left" ? "bg-white shadow-sm" : ""}`}
+                    onClick={() => handleTextAlignmentChange("left")}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="17" y1="10" x2="3" y2="10"></line>
+                      <line x1="21" y1="6" x2="3" y2="6"></line>
+                      <line x1="21" y1="14" x2="3" y2="14"></line>
+                      <line x1="17" y1="18" x2="3" y2="18"></line>
+                    </svg>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`h-8 w-8 rounded-md ${textAlignment === "center" ? "bg-white shadow-sm" : ""}`}
+                    onClick={() => handleTextAlignmentChange("center")}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="10" x2="6" y2="10"></line>
+                      <line x1="21" y1="6" x2="3" y2="6"></line>
+                      <line x1="21" y1="14" x2="3" y2="14"></line>
+                      <line x1="18" y1="18" x2="6" y2="18"></line>
+                    </svg>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`h-8 w-8 rounded-md ${textAlignment === "right" ? "bg-white shadow-sm" : ""}`}
+                    onClick={() => handleTextAlignmentChange("right")}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="21" y1="10" x2="7" y2="10"></line>
+                      <line x1="21" y1="6" x2="3" y2="6"></line>
+                      <line x1="21" y1="14" x2="3" y2="14"></line>
+                      <line x1="21" y1="18" x2="7" y2="18"></line>
+                    </svg>
+                  </Button>
+                </div>
               </div>
 
               {/* Font Color */}

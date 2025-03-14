@@ -143,10 +143,10 @@ export function ResizableText({
                         }}
                         onMouseDown={(e) => e.stopPropagation()} // 阻止事件冒泡
                         className="w-full h-full bg-transparent outline-none"
-                        style={{ fontSize: "inherit", fontFamily: "inherit", color: "inherit", fontWeight: "inherit", fontStyle: "inherit", textAlign: "inherit" }}
+                        style={{ fontSize: "inherit", fontFamily: "inherit", color: "inherit", fontWeight: "inherit", fontStyle: "inherit", textAlign: alignment }}
                     />
                 ) : (
-                    <div className="w-full" style={{ textAlign: "inherit" }}>
+                    <div className="w-full" style={{ textAlign: alignment }}>
                         {localContent}
                     </div>
                 )}
