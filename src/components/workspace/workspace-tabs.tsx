@@ -1,15 +1,11 @@
 "use client"
 
 import {
-    ContrastIcon as Transition,
     FileText,
     Image,
     Layers,
-    MessageSquare,
-    Music,
     Type,
     User,
-    Wand2,
 } from "lucide-react"
 import { useState } from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -29,8 +25,7 @@ interface VideoTabsProps {
 }
 
 // 封装文本类型选择的组件
-function TextTypeSelector({ 
-    isOpen, 
+function TextTypeSelector({
     onOpenChange, 
     onSelectType 
 }: { 

@@ -205,7 +205,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
       );
   }
   return (
-    <div className="w-full max-w-md mx-auto overflow-hidden bg-white">
+    <div className="w-full max-w-4xl mx-auto overflow-hidden bg-white">
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-gray-100">
         <div className="flex items-center gap-4">

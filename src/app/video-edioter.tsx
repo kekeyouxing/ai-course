@@ -13,51 +13,31 @@ import { ResizableText } from "@/components/workspace/resizable-text"
 import { ResizableImage } from "@/components/workspace/resizable-image"
 import { ResizableAvatar } from "@/components/workspace/resizable-avatar"
 
-interface TextElement {
-    content: string
-    fontSize: number
-    x: number
-    y: number
-    width: number
-    height: number
-    rotation: number
-    fontFamily?: string
-    fontColor?: string
-    backgroundColor?: string
-    bold?: boolean
-    italic?: boolean
-    alignment?: "left" | "center" | "right"
-}
+// 导入类型定义
+import { 
+    Scene, 
+    TextElement, 
+    ImageElement, 
+    AvatarElement, 
+    Background,
+    SelectedElementType,
+    ColorBackground,
+    ImageBackground,
+    VideoBackground
+} from "@/types/scene"
 
-interface ImageElement {
-    src: string
-    width: number
-    height: number
-    x: number
-    y: number
-    rotation: number
-}
-
-interface AvatarElement {
-    src: string
-    width: number
-    height: number
-    x: number
-    y: number
-    rotation: number
-}
-
-interface Scene {
-    title: string
-    image: ImageElement | null
-    texts: TextElement[]  // 修改为数组类型
-    avatar: AvatarElement | null
-}
-// 定义选中元素的类型
-interface SelectedElementType {
-    type: "text" | "image" | "avatar"
-    index?: number
-}
+// 导出类型以便其他组件使用
+export type { 
+    Scene, 
+    TextElement, 
+    ImageElement, 
+    AvatarElement, 
+    Background,
+    ColorBackground,
+    ImageBackground,
+    VideoBackground,
+    SelectedElementType
+} from "@/types/scene"
 
 export default function VideoEditor() {
     const [activeTab, setActiveTab] = useState<string>("Script")
@@ -81,7 +61,11 @@ export default function VideoEditor() {
                 italic: false,
                 alignment: "center"
             }],
-            avatar: null
+            avatar: null,
+            background : {
+                type: "color",
+                color: "#FFFFFF"
+            }
         },
         {
             title: "Introduction",
@@ -101,7 +85,11 @@ export default function VideoEditor() {
                 italic: false,
                 alignment: "center"
             }],
-            avatar: null
+            avatar: null,
+            background : {
+                type: "color",
+                color: "#FFFFFF"
+            }
         },
     ])
 
@@ -303,6 +291,14 @@ export default function VideoEditor() {
         [scenes, activeScene, updateHistory]
     )
 
+    // 添加处理背景变化的函数
+    const handleBackgroundChange = useCallback((background: Background) => {
+        const newScenes = [...scenes];
+        newScenes[activeScene].background = background;
+        updateHistory(newScenes);
+    }, [scenes, activeScene, updateHistory]);
+
+    // 修改渲染Tab内容的函数
     const renderTabContent = () => {
         switch (activeTab) {
             case "Script":
@@ -310,7 +306,10 @@ export default function VideoEditor() {
             case "Avatar":
                 return <AvatarContent />
             case "Background":
-                return <BackgroundContent />
+                return <BackgroundContent 
+                    currentBackground={scenes[activeScene].background}
+                    onBackgroundChange={handleBackgroundChange} 
+                />
             case "Text":
                 return <TextContent
                     textElement={selectedElement?.type === "text" && selectedElement.index !== undefined
@@ -331,7 +330,11 @@ export default function VideoEditor() {
             title: `Scene ${scenes.length + 1}`,
             image: null,
             texts: [],  // 初始化为空数组
-            avatar: null
+            avatar: null,
+            background : {
+                type: "color",
+                color: "#FFFFFF"
+            }
         }
         updateHistory([...scenes, newScene])
         setActiveScene(scenes.length)
@@ -365,14 +368,14 @@ export default function VideoEditor() {
         width: 0,
         height: 0
     });
-    
+
     // 添加 editorRef
     const editorRef = useRef<HTMLDivElement>(null);
-    
+
     // 使用 ResizeObserver 监听预览容器尺寸变化
     useEffect(() => {
         if (!editorRef.current) return;
-        
+
         const resizeObserver = new ResizeObserver(entries => {
             for (const entry of entries) {
                 const { width, height } = entry.contentRect;
@@ -382,9 +385,9 @@ export default function VideoEditor() {
                 });
             }
         });
-        
+
         resizeObserver.observe(editorRef.current);
-        
+
         return () => {
             resizeObserver.disconnect();
         };
@@ -425,7 +428,17 @@ export default function VideoEditor() {
                         <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
                             <div
                                 ref={editorRef}
-                                className="bg-white w-full max-w-3xl aspect-video shadow-md relative"
+                                className="w-full max-w-3xl aspect-video shadow-md relative"
+                                style={{ 
+                                    backgroundColor: scenes[activeScene].background.type === "color" 
+                                        ? (scenes[activeScene].background as ColorBackground).color 
+                                        : "transparent",
+                                    backgroundImage: scenes[activeScene].background.type === "image" 
+                                        ? `url(${(scenes[activeScene].background as ImageBackground).src})` 
+                                        : "none",
+                                    backgroundSize: "cover",
+                                    backgroundPosition: "center"
+                                }}
                                 data-width="1920"
                                 data-height="1080"
                                 onClick={(e: React.MouseEvent) => {
@@ -434,6 +447,16 @@ export default function VideoEditor() {
                                     }
                                 }}
                             >
+                                {/* 如果背景是视频类型，添加视频元素 */}
+                                {scenes[activeScene].background.type === "video" && (
+                                    <video
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                        src={(scenes[activeScene].background as VideoBackground).src}
+                                        autoPlay
+                                        loop
+                                        muted
+                                    />
+                                )}
                                 {scenes[activeScene].texts.map((text, index) => (
                                     <ResizableText
                                         key={index}
