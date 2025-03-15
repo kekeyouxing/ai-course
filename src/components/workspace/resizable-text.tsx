@@ -18,6 +18,7 @@ interface ResizableTextProps {
     bold?: boolean
     italic?: boolean
     alignment?: "left" | "center" | "right"
+    zIndex?: number
     onTextChange: (newText: string) => void
     onResize: (newSize: Partial<ResizableTextProps>) => void
     onSelect: (e: MouseEvent) => void
@@ -39,10 +40,11 @@ export function ResizableText({
     rotation,
     fontFamily = "lora",
     fontColor = "#000000",
-    backgroundColor = "#FFFFFF",
+    backgroundColor = "rgba(255, 255, 255, 0)",
     bold = false,
     italic = false,
     alignment = "center",
+    zIndex = 1,
     onTextChange,
     onResize,
     onSelect,
@@ -122,6 +124,9 @@ export function ResizableText({
             onMouseDown={(e: MouseEvent) => {
                 e.stopPropagation()
                 onSelect(e)
+            }}
+            style={{
+                zIndex: zIndex
             }}
         >
             <div

@@ -1,42 +1,8 @@
 "use client"
 
 import { Plus } from "lucide-react"
+import { Scene } from "@/types/scene" // Import the Scene type from the shared types file
 
-interface TextElement {
-    content: string
-    fontSize: number
-    x: number
-    y: number
-    width: number
-    height: number
-    rotation: number
-}
-
-interface ImageElement {
-    src: string
-    width: number
-    height: number
-    x: number
-    y: number
-    rotation: number
-}
-
-interface AvatarElement {
-    src: string
-    width: number
-    height: number
-    x: number
-    y: number
-    rotation: number
-}
-
-// Update the Scene interface in workspace-timeline.tsx to match the one in video-edioter.tsx
-interface Scene {
-    title: string
-    image: ImageElement | null
-    texts: TextElement[]  // Changed from text: TextElement | null
-    avatar: AvatarElement | null
-}
 
 // Update the component props
 interface VideoTimelineProps {

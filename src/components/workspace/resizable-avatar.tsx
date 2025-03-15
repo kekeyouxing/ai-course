@@ -10,6 +10,7 @@ interface ResizableAvatarProps {
     x: number
     y: number
     rotation: number
+    zIndex?: number
     onResize: (newSize: Partial<ResizableAvatarProps>) => void
     onSelect: () => void
     isSelected: boolean
@@ -22,6 +23,7 @@ export function ResizableAvatar({
     x,
     y,
     rotation,
+    zIndex = 1,
     onResize,
     onSelect,
     isSelected,
@@ -78,7 +80,10 @@ export function ResizableAvatar({
                 e.stopPropagation()
                 onSelect()
             }}
-            style={{ transform: `rotate(${rotation}deg)` }}
+            style={{ 
+                transform: `rotate(${rotation}deg)`,
+                zIndex: isSelected ? 10 : zIndex
+            }}
             lockAspectRatio={aspectRatio}
             resizeHandleComponent={{
                 bottomRight: isSelected ? (

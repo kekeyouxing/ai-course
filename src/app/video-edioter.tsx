@@ -12,26 +12,36 @@ import TextContent from "@/components/text/text-content";
 import { ResizableText } from "@/components/workspace/resizable-text"
 import { ResizableImage } from "@/components/workspace/resizable-image"
 import { ResizableAvatar } from "@/components/workspace/resizable-avatar"
+import { ElementContextMenu } from "@/components/workspace/element-context-menu"
 
 // 导入类型定义
-import { 
-    Scene, 
-    TextElement, 
-    ImageElement, 
-    AvatarElement, 
+import {
+    Scene,
+    TextElement,
+    ImageElement,
+    VideoElement,
+    ImageMedia,
+    VideoMedia,
+    AvatarElement,
     Background,
     SelectedElementType,
     ColorBackground,
     ImageBackground,
     VideoBackground
 } from "@/types/scene"
+import { v4 as uuidv4 } from 'uuid';
+import { ResizableVideo } from "@/components/workspace/resizable-video";
 
-// 导出类型以便其他组件使用
-export type { 
-    Scene, 
-    TextElement, 
-    ImageElement, 
-    AvatarElement, 
+// 更新导出类型
+export type {
+    Scene,
+    TextElement,
+    ImageElement,
+    VideoElement,
+    Media,
+    ImageMedia,
+    VideoMedia,
+    AvatarElement,
     Background,
     ColorBackground,
     ImageBackground,
@@ -45,7 +55,13 @@ export default function VideoEditor() {
     const [scenes, setScenes] = useState<Scene[]>([
         {
             title: "Title",
-            image: { src: placeholderImage, width: 200, height: 300, x: 0, y: 0, rotation: 0 },
+            media: [
+                {
+                    id: uuidv4(),
+                    type: "image",
+                    element: { src: placeholderImage, width: 200, height: 300, x: 0, y: 0, rotation: 0 }
+                }
+            ],
             texts: [{  // 修改为数组
                 content: "Title",
                 fontSize: 56,
@@ -62,14 +78,20 @@ export default function VideoEditor() {
                 alignment: "center"
             }],
             avatar: null,
-            background : {
+            background: {
                 type: "color",
                 color: "#FFFFFF"
             }
         },
         {
             title: "Introduction",
-            image: { src: placeholderImage, width: 200, height: 300, x: 0, y: 0, rotation: 0 },
+            media: [
+                {
+                    id: uuidv4(),
+                    type: "image",
+                    element: { src: placeholderImage, width: 200, height: 300, x: 0, y: 0, rotation: 0 }
+                }
+            ],
             texts: [{  // 修改为数组
                 content: "Introduction",
                 fontSize: 48,
@@ -86,9 +108,10 @@ export default function VideoEditor() {
                 alignment: "center"
             }],
             avatar: null,
-            background : {
+            background: {
                 type: "color",
                 color: "#FFFFFF"
+                // Removed z-index comment to avoid confusion
             }
         },
     ])
@@ -112,6 +135,8 @@ export default function VideoEditor() {
             setActiveTab("Text")
         } else if (element?.type === "avatar") {
             setActiveTab("Avatar")
+        } else if (element?.type === "image" || element?.type === "video") {
+            setActiveTab("Media")
         }
     }, [])
 
@@ -163,11 +188,30 @@ export default function VideoEditor() {
         [scenes, activeScene, selectedElement, updateHistory],
     )
 
+    // 更新处理图片调整大小的函数
     const handleImageResize = useCallback(
-        (newSize: Partial<ImageElement>) => {
+        (newSize: Partial<ImageElement>, mediaId: string) => {
             const newScenes = [...scenes]
-            if (newScenes[activeScene].image) {
-                newScenes[activeScene].image = { ...newScenes[activeScene].image, ...newSize } as ImageElement
+            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === mediaId)
+
+            if (mediaIndex !== -1 && newScenes[activeScene].media[mediaIndex].type === "image") {
+                const imageMedia = newScenes[activeScene].media[mediaIndex] as ImageMedia;
+                imageMedia.element = { ...imageMedia.element, ...newSize } as ImageElement;
+                updateHistory(newScenes)
+            }
+        },
+        [scenes, activeScene, updateHistory],
+    )
+
+    // 更新处理视频调整大小的函数
+    const handleVideoResize = useCallback(
+        (newSize: Partial<VideoElement>, mediaId: string) => {
+            const newScenes = [...scenes]
+            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === mediaId)
+
+            if (mediaIndex !== -1 && newScenes[activeScene].media[mediaIndex].type === "video") {
+                const videoMedia = newScenes[activeScene].media[mediaIndex] as VideoMedia;
+                videoMedia.element = { ...videoMedia.element, ...newSize } as VideoElement;
                 updateHistory(newScenes)
             }
         },
@@ -184,6 +228,7 @@ export default function VideoEditor() {
         },
         [scenes, activeScene, updateHistory],
     )
+
 
     const handleUndo = useCallback(() => {
         if (historyIndex > 0) {
@@ -228,7 +273,7 @@ export default function VideoEditor() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleUndo, handleRedo, selectedElement]);
 
-    // 添加删除元素的处理函数
+    // 更新删除元素的处理函数
     const handleDeleteElement = useCallback(() => {
         if (!selectedElement) return;
 
@@ -237,9 +282,11 @@ export default function VideoEditor() {
         if (selectedElement.type === "text" && selectedElement.index !== undefined) {
             // 删除指定索引的文本元素
             newScenes[activeScene].texts.splice(selectedElement.index, 1);
-        } else if (selectedElement.type === "image") {
-            // 将选中的元素设置为 null
-            newScenes[activeScene].image = null;
+        } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
+            // 删除指定ID的媒体元素
+            newScenes[activeScene].media = newScenes[activeScene].media.filter(
+                item => item.id !== selectedElement.mediaId
+            );
         } else if (selectedElement.type === "avatar") {
             // 将选中的元素设置为 null
             newScenes[activeScene].avatar = null;
@@ -297,6 +344,337 @@ export default function VideoEditor() {
         newScenes[activeScene].background = background;
         updateHistory(newScenes);
     }, [scenes, activeScene, updateHistory]);
+    
+    // Z-Index 控制函数
+    const handleBringToFront = useCallback(() => {
+        if (!selectedElement) return;
+        
+        const newScenes = [...scenes];
+        let maxZIndex = 0;
+        
+        // 找出当前场景中所有元素的最大 zIndex
+        // 检查文本元素
+        newScenes[activeScene].texts.forEach(text => {
+            if (text.zIndex !== undefined && text.zIndex > maxZIndex) {
+                maxZIndex = text.zIndex;
+            }
+        });
+        
+        // 检查媒体元素
+        newScenes[activeScene].media.forEach(media => {
+            if (media.type === "image") {
+                const imgElement = (media as ImageMedia).element;
+                if (imgElement.zIndex !== undefined && imgElement.zIndex > maxZIndex) {
+                    maxZIndex = imgElement.zIndex;
+                }
+            } else if (media.type === "video") {
+                const videoElement = (media as VideoMedia).element;
+                if (videoElement.zIndex !== undefined && videoElement.zIndex > maxZIndex) {
+                    maxZIndex = videoElement.zIndex;
+                }
+            }
+        });
+        
+        // 检查头像元素
+        if (newScenes[activeScene].avatar && newScenes[activeScene].avatar.zIndex !== undefined) {
+            if (newScenes[activeScene].avatar.zIndex > maxZIndex) {
+                maxZIndex = newScenes[activeScene].avatar.zIndex;
+            }
+        }
+        
+        // 设置选中元素的 zIndex 为最大值 + 1
+        if (selectedElement.type === "text" && selectedElement.index !== undefined) {
+            newScenes[activeScene].texts[selectedElement.index].zIndex = maxZIndex + 1;
+        } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
+            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === selectedElement.mediaId);
+            if (mediaIndex !== -1) {
+                if (newScenes[activeScene].media[mediaIndex].type === "image") {
+                    (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = maxZIndex + 1;
+                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
+                    (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = maxZIndex + 1;
+                }
+            }
+        } else if (selectedElement.type === "avatar" && newScenes[activeScene].avatar) {
+            newScenes[activeScene].avatar.zIndex = maxZIndex + 1;
+        }
+        
+        updateHistory(newScenes);
+    }, [scenes, activeScene, selectedElement, updateHistory]);
+    
+    const handleSendToBack = useCallback(() => {
+        if (!selectedElement) return;
+        
+        const newScenes = [...scenes];
+        // 设置最小 z-index 为 2，确保元素不会低于背景（背景 z-index 为 1）
+        let minZIndex = 2;
+        
+        // 找出当前场景中所有元素的最小 zIndex
+        // 检查文本元素
+        newScenes[activeScene].texts.forEach(text => {
+            if (text.zIndex !== undefined && text.zIndex < minZIndex && text.zIndex >= 2) {
+                minZIndex = text.zIndex;
+            }
+        });
+        
+        // 检查媒体元素
+        newScenes[activeScene].media.forEach(media => {
+            if (media.type === "image") {
+                const imgElement = (media as ImageMedia).element;
+                if (imgElement.zIndex !== undefined && imgElement.zIndex < minZIndex && imgElement.zIndex >= 2) {
+                    minZIndex = imgElement.zIndex;
+                }
+            } else if (media.type === "video") {
+                const videoElement = (media as VideoMedia).element;
+                if (videoElement.zIndex !== undefined && videoElement.zIndex < minZIndex && videoElement.zIndex >= 2) {
+                    minZIndex = videoElement.zIndex;
+                }
+            }
+        });
+        
+        // 检查头像元素
+        if (newScenes[activeScene].avatar && newScenes[activeScene].avatar.zIndex !== undefined) {
+            if (newScenes[activeScene].avatar.zIndex < minZIndex && newScenes[activeScene].avatar.zIndex >= 2) {
+                minZIndex = newScenes[activeScene].avatar.zIndex;
+            }
+        }
+        
+        // 设置选中元素的 zIndex 为 2（最小可能值，确保在背景之上）
+        const newZIndex = Math.max(2, minZIndex - 1);
+        
+        if (selectedElement.type === "text" && selectedElement.index !== undefined) {
+            newScenes[activeScene].texts[selectedElement.index].zIndex = newZIndex;
+        } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
+            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === selectedElement.mediaId);
+            if (mediaIndex !== -1) {
+                if (newScenes[activeScene].media[mediaIndex].type === "image") {
+                    (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
+                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
+                    (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
+                }
+            }
+        } else if (selectedElement.type === "avatar" && newScenes[activeScene].avatar) {
+            newScenes[activeScene].avatar.zIndex = newZIndex;
+        }
+        
+        updateHistory(newScenes);
+    }, [scenes, activeScene, selectedElement, updateHistory]);
+    
+    const handleBringForward = useCallback(() => {
+        if (!selectedElement) return;
+        
+        const newScenes = [...scenes];
+        let currentZIndex = 0;
+        
+        // 获取当前选中元素的 zIndex
+        if (selectedElement.type === "text" && selectedElement.index !== undefined) {
+            currentZIndex = newScenes[activeScene].texts[selectedElement.index].zIndex || 0;
+        } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
+            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === selectedElement.mediaId);
+            if (mediaIndex !== -1) {
+                if (newScenes[activeScene].media[mediaIndex].type === "image") {
+                    currentZIndex = (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex || 0;
+                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
+                    currentZIndex = (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex || 0;
+                }
+            }
+        } else if (selectedElement.type === "avatar" && newScenes[activeScene].avatar) {
+            currentZIndex = newScenes[activeScene].avatar.zIndex || 0;
+        }
+        
+        // 收集当前场景中所有元素的 zIndex
+        const allElements: {type: string, index?: number, mediaId?: string, zIndex: number}[] = [];
+        
+        // 收集文本元素
+        newScenes[activeScene].texts.forEach((text, index) => {
+            allElements.push({
+                type: "text",
+                index,
+                zIndex: text.zIndex || 0
+            });
+        });
+        
+        // 收集媒体元素
+        newScenes[activeScene].media.forEach((media) => {
+            if (media.type === "image") {
+                allElements.push({
+                    type: "image",
+                    mediaId: media.id,
+                    zIndex: (media as ImageMedia).element.zIndex || 0
+                });
+            } else if (media.type === "video") {
+                allElements.push({
+                    type: "video",
+                    mediaId: media.id,
+                    zIndex: (media as VideoMedia).element.zIndex || 0
+                });
+            }
+        });
+        
+        // 收集头像元素
+        if (newScenes[activeScene].avatar) {
+            allElements.push({
+                type: "avatar",
+                zIndex: newScenes[activeScene].avatar.zIndex || 0
+            });
+        }
+        
+        // 按 zIndex 排序
+        allElements.sort((a, b) => a.zIndex - b.zIndex);
+        
+        // 找到当前元素在排序后数组中的位置
+        let currentIndex = -1;
+        for (let i = 0; i < allElements.length; i++) {
+            const el = allElements[i];
+            if (el.type === selectedElement.type) {
+                if (el.type === "text" && el.index === selectedElement.index) {
+                    currentIndex = i;
+                    break;
+                } else if ((el.type === "image" || el.type === "video") && el.mediaId === selectedElement.mediaId) {
+                    currentIndex = i;
+                    break;
+                } else if (el.type === "avatar") {
+                    currentIndex = i;
+                    break;
+                }
+            }
+        }
+        
+        // 如果当前元素已经是最顶层，则不需要操作
+        if (currentIndex === allElements.length - 1) {
+            return;
+        }
+        
+        // 获取上一层元素的 zIndex
+        const nextElement = allElements[currentIndex + 1];
+        const newZIndex = nextElement.zIndex + 1;
+        
+        // 更新当前元素的 zIndex
+        if (selectedElement.type === "text" && selectedElement.index !== undefined) {
+            newScenes[activeScene].texts[selectedElement.index].zIndex = newZIndex;
+        } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
+            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === selectedElement.mediaId);
+            if (mediaIndex !== -1) {
+                if (newScenes[activeScene].media[mediaIndex].type === "image") {
+                    (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
+                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
+                    (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
+                }
+            }
+        } else if (selectedElement.type === "avatar" && newScenes[activeScene].avatar) {
+            newScenes[activeScene].avatar.zIndex = newZIndex;
+        }
+        
+        updateHistory(newScenes);
+    }, [scenes, activeScene, selectedElement, updateHistory]);
+    
+    const handleSendBackward = useCallback(() => {
+        if (!selectedElement) return;
+        
+        const newScenes = [...scenes];
+        let currentZIndex = 0;
+        
+        // 获取当前选中元素的 zIndex
+        if (selectedElement.type === "text" && selectedElement.index !== undefined) {
+            currentZIndex = newScenes[activeScene].texts[selectedElement.index].zIndex || 0;
+        } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
+            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === selectedElement.mediaId);
+            if (mediaIndex !== -1) {
+                if (newScenes[activeScene].media[mediaIndex].type === "image") {
+                    currentZIndex = (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex || 0;
+                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
+                    currentZIndex = (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex || 0;
+                }
+            }
+        } else if (selectedElement.type === "avatar" && newScenes[activeScene].avatar) {
+            currentZIndex = newScenes[activeScene].avatar.zIndex || 0;
+        }
+        
+        // 收集当前场景中所有元素的 zIndex
+        const allElements: {type: string, index?: number, mediaId?: string, zIndex: number}[] = [];
+        
+        // 收集文本元素
+        newScenes[activeScene].texts.forEach((text, index) => {
+            allElements.push({
+                type: "text",
+                index,
+                zIndex: text.zIndex || 0
+            });
+        });
+        
+        // 收集媒体元素
+        newScenes[activeScene].media.forEach((media) => {
+            if (media.type === "image") {
+                allElements.push({
+                    type: "image",
+                    mediaId: media.id,
+                    zIndex: (media as ImageMedia).element.zIndex || 0
+                });
+            } else if (media.type === "video") {
+                allElements.push({
+                    type: "video",
+                    mediaId: media.id,
+                    zIndex: (media as VideoMedia).element.zIndex || 0
+                });
+            }
+        });
+        
+        // 收集头像元素
+        if (newScenes[activeScene].avatar) {
+            allElements.push({
+                type: "avatar",
+                zIndex: newScenes[activeScene].avatar.zIndex || 0
+            });
+        }
+        
+        // 按 zIndex 排序
+        allElements.sort((a, b) => a.zIndex - b.zIndex);
+        
+        // 找到当前元素在排序后数组中的位置
+        let currentIndex = -1;
+        for (let i = 0; i < allElements.length; i++) {
+            const el = allElements[i];
+            if (el.type === selectedElement.type) {
+                if (el.type === "text" && el.index === selectedElement.index) {
+                    currentIndex = i;
+                    break;
+                } else if ((el.type === "image" || el.type === "video") && el.mediaId === selectedElement.mediaId) {
+                    currentIndex = i;
+                    break;
+                } else if (el.type === "avatar") {
+                    currentIndex = i;
+                    break;
+                }
+            }
+        }
+        
+        // 如果当前元素已经是最底层或者只有一个元素，则不需要操作
+        if (currentIndex <= 0 || allElements.length <= 1) {
+            return;
+        }
+        
+        // 获取下一层元素的 zIndex
+        const prevElement = allElements[currentIndex - 1];
+        // 确保 z-index 不低于 2（背景的 z-index 为 1）
+        const newZIndex = Math.max(2, prevElement.zIndex - 1);
+        
+        // 更新当前元素的 zIndex
+        if (selectedElement.type === "text" && selectedElement.index !== undefined) {
+            newScenes[activeScene].texts[selectedElement.index].zIndex = newZIndex;
+        } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
+            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === selectedElement.mediaId);
+            if (mediaIndex !== -1) {
+                if (newScenes[activeScene].media[mediaIndex].type === "image") {
+                    (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
+                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
+                    (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
+                }
+            }
+        } else if (selectedElement.type === "avatar" && newScenes[activeScene].avatar) {
+            newScenes[activeScene].avatar.zIndex = newZIndex;
+        }
+        
+        updateHistory(newScenes);
+    }, [scenes, activeScene, selectedElement, updateHistory]);
 
     // 修改渲染Tab内容的函数
     const renderTabContent = () => {
@@ -306,9 +684,9 @@ export default function VideoEditor() {
             case "Avatar":
                 return <AvatarContent />
             case "Background":
-                return <BackgroundContent 
+                return <BackgroundContent
                     currentBackground={scenes[activeScene].background}
-                    onBackgroundChange={handleBackgroundChange} 
+                    onBackgroundChange={handleBackgroundChange}
                 />
             case "Text":
                 return <TextContent
@@ -324,16 +702,73 @@ export default function VideoEditor() {
     }
 
     const [videoTitle, setVideoTitle] = useState<string>("编辑您的项目名称")
+    // 添加处理媒体添加的函数
+    // 添加处理媒体添加的函数
+    const handleAddMedia = useCallback(
+        (mediaType: "image" | "video", src: string) => {
+            const newScenes = [...scenes];
+            const mediaId = uuidv4();
+
+            if (mediaType === "image") {
+                newScenes[activeScene].media.push({
+                    id: mediaId,
+                    type: "image",
+                    element: {
+                        src,
+                        width: 400,
+                        height: 300,
+                        x: 1920 / 2 - 200, // 居中
+                        y: 1080 / 2 - 150, // 居中
+                        rotation: 0
+                    }
+                });
+
+                // 选中新添加的图片元素
+                setSelectedElement({
+                    type: "image",
+                    mediaId
+                });
+            } else if (mediaType === "video") {
+                newScenes[activeScene].media.push({
+                    id: mediaId,
+                    type: "video",
+                    element: {
+                        src,
+                        width: 400,
+                        height: 300,
+                        x: 1920 / 2 - 200, // 居中
+                        y: 1080 / 2 - 150, // 居中
+                        rotation: 0,
+                        volume: 1,
+                        autoPlay: true,
+                        loop: true,
+                        muted: false
+                    }
+                });
+
+                // 选中新添加的视频元素
+                setSelectedElement({
+                    type: "video",
+                    mediaId
+                });
+            }
+
+            updateHistory(newScenes);
+            setActiveTab("Media");
+        },
+        [scenes, activeScene, updateHistory]
+    );
 
     const addNewScene = useCallback(() => {
         const newScene: Scene = {
             title: `Scene ${scenes.length + 1}`,
-            image: null,
+            media: [],
             texts: [],  // 初始化为空数组
             avatar: null,
-            background : {
+            background: {
                 type: "color",
                 color: "#FFFFFF"
+                // Removed z-index comment to avoid confusion
             }
         }
         updateHistory([...scenes, newScene])
@@ -429,15 +864,16 @@ export default function VideoEditor() {
                             <div
                                 ref={editorRef}
                                 className="w-full max-w-3xl aspect-video shadow-md relative"
-                                style={{ 
-                                    backgroundColor: scenes[activeScene].background.type === "color" 
-                                        ? (scenes[activeScene].background as ColorBackground).color 
+                                style={{
+                                    backgroundColor: scenes[activeScene].background.type === "color"
+                                        ? (scenes[activeScene].background as ColorBackground).color
                                         : "transparent",
-                                    backgroundImage: scenes[activeScene].background.type === "image" 
-                                        ? `url(${(scenes[activeScene].background as ImageBackground).src})` 
+                                    backgroundImage: scenes[activeScene].background.type === "image"
+                                        ? `url(${(scenes[activeScene].background as ImageBackground).src})`
                                         : "none",
                                     backgroundSize: "cover",
-                                    backgroundPosition: "center"
+                                    backgroundPosition: "center",
+                                    zIndex: 1 // 设置背景的 z-index 为 1
                                 }}
                                 data-width="1920"
                                 data-height="1080"
@@ -447,10 +883,14 @@ export default function VideoEditor() {
                                     }
                                 }}
                             >
+                                {/* Z-Index Controls - Only show when an element is selected */}
+                                {/* Removed fixed position Z-Index Controls as they're now in the context menu */}
+                            
                                 {/* 如果背景是视频类型，添加视频元素 */}
                                 {scenes[activeScene].background.type === "video" && (
                                     <video
                                         className="absolute inset-0 w-full h-full object-cover"
+                                        style={{ zIndex: 1 }} /* 设置视频背景的 z-index 为 1 */
                                         src={(scenes[activeScene].background as VideoBackground).src}
                                         autoPlay
                                         loop={(scenes[activeScene].background as VideoBackground).displayMode === "loop"}
@@ -471,17 +911,17 @@ export default function VideoEditor() {
                                             if (el) {
                                                 // 设置音量
                                                 el.volume = (scenes[activeScene].background as VideoBackground).volume || 0;
-                                                
+
                                                 // 使用自定义属性存储上次的显示模式，避免重复播放
                                                 const videoBackground = scenes[activeScene].background as VideoBackground;
                                                 const lastDisplayMode = el.getAttribute('data-display-mode');
                                                 const currentDisplayMode = videoBackground.displayMode || 'loop';
-                                                
+
                                                 // 只有在显示模式变化或首次加载时才重置视频状态
                                                 if (lastDisplayMode !== currentDisplayMode || !el.getAttribute('data-initialized')) {
                                                     // 重置显示状态
                                                     el.style.display = "block";
-                                                    
+
                                                     if (videoBackground.displayMode === "freeze") {
                                                         // 对于freeze模式，总是从头开始播放一次
                                                         el.currentTime = 0;
@@ -493,7 +933,7 @@ export default function VideoEditor() {
                                                         el.currentTime = 0;
                                                         el.play();
                                                     }
-                                                    
+
                                                     // 标记为已初始化
                                                     el.setAttribute('data-initialized', 'true');
                                                     // 存储当前显示模式
@@ -504,35 +944,84 @@ export default function VideoEditor() {
                                     />
                                 )}
                                 {scenes[activeScene].texts.map((text, index) => (
-                                    <ResizableText
+                                    <ElementContextMenu
                                         key={index}
-                                        {...text}
-                                        canvasWidth={1920}
-                                        canvasHeight={1080}
-                                        containerWidth={previewDimensions.width}
-                                        containerHeight={previewDimensions.height}
-                                        onTextChange={handleTextChange}
-                                        onResize={handleTextUpdate}
-                                        onSelect={() => handleElementSelect({ type: "text", index })}
-                                        isSelected={selectedElement?.type === "text" && selectedElement.index === index}
-                                    />
+                                        onBringToFront={handleBringToFront}
+                                        onSendToBack={handleSendToBack}
+                                        onBringForward={handleBringForward}
+                                        onSendBackward={handleSendBackward}
+                                        disabled={!(selectedElement?.type === "text" && selectedElement.index === index)}
+                                    >
+                                        <ResizableText
+                                            {...text}
+                                            canvasWidth={1920}
+                                            canvasHeight={1080}
+                                            containerWidth={previewDimensions.width}
+                                            containerHeight={previewDimensions.height}
+                                            onTextChange={handleTextChange}
+                                            onResize={handleTextUpdate}
+                                            onSelect={() => handleElementSelect({ type: "text", index })}
+                                            isSelected={selectedElement?.type === "text" && selectedElement.index === index}
+                                        />
+                                    </ElementContextMenu>
                                 ))}
-                                {scenes[activeScene].image && (
-                                    <ResizableImage
-                                        {...scenes[activeScene].image}
-                                        onResize={handleImageResize}
-                                        onSelect={() => handleElementSelect({ type: "image" })}
-                                        isSelected={selectedElement?.type === "image"}
-                                    />
-                                )}
+                                {/* 渲染媒体元素 */}
+                                {scenes[activeScene].media.map((mediaItem) => {
+                                    if (mediaItem.type === "image") {
+                                        return (
+                                            <ElementContextMenu
+                                                key={mediaItem.id}
+                                                onBringToFront={handleBringToFront}
+                                                onSendToBack={handleSendToBack}
+                                                onBringForward={handleBringForward}
+                                                onSendBackward={handleSendBackward}
+                                                disabled={!(selectedElement?.type === "image" && selectedElement.mediaId === mediaItem.id)}
+                                            >
+                                                <ResizableImage
+                                                    {...(mediaItem as ImageMedia).element}
+                                                    onResize={(newSize) => handleImageResize(newSize, mediaItem.id!)}
+                                                    onSelect={() => handleElementSelect({ type: "image", mediaId: mediaItem.id })}
+                                                    isSelected={selectedElement?.type === "image" && selectedElement.mediaId === mediaItem.id}
+                                                />
+                                            </ElementContextMenu>
+                                        );
+                                    } else if (mediaItem.type === "video") {
+                                        return (
+                                            <ElementContextMenu
+                                                key={mediaItem.id}
+                                                onBringToFront={handleBringToFront}
+                                                onSendToBack={handleSendToBack}
+                                                onBringForward={handleBringForward}
+                                                onSendBackward={handleSendBackward}
+                                                disabled={!(selectedElement?.type === "video" && selectedElement.mediaId === mediaItem.id)}
+                                            >
+                                                <ResizableVideo
+                                                    {...(mediaItem as VideoMedia).element}
+                                                    onResize={(newSize) => handleVideoResize(newSize, mediaItem.id!)}
+                                                    onSelect={() => handleElementSelect({ type: "video", mediaId: mediaItem.id })}
+                                                    isSelected={selectedElement?.type === "video" && selectedElement.mediaId === mediaItem.id}
+                                                />
+                                            </ElementContextMenu>
+                                        );
+                                    }
+                                    return null;
+                                })}
 
                                 {scenes[activeScene].avatar && (
-                                    <ResizableAvatar
-                                        {...scenes[activeScene].avatar}
-                                        onResize={handleAvatarResize}
-                                        onSelect={() => handleElementSelect({ type: "avatar" })}
-                                        isSelected={selectedElement?.type === "avatar"}
-                                    />
+                                    <ElementContextMenu
+                                        onBringToFront={handleBringToFront}
+                                        onSendToBack={handleSendToBack}
+                                        onBringForward={handleBringForward}
+                                        onSendBackward={handleSendBackward}
+                                        disabled={!(selectedElement?.type === "avatar")}
+                                    >
+                                        <ResizableAvatar
+                                            {...scenes[activeScene].avatar}
+                                            onResize={handleAvatarResize}
+                                            onSelect={() => handleElementSelect({ type: "avatar" })}
+                                            isSelected={selectedElement?.type === "avatar"}
+                                        />
+                                    </ElementContextMenu>
                                 )}
                             </div>
                         </div>

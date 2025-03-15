@@ -9,6 +9,7 @@ interface ResizableImageProps {
     x: number
     y: number
     rotation: number
+    zIndex?: number
     onResize: (newSize: Partial<ResizableImageProps>) => void
     onSelect: () => void
     isSelected: boolean
@@ -21,6 +22,7 @@ export function ResizableImage({
                                    x,
                                    y,
                                    rotation,
+                                   zIndex = 1,
                                    onResize,
                                    onSelect,
                                    isSelected,
@@ -61,7 +63,10 @@ export function ResizableImage({
                 e.stopPropagation()
                 onSelect()
             }}
-            style={{transform: `rotate(${rotation}deg)`}}
+            style={{
+                transform: `rotate(${rotation}deg)`,
+                zIndex: zIndex
+            }}
         >
             <div className={`w-full h-full ${isSelected ? "outline outline-1 outline-blue-500" : ""}`}>
                 <img src={src} alt="Resizable element" draggable="false" className="w-full h-full object-cover"/>

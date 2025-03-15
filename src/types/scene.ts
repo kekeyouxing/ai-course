@@ -13,6 +13,7 @@ export interface TextElement {
     bold?: boolean
     italic?: boolean
     alignment?: "left" | "center" | "right"
+    zIndex?: number; // 添加 zIndex 属性
 }
 
 // 图片元素接口
@@ -23,7 +24,47 @@ export interface ImageElement {
     x: number
     y: number
     rotation: number
+    zIndex?: number; // 添加 zIndex 属性
 }
+
+// 视频元素接口
+export interface VideoElement {
+    src: string
+    width: number
+    height: number
+    x: number
+    y: number
+    rotation: number
+    volume?: number // 音量，0-1之间
+    autoPlay?: boolean
+    loop?: boolean
+    muted?: boolean
+    zIndex?: number; // 添加 zIndex 属性
+}
+
+// 媒体类型基础接口
+export interface MediaBase {
+    type: "image" | "video";
+    id?: string; // 添加唯一标识符
+}
+
+// 图片媒体
+export interface ImageMedia extends MediaBase {
+    type: "image";
+    element: ImageElement;
+}
+
+// 视频媒体
+export interface VideoMedia extends MediaBase {
+    type: "video";
+    element: VideoElement;
+}
+
+// 媒体项类型
+export type MediaItem = ImageMedia | VideoMedia;
+
+// 媒体联合类型
+export type Media = MediaItem[];
 
 // 头像元素接口
 export interface AvatarElement {
@@ -33,6 +74,7 @@ export interface AvatarElement {
     x: number
     y: number
     rotation: number
+    zIndex?: number; // 添加 zIndex 属性
 }
 
 // 背景基础接口
@@ -70,7 +112,7 @@ export type Background = ColorBackground | ImageBackground | VideoBackground;
 // 场景接口
 export interface Scene {
     title: string
-    image: ImageElement | null
+    media: Media
     texts: TextElement[]
     avatar: AvatarElement | null
     background: Background
@@ -78,6 +120,7 @@ export interface Scene {
 
 // 选中元素类型
 export interface SelectedElementType {
-    type: "text" | "image" | "avatar"
+    type: "text" | "image" | "video" | "avatar"
     index?: number
+    mediaId?: string // 添加媒体ID用于标识特定媒体元素
 }
