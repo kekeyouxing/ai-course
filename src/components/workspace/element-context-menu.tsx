@@ -7,6 +7,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Scene, SelectedElementType } from "@/types/scene"
 
 interface ElementContextMenuProps {
   onBringToFront: () => void
@@ -15,6 +16,9 @@ interface ElementContextMenuProps {
   onSendBackward: () => void
   disabled?: boolean
   children: React.ReactNode
+  scenes?: Scene[]
+  activeScene?: number
+  selectedElement?: SelectedElementType | null
 }
 
 export function ElementContextMenu({
@@ -24,6 +28,9 @@ export function ElementContextMenu({
   onSendBackward,
   disabled = false,
   children,
+  scenes,
+  activeScene,
+  selectedElement,
 }: ElementContextMenuProps) {
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [isOpen, setIsOpen] = useState(false)
@@ -75,6 +82,9 @@ export function ElementContextMenu({
             onBringForward={onBringForward}
             onSendBackward={onSendBackward}
             disabled={disabled}
+            scenes={scenes}
+            activeScene={activeScene}
+            selectedElement={selectedElement}
           />
         </DropdownMenuContent>
       </DropdownMenu>

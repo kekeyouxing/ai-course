@@ -224,7 +224,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
               activeTab === "format" ? "bg-white border-b-2 border-black font-medium" : "hover:bg-gray-200"
             }`}
           >
-            Format
+            格式
           </button>
           <button
             onClick={() => setActiveTab("animate")}
@@ -232,7 +232,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
               activeTab === "animate" ? "bg-white border-b-2 border-black font-medium" : "hover:bg-gray-200"
             }`}
           >
-            Animate
+            动画
           </button>
         </div>
 
@@ -370,7 +370,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
 
               {/* Font Color */}
               <div className="flex items-center justify-between">
-                <label className="text-base font-normal text-gray-800">Font color</label>
+                <label className="text-base font-normal text-gray-800">颜色</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="h-8 w-8 p-0 rounded-md">
@@ -408,7 +408,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
 
               {/* Background Color */}
               <div className="flex items-center justify-between">
-                <label className="text-base font-normal text-gray-800">Background color</label>
+                <label className="text-base font-normal text-gray-800">背景颜色</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="h-8 w-8 p-0 rounded-md">
@@ -450,7 +450,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
               {/* Rotation */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-base font-normal text-gray-800">Rotation</label>
+                  <label className="text-base font-normal text-gray-800">旋转</label>
                   <div className="flex items-center gap-2">
                     <RotateCcw className="h-4 w-4 text-gray-500" />
                     <span className="text-sm font-medium w-8 text-right">{rotation}°</span>
@@ -470,7 +470,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
 
               {/* Layout */}
               <div>
-                <label className="text-base font-normal text-gray-800 block mb-2">Layout</label>
+                <label className="text-base font-normal text-gray-800 block mb-2">位置</label>
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <div className="text-xs text-gray-500 mb-1">X</div>
@@ -491,7 +491,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
                     />
                   </div>
                   <div className="flex-1">
-                    <div className="text-xs text-gray-500 mb-1">W</div>
+                    <div className="text-xs text-gray-500 mb-1">宽</div>
                     <Input
                       type="number"
                       value={layout.width}
@@ -500,7 +500,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
                     />
                   </div>
                   <div className="flex-1">
-                    <div className="text-xs text-gray-500 mb-1">H</div>
+                    <div className="text-xs text-gray-500 mb-1">高</div>
                     <Input
                       type="number"
                       value={layout.height}
@@ -508,27 +508,6 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
                       className="h-8 text-sm"
                     />
                   </div>
-                </div>
-              </div>
-
-              {/* Order */}
-              <div className="flex items-center justify-between">
-                <label className="text-base font-normal text-gray-800">Order</label>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-md">
-                    <div className="h-4 w-4 border-2 border-gray-500 bg-gray-100"></div>
-                  </Button>
-                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-md">
-                    <div className="h-4 w-4 border-2 border-gray-500 bg-gray-100 relative">
-                      <div className="absolute -top-1 -right-1 h-2 w-2 bg-gray-500 rounded-sm"></div>
-                    </div>
-                  </Button>
-                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-md">
-                    <div className="h-4 w-4 border-2 border-dashed border-gray-500"></div>
-                  </Button>
-                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-md">
-                    <div className="h-4 w-4 border-2 border-gray-500 bg-gray-200"></div>
-                  </Button>
                 </div>
               </div>
             </div>

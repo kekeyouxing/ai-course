@@ -13,6 +13,7 @@ import { ResizableText } from "@/components/workspace/resizable-text"
 import { ResizableImage } from "@/components/workspace/resizable-image"
 import { ResizableAvatar } from "@/components/workspace/resizable-avatar"
 import { ElementContextMenu } from "@/components/workspace/element-context-menu"
+import { bringToFront, sendToBack, bringForward, sendBackward } from "@/utils/layer-controls";
 
 // 导入类型定义
 import {
@@ -59,7 +60,7 @@ export default function VideoEditor() {
                 {
                     id: uuidv4(),
                     type: "image",
-                    element: { src: placeholderImage, width: 200, height: 300, x: 0, y: 0, rotation: 0 }
+                    element: { src: placeholderImage, width: 200, height: 300, x: 0, y: 0, rotation: 0, zIndex:2 }
                 }
             ],
             texts: [{  // 修改为数组
@@ -75,7 +76,8 @@ export default function VideoEditor() {
                 backgroundColor: "rgba(255, 255, 255, 0)",
                 bold: false,
                 italic: false,
-                alignment: "center"
+                alignment: "center",
+                zIndex:2
             }],
             avatar: null,
             background: {
@@ -105,7 +107,8 @@ export default function VideoEditor() {
                 backgroundColor: "rgba(255, 255, 255, 0)",
                 bold: false,
                 italic: false,
-                alignment: "center"
+                alignment: "center",
+                zIndex:2
             }],
             avatar: null,
             background: {
@@ -349,331 +352,37 @@ export default function VideoEditor() {
     const handleBringToFront = useCallback(() => {
         if (!selectedElement) return;
         
-        const newScenes = [...scenes];
-        let maxZIndex = 0;
-        
-        // 找出当前场景中所有元素的最大 zIndex
-        // 检查文本元素
-        newScenes[activeScene].texts.forEach(text => {
-            if (text.zIndex !== undefined && text.zIndex > maxZIndex) {
-                maxZIndex = text.zIndex;
-            }
-        });
-        
-        // 检查媒体元素
-        newScenes[activeScene].media.forEach(media => {
-            if (media.type === "image") {
-                const imgElement = (media as ImageMedia).element;
-                if (imgElement.zIndex !== undefined && imgElement.zIndex > maxZIndex) {
-                    maxZIndex = imgElement.zIndex;
-                }
-            } else if (media.type === "video") {
-                const videoElement = (media as VideoMedia).element;
-                if (videoElement.zIndex !== undefined && videoElement.zIndex > maxZIndex) {
-                    maxZIndex = videoElement.zIndex;
-                }
-            }
-        });
-        
-        // 检查头像元素
-        if (newScenes[activeScene].avatar && newScenes[activeScene].avatar.zIndex !== undefined) {
-            if (newScenes[activeScene].avatar.zIndex > maxZIndex) {
-                maxZIndex = newScenes[activeScene].avatar.zIndex;
-            }
+        const newScenes = bringToFront(scenes, activeScene, selectedElement);
+        if (newScenes) {
+            updateHistory(newScenes);
         }
-        
-        // 设置选中元素的 zIndex 为最大值 + 1
-        if (selectedElement.type === "text" && selectedElement.index !== undefined) {
-            newScenes[activeScene].texts[selectedElement.index].zIndex = maxZIndex + 1;
-        } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
-            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === selectedElement.mediaId);
-            if (mediaIndex !== -1) {
-                if (newScenes[activeScene].media[mediaIndex].type === "image") {
-                    (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = maxZIndex + 1;
-                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
-                    (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = maxZIndex + 1;
-                }
-            }
-        } else if (selectedElement.type === "avatar" && newScenes[activeScene].avatar) {
-            newScenes[activeScene].avatar.zIndex = maxZIndex + 1;
-        }
-        
-        updateHistory(newScenes);
     }, [scenes, activeScene, selectedElement, updateHistory]);
     
     const handleSendToBack = useCallback(() => {
         if (!selectedElement) return;
         
-        const newScenes = [...scenes];
-        // 设置最小 z-index 为 2，确保元素不会低于背景（背景 z-index 为 1）
-        let minZIndex = 2;
-        
-        // 找出当前场景中所有元素的最小 zIndex
-        // 检查文本元素
-        newScenes[activeScene].texts.forEach(text => {
-            if (text.zIndex !== undefined && text.zIndex < minZIndex && text.zIndex >= 2) {
-                minZIndex = text.zIndex;
-            }
-        });
-        
-        // 检查媒体元素
-        newScenes[activeScene].media.forEach(media => {
-            if (media.type === "image") {
-                const imgElement = (media as ImageMedia).element;
-                if (imgElement.zIndex !== undefined && imgElement.zIndex < minZIndex && imgElement.zIndex >= 2) {
-                    minZIndex = imgElement.zIndex;
-                }
-            } else if (media.type === "video") {
-                const videoElement = (media as VideoMedia).element;
-                if (videoElement.zIndex !== undefined && videoElement.zIndex < minZIndex && videoElement.zIndex >= 2) {
-                    minZIndex = videoElement.zIndex;
-                }
-            }
-        });
-        
-        // 检查头像元素
-        if (newScenes[activeScene].avatar && newScenes[activeScene].avatar.zIndex !== undefined) {
-            if (newScenes[activeScene].avatar.zIndex < minZIndex && newScenes[activeScene].avatar.zIndex >= 2) {
-                minZIndex = newScenes[activeScene].avatar.zIndex;
-            }
+        const newScenes = sendToBack(scenes, activeScene, selectedElement);
+        if (newScenes) {
+            updateHistory(newScenes);
         }
-        
-        // 设置选中元素的 zIndex 为 2（最小可能值，确保在背景之上）
-        const newZIndex = Math.max(2, minZIndex - 1);
-        
-        if (selectedElement.type === "text" && selectedElement.index !== undefined) {
-            newScenes[activeScene].texts[selectedElement.index].zIndex = newZIndex;
-        } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
-            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === selectedElement.mediaId);
-            if (mediaIndex !== -1) {
-                if (newScenes[activeScene].media[mediaIndex].type === "image") {
-                    (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
-                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
-                    (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
-                }
-            }
-        } else if (selectedElement.type === "avatar" && newScenes[activeScene].avatar) {
-            newScenes[activeScene].avatar.zIndex = newZIndex;
-        }
-        
-        updateHistory(newScenes);
     }, [scenes, activeScene, selectedElement, updateHistory]);
     
     const handleBringForward = useCallback(() => {
         if (!selectedElement) return;
         
-        const newScenes = [...scenes];
-        let currentZIndex = 0;
-        
-        // 获取当前选中元素的 zIndex
-        if (selectedElement.type === "text" && selectedElement.index !== undefined) {
-            currentZIndex = newScenes[activeScene].texts[selectedElement.index].zIndex || 0;
-        } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
-            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === selectedElement.mediaId);
-            if (mediaIndex !== -1) {
-                if (newScenes[activeScene].media[mediaIndex].type === "image") {
-                    currentZIndex = (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex || 0;
-                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
-                    currentZIndex = (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex || 0;
-                }
-            }
-        } else if (selectedElement.type === "avatar" && newScenes[activeScene].avatar) {
-            currentZIndex = newScenes[activeScene].avatar.zIndex || 0;
+        const newScenes = bringForward(scenes, activeScene, selectedElement);
+        if (newScenes) {
+            updateHistory(newScenes);
         }
-        
-        // 收集当前场景中所有元素的 zIndex
-        const allElements: {type: string, index?: number, mediaId?: string, zIndex: number}[] = [];
-        
-        // 收集文本元素
-        newScenes[activeScene].texts.forEach((text, index) => {
-            allElements.push({
-                type: "text",
-                index,
-                zIndex: text.zIndex || 0
-            });
-        });
-        
-        // 收集媒体元素
-        newScenes[activeScene].media.forEach((media) => {
-            if (media.type === "image") {
-                allElements.push({
-                    type: "image",
-                    mediaId: media.id,
-                    zIndex: (media as ImageMedia).element.zIndex || 0
-                });
-            } else if (media.type === "video") {
-                allElements.push({
-                    type: "video",
-                    mediaId: media.id,
-                    zIndex: (media as VideoMedia).element.zIndex || 0
-                });
-            }
-        });
-        
-        // 收集头像元素
-        if (newScenes[activeScene].avatar) {
-            allElements.push({
-                type: "avatar",
-                zIndex: newScenes[activeScene].avatar.zIndex || 0
-            });
-        }
-        
-        // 按 zIndex 排序
-        allElements.sort((a, b) => a.zIndex - b.zIndex);
-        
-        // 找到当前元素在排序后数组中的位置
-        let currentIndex = -1;
-        for (let i = 0; i < allElements.length; i++) {
-            const el = allElements[i];
-            if (el.type === selectedElement.type) {
-                if (el.type === "text" && el.index === selectedElement.index) {
-                    currentIndex = i;
-                    break;
-                } else if ((el.type === "image" || el.type === "video") && el.mediaId === selectedElement.mediaId) {
-                    currentIndex = i;
-                    break;
-                } else if (el.type === "avatar") {
-                    currentIndex = i;
-                    break;
-                }
-            }
-        }
-        
-        // 如果当前元素已经是最顶层，则不需要操作
-        if (currentIndex === allElements.length - 1) {
-            return;
-        }
-        
-        // 获取上一层元素的 zIndex
-        const nextElement = allElements[currentIndex + 1];
-        const newZIndex = nextElement.zIndex + 1;
-        
-        // 更新当前元素的 zIndex
-        if (selectedElement.type === "text" && selectedElement.index !== undefined) {
-            newScenes[activeScene].texts[selectedElement.index].zIndex = newZIndex;
-        } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
-            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === selectedElement.mediaId);
-            if (mediaIndex !== -1) {
-                if (newScenes[activeScene].media[mediaIndex].type === "image") {
-                    (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
-                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
-                    (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
-                }
-            }
-        } else if (selectedElement.type === "avatar" && newScenes[activeScene].avatar) {
-            newScenes[activeScene].avatar.zIndex = newZIndex;
-        }
-        
-        updateHistory(newScenes);
     }, [scenes, activeScene, selectedElement, updateHistory]);
     
     const handleSendBackward = useCallback(() => {
         if (!selectedElement) return;
         
-        const newScenes = [...scenes];
-        let currentZIndex = 0;
-        
-        // 获取当前选中元素的 zIndex
-        if (selectedElement.type === "text" && selectedElement.index !== undefined) {
-            currentZIndex = newScenes[activeScene].texts[selectedElement.index].zIndex || 0;
-        } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
-            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === selectedElement.mediaId);
-            if (mediaIndex !== -1) {
-                if (newScenes[activeScene].media[mediaIndex].type === "image") {
-                    currentZIndex = (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex || 0;
-                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
-                    currentZIndex = (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex || 0;
-                }
-            }
-        } else if (selectedElement.type === "avatar" && newScenes[activeScene].avatar) {
-            currentZIndex = newScenes[activeScene].avatar.zIndex || 0;
+        const newScenes = sendBackward(scenes, activeScene, selectedElement);
+        if (newScenes) {
+            updateHistory(newScenes);
         }
-        
-        // 收集当前场景中所有元素的 zIndex
-        const allElements: {type: string, index?: number, mediaId?: string, zIndex: number}[] = [];
-        
-        // 收集文本元素
-        newScenes[activeScene].texts.forEach((text, index) => {
-            allElements.push({
-                type: "text",
-                index,
-                zIndex: text.zIndex || 0
-            });
-        });
-        
-        // 收集媒体元素
-        newScenes[activeScene].media.forEach((media) => {
-            if (media.type === "image") {
-                allElements.push({
-                    type: "image",
-                    mediaId: media.id,
-                    zIndex: (media as ImageMedia).element.zIndex || 0
-                });
-            } else if (media.type === "video") {
-                allElements.push({
-                    type: "video",
-                    mediaId: media.id,
-                    zIndex: (media as VideoMedia).element.zIndex || 0
-                });
-            }
-        });
-        
-        // 收集头像元素
-        if (newScenes[activeScene].avatar) {
-            allElements.push({
-                type: "avatar",
-                zIndex: newScenes[activeScene].avatar.zIndex || 0
-            });
-        }
-        
-        // 按 zIndex 排序
-        allElements.sort((a, b) => a.zIndex - b.zIndex);
-        
-        // 找到当前元素在排序后数组中的位置
-        let currentIndex = -1;
-        for (let i = 0; i < allElements.length; i++) {
-            const el = allElements[i];
-            if (el.type === selectedElement.type) {
-                if (el.type === "text" && el.index === selectedElement.index) {
-                    currentIndex = i;
-                    break;
-                } else if ((el.type === "image" || el.type === "video") && el.mediaId === selectedElement.mediaId) {
-                    currentIndex = i;
-                    break;
-                } else if (el.type === "avatar") {
-                    currentIndex = i;
-                    break;
-                }
-            }
-        }
-        
-        // 如果当前元素已经是最底层或者只有一个元素，则不需要操作
-        if (currentIndex <= 0 || allElements.length <= 1) {
-            return;
-        }
-        
-        // 获取下一层元素的 zIndex
-        const prevElement = allElements[currentIndex - 1];
-        // 确保 z-index 不低于 2（背景的 z-index 为 1）
-        const newZIndex = Math.max(2, prevElement.zIndex - 1);
-        
-        // 更新当前元素的 zIndex
-        if (selectedElement.type === "text" && selectedElement.index !== undefined) {
-            newScenes[activeScene].texts[selectedElement.index].zIndex = newZIndex;
-        } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
-            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === selectedElement.mediaId);
-            if (mediaIndex !== -1) {
-                if (newScenes[activeScene].media[mediaIndex].type === "image") {
-                    (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
-                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
-                    (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
-                }
-            }
-        } else if (selectedElement.type === "avatar" && newScenes[activeScene].avatar) {
-            newScenes[activeScene].avatar.zIndex = newZIndex;
-        }
-        
-        updateHistory(newScenes);
     }, [scenes, activeScene, selectedElement, updateHistory]);
 
     // 修改渲染Tab内容的函数
@@ -791,8 +500,6 @@ export default function VideoEditor() {
             // 更新当前场景的头像
             newScenes[activeScene].avatar = newAvatar
             updateHistory(newScenes)
-
-            // 选中头像元素
             // setSelectedElement("avatar")
             setActiveTab("Avatar")
         },
