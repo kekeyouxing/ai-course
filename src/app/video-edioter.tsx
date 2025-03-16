@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { ResizablePanel, ResizablePanelGroup, ResizableHandle } from "@/components/ui/resizable"
 import ScriptContent from "@/components/script/script-content";
 import { BackgroundContent } from "@/components/background/background-content";
+import { BackgroundRenderer } from "@/components/background/background-renderer";
 import { VideoHeader } from "@/components/workspace/workspace-header";
 import { VideoTimeline } from "@/components/workspace/workspace-timeline";
 import { VideoTabs } from "@/components/workspace/workspace-tabs";
@@ -14,6 +15,7 @@ import { ResizableImage } from "@/components/workspace/resizable-image"
 import { ResizableAvatar } from "@/components/workspace/resizable-avatar"
 import { ElementContextMenu } from "@/components/workspace/element-context-menu"
 import { bringToFront, sendToBack, bringForward, sendBackward } from "@/utils/layer-controls";
+import { getAllElementsForAlignment } from "@/utils/alignment-utils";
 
 // 导入类型定义
 import {
@@ -568,88 +570,15 @@ export default function VideoEditor() {
                     <div className="h-full flex flex-col bg-gray-100">
                         {/* 直接集成 VideoPreview 的内容 */}
                         <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
-                            <div
-                                ref={editorRef}
-                                className="w-full max-w-3xl aspect-video shadow-md relative"
-                                style={{
-                                    backgroundColor: scenes[activeScene].background.type === "color"
-                                        ? (scenes[activeScene].background as ColorBackground).color
-                                        : "transparent",
-                                    backgroundImage: scenes[activeScene].background.type === "image"
-                                        ? `url(${(scenes[activeScene].background as ImageBackground).src})`
-                                        : "none",
-                                    backgroundSize: "cover",
-                                    backgroundPosition: "center",
-                                    zIndex: 1 // 设置背景的 z-index 为 1
-                                }}
-                                data-width="1920"
-                                data-height="1080"
+                            <BackgroundRenderer 
+                                background={scenes[activeScene].background}
                                 onClick={(e: React.MouseEvent) => {
                                     if (e.target === e.currentTarget) {
                                         setSelectedElement(null)
                                     }
                                 }}
+                                editorRef={editorRef}
                             >
-                                {/* Z-Index Controls - Only show when an element is selected */}
-                                {/* Removed fixed position Z-Index Controls as they're now in the context menu */}
-                            
-                                {/* 如果背景是视频类型，添加视频元素 */}
-                                {scenes[activeScene].background.type === "video" && (
-                                    <video
-                                        className="absolute inset-0 w-full h-full object-cover"
-                                        style={{ zIndex: 1 }} /* 设置视频背景的 z-index 为 1 */
-                                        src={(scenes[activeScene].background as VideoBackground).src}
-                                        autoPlay
-                                        loop={(scenes[activeScene].background as VideoBackground).displayMode === "loop"}
-                                        muted={(scenes[activeScene].background as VideoBackground).volume === 0}
-                                        onEnded={(e) => {
-                                            const videoBackground = scenes[activeScene].background as VideoBackground;
-                                            if (videoBackground.displayMode === "freeze") {
-                                                // 暂停在最后一帧
-                                                e.currentTarget.currentTime = e.currentTarget.duration;
-                                                e.currentTarget.pause();
-                                            } else if (videoBackground.displayMode === "hide") {
-                                                // 隐藏视频
-                                                e.currentTarget.style.display = "none";
-                                            }
-                                            // loop模式会自动循环播放
-                                        }}
-                                        ref={(el) => {
-                                            if (el) {
-                                                // 设置音量
-                                                el.volume = (scenes[activeScene].background as VideoBackground).volume || 0;
-
-                                                // 使用自定义属性存储上次的显示模式，避免重复播放
-                                                const videoBackground = scenes[activeScene].background as VideoBackground;
-                                                const lastDisplayMode = el.getAttribute('data-display-mode');
-                                                const currentDisplayMode = videoBackground.displayMode || 'loop';
-
-                                                // 只有在显示模式变化或首次加载时才重置视频状态
-                                                if (lastDisplayMode !== currentDisplayMode || !el.getAttribute('data-initialized')) {
-                                                    // 重置显示状态
-                                                    el.style.display = "block";
-
-                                                    if (videoBackground.displayMode === "freeze") {
-                                                        // 对于freeze模式，总是从头开始播放一次
-                                                        el.currentTime = 0;
-                                                        el.play();
-                                                    } else if (videoBackground.displayMode === "loop") {
-                                                        el.currentTime = 0;
-                                                        el.play();
-                                                    } else if (videoBackground.displayMode === "hide") {
-                                                        el.currentTime = 0;
-                                                        el.play();
-                                                    }
-
-                                                    // 标记为已初始化
-                                                    el.setAttribute('data-initialized', 'true');
-                                                    // 存储当前显示模式
-                                                    el.setAttribute('data-display-mode', currentDisplayMode);
-                                                }
-                                            }
-                                        }}
-                                    />
-                                )}
                                 {scenes[activeScene].texts.map((text, index) => (
                                     <ElementContextMenu
                                         key={index}
@@ -669,6 +598,7 @@ export default function VideoEditor() {
                                             onResize={handleTextUpdate}
                                             onSelect={() => handleElementSelect({ type: "text", index })}
                                             isSelected={selectedElement?.type === "text" && selectedElement.index === index}
+                                            otherElements={getAllElementsForAlignment(scenes[activeScene], undefined, "text", index)}
                                         />
                                     </ElementContextMenu>
                                 ))}
@@ -689,6 +619,11 @@ export default function VideoEditor() {
                                                     onResize={(newSize) => handleImageResize(newSize, mediaItem.id!)}
                                                     onSelect={() => handleElementSelect({ type: "image", mediaId: mediaItem.id })}
                                                     isSelected={selectedElement?.type === "image" && selectedElement.mediaId === mediaItem.id}
+                                                    canvasWidth={1920}
+                                                    canvasHeight={1080}
+                                                    containerWidth={previewDimensions.width}
+                                                    containerHeight={previewDimensions.height}
+                                                    otherElements={getAllElementsForAlignment(scenes[activeScene], mediaItem.id, "image")}
                                                 />
                                             </ElementContextMenu>
                                         );
@@ -707,6 +642,11 @@ export default function VideoEditor() {
                                                     onResize={(newSize) => handleVideoResize(newSize, mediaItem.id!)}
                                                     onSelect={() => handleElementSelect({ type: "video", mediaId: mediaItem.id })}
                                                     isSelected={selectedElement?.type === "video" && selectedElement.mediaId === mediaItem.id}
+                                                    canvasWidth={1920}
+                                                    canvasHeight={1080}
+                                                    containerWidth={previewDimensions.width}
+                                                    containerHeight={previewDimensions.height}
+                                                    // otherElements={getAllElementsForAlignment(scenes[activeScene], mediaItem.id, "video")}
                                                 />
                                             </ElementContextMenu>
                                         );
@@ -727,10 +667,15 @@ export default function VideoEditor() {
                                             onResize={handleAvatarResize}
                                             onSelect={() => handleElementSelect({ type: "avatar" })}
                                             isSelected={selectedElement?.type === "avatar"}
+                                            canvasWidth={1920}
+                                            canvasHeight={1080}
+                                            containerWidth={previewDimensions.width}
+                                            containerHeight={previewDimensions.height}
+                                            otherElements={getAllElementsForAlignment(scenes[activeScene], undefined, "avatar")}
                                         />
                                     </ElementContextMenu>
                                 )}
-                            </div>
+                            </BackgroundRenderer>
                         </div>
 
                         {/* Timeline */}

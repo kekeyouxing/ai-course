@@ -27,6 +27,13 @@ interface TextElement {
   y?: number;
   width?: number;
   height?: number;
+  // Animation properties
+  animationType?: "none" | "fade" | "slide";
+  animationBehavior?: "enter" | "exit" | "both";
+  animationDirection?: "right" | "left" | "down" | "up";
+  // 移除 usePercentageForTiming 字段
+  startAt?: number;
+  endAt?: number; // 添加结束时间字段
 }
 
 // 组件属性接口
@@ -51,6 +58,14 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
   })
   const [fontFamily, setFontFamily] = useState(textElement?.fontFamily || "lora")
   const [fontSize, setFontSize] = useState(textElement?.fontSize?.toString() || "24")
+  
+  // Animation states
+  const [animationType, setAnimationType] = useState(textElement?.animationType || "none")
+  const [animationBehavior, setAnimationBehavior] = useState(textElement?.animationBehavior || "enter")
+  const [animationDirection, setAnimationDirection] = useState(textElement?.animationDirection || "right")
+  // 移除 usePercentageForTiming 状态
+  const [startAt, setStartAt] = useState(textElement?.startAt || 0)
+  const [endAt, setEndAt] = useState(textElement?.endAt || 0) // 添加结束时间状态
 
   // 字体大小预设选项
   const fontSizeOptions = [18, 24, 32, 36, 48, 56, 64, 72, 96, 120, 144, 180, 210, 225, 240];
@@ -177,6 +192,36 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
     })
   }
 
+  // 处理动画类型变化
+  const handleAnimationTypeChange = (value: string) => {
+    setAnimationType(value as "none" | "fade" | "slide")
+    onUpdate({ animationType: value as "none" | "fade" | "slide" })
+  }
+
+  // 处理动画行为变化
+  const handleAnimationBehaviorChange = (value: string) => {
+    setAnimationBehavior(value as "enter" | "exit" | "both")
+    onUpdate({ animationBehavior: value as "enter" | "exit" | "both" })
+  }
+
+  // 处理动画方向变化
+  const handleAnimationDirectionChange = (value: string) => {
+    setAnimationDirection(value as "right" | "left" | "down" | "up")
+    onUpdate({ animationDirection: value as "right" | "left" | "down" | "up" })
+  }
+
+  // 处理开始时间变化
+  const handleStartAtChange = (value: number) => {
+    setStartAt(value)
+    onUpdate({ startAt: value })
+  }
+
+  // 添加处理结束时间变化的函数
+  const handleEndAtChange = (value: number) => {
+    setEndAt(value)
+    onUpdate({ endAt: value })
+  }
+
   // 当 textElement 属性变化时更新本地状态
   useEffect(() => {
     if (textElement) {
@@ -194,6 +239,14 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
       });
       setFontFamily(textElement.fontFamily || "lora");
       setFontSize(textElement.fontSize?.toString() || "24");
+      
+      // 更新动画状态
+      setAnimationType(textElement.animationType || "none");
+      setAnimationBehavior(textElement.animationBehavior || "enter");
+      setAnimationDirection(textElement.animationDirection || "right");
+      // 移除 usePercentageForTiming 更新
+      setStartAt(textElement.startAt || 0);
+      setEndAt(textElement.endAt || 0); // 添加结束时间更新
     }
   }, [textElement]);
 
@@ -516,20 +569,166 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
           {/* Animate Tab Content */}
           {activeTab === "animate" && (
             <div className="space-y-6">
+              {/* Animation Type */}
               <div className="flex items-center justify-between">
-                <label className="text-base font-normal text-gray-800">Animation type</label>
-                <Select defaultValue="none">
+                <label className="text-base font-normal text-gray-800">动画类型</label>
+                <Select value={animationType} onValueChange={handleAnimationTypeChange}>
                   <SelectTrigger className="w-36">
-                    <SelectValue placeholder="Select animation" />
+                    <SelectValue placeholder="选择动画" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    <SelectItem value="fade">Fade</SelectItem>
-                    <SelectItem value="slide">Slide</SelectItem>
-                    <SelectItem value="bounce">Bounce</SelectItem>
+                    <SelectItem value="none">无</SelectItem>
+                    <SelectItem value="fade">淡入淡出</SelectItem>
+                    <SelectItem value="slide">滑动</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              
+              {/* 只有当动画类型不是"无"时才显示以下选项 */}
+              {animationType !== "none" && (
+                <>
+                  {/* Direction - Only for Slide animation */}
+                  {animationType === "slide" && (
+                    <div>
+                      <label className="text-base font-normal text-gray-800 block mb-3">方向</label>
+                      <div className="grid grid-cols-4 gap-1 bg-gray-100 rounded-full p-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`rounded-full py-2 ${animationDirection === "right" ? "bg-white shadow-sm" : ""}`}
+                          onClick={() => handleAnimationDirectionChange("right")}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M5 12h14"></path>
+                            <path d="m12 5 7 7-7 7"></path>
+                          </svg>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`rounded-full py-2 ${animationDirection === "left" ? "bg-white shadow-sm" : ""}`}
+                          onClick={() => handleAnimationDirectionChange("left")}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M19 12H5"></path>
+                            <path d="m12 19-7-7 7-7"></path>
+                          </svg>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`rounded-full py-2 ${animationDirection === "down" ? "bg-white shadow-sm" : ""}`}
+                          onClick={() => handleAnimationDirectionChange("down")}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 5v14"></path>
+                            <path d="m19 12-7 7-7-7"></path>
+                          </svg>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`rounded-full py-2 ${animationDirection === "up" ? "bg-white shadow-sm" : ""}`}
+                          onClick={() => handleAnimationDirectionChange("up")}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 19V5"></path>
+                            <path d="m5 12 7-7 7 7"></path>
+                          </svg>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Behavior */}
+                  <div>
+                    <label className="text-base font-normal text-gray-800 block mb-3">行为</label>
+                    <div className="grid grid-cols-3 gap-1 bg-gray-100 rounded-full p-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`rounded-full py-2 ${animationBehavior === "enter" ? "bg-white shadow-sm" : ""}`}
+                        onClick={() => handleAnimationBehaviorChange("enter")}
+                      >
+                        进入
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`rounded-full py-2 ${animationBehavior === "exit" ? "bg-white shadow-sm" : ""}`}
+                        onClick={() => handleAnimationBehaviorChange("exit")}
+                      >
+                        退出
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`rounded-full py-2 ${animationBehavior === "both" ? "bg-white shadow-sm" : ""}`}
+                        onClick={() => handleAnimationBehaviorChange("both")}
+                      >
+                        两者
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* 移除使用百分比计时选项 */}
+                  
+                  {/* 根据行为显示不同的时间控制选项 */}
+                  {/* 当行为是"进入"或"两者"时显示开始于 */}
+                  {(animationBehavior === "enter" || animationBehavior === "both") && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-base font-normal text-gray-800">开始于</label>
+                        <Select value={startAt.toString()} onValueChange={(value) => handleStartAtChange(parseInt(value))}>
+                          <SelectTrigger className="w-24">
+                            <SelectValue placeholder="选择时间" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="0">0%</SelectItem>
+                            <SelectItem value="10">10%</SelectItem>
+                            <SelectItem value="20">20%</SelectItem>
+                            <SelectItem value="30">30%</SelectItem>
+                            <SelectItem value="40">40%</SelectItem>
+                            <SelectItem value="50">50%</SelectItem>
+                            <SelectItem value="60">60%</SelectItem>
+                            <SelectItem value="70">70%</SelectItem>
+                            <SelectItem value="80">80%</SelectItem>
+                            <SelectItem value="90">90%</SelectItem>
+                            <SelectItem value="100">100%</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 当行为是"退出"或"两者"时显示结束于 */}
+                  {(animationBehavior === "exit" || animationBehavior === "both") && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-base font-normal text-gray-800">结束于</label>
+                        <Select value={endAt.toString()} onValueChange={(value) => handleEndAtChange(parseInt(value))}>
+                          <SelectTrigger className="w-24">
+                            <SelectValue placeholder="选择时间" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="0">0%</SelectItem>
+                            <SelectItem value="10">10%</SelectItem>
+                            <SelectItem value="20">20%</SelectItem>
+                            <SelectItem value="30">30%</SelectItem>
+                            <SelectItem value="40">40%</SelectItem>
+                            <SelectItem value="50">50%</SelectItem>
+                            <SelectItem value="60">60%</SelectItem>
+                            <SelectItem value="70">70%</SelectItem>
+                            <SelectItem value="80">80%</SelectItem>
+                            <SelectItem value="90">90%</SelectItem>
+                            <SelectItem value="100">100%</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
         </div>

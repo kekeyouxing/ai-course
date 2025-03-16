@@ -3,6 +3,8 @@ import { useCallback, useState, useEffect } from 'react';
 
 import { Rnd } from "react-rnd"
 import { DraggableData, DraggableEvent } from "react-draggable";
+import { checkForSnapping, ElementPosition, AlignmentGuide } from "@/utils/alignment-utils"
+import { AlignmentGuides } from "./alignment-guides"
 
 interface ResizableTextProps {
     content: string
@@ -28,6 +30,8 @@ interface ResizableTextProps {
     canvasHeight?: number
     containerWidth?: number
     containerHeight?: number
+    // 添加其他元素用于对齐
+    otherElements?: ElementPosition[]
 }
 
 export function ResizableText({
@@ -54,20 +58,24 @@ export function ResizableText({
     canvasHeight = 1080,
     containerWidth,
     containerHeight,
+    otherElements,
 }: ResizableTextProps) {
     const [isEditing, setIsEditing] = useState(false)
     const [localContent, setLocalContent] = useState(content)
+    const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuide[]>([])
+    const [isDragging, setIsDragging] = useState(false)
     
     // 计算实际显示尺寸与标准尺寸的比例
     const scaleX = (containerWidth || canvasWidth) / canvasWidth;
     const scaleY = (containerHeight || canvasHeight) / canvasHeight;
+    const scale = Math.min(scaleX, scaleY);
     
     // 将标准坐标和尺寸转换为实际显示尺寸
     const displayX = x * scaleX;
     const displayY = y * scaleY;
     const displayWidth = width * scaleX;
     const displayHeight = height * scaleY;
-    const displayFontSize = fontSize * Math.min(scaleX, scaleY); // 字体大小按比例缩放
+    const displayFontSize = fontSize * scale; // 字体大小按比例缩放
     
     // 确保组件在接收新的 content 时更新本地状态
     useEffect(() => {
@@ -93,8 +101,46 @@ export function ResizableText({
         [onResize, scaleX, scaleY],
     )
 
+    // Handle drag start to set dragging state
+    const handleDragStart = useCallback(() => {
+        setIsDragging(true);
+    }, []);
+    
+    // Handle drag to check for alignment
+    const handleDrag = useCallback(
+        (_: DraggableEvent, data: DraggableData) => {
+            // Current element position
+            const currentElement: ElementPosition = {
+                x: data.x / scaleX, // Convert to standard coordinates
+                y: data.y / scaleY,
+                width,
+                height
+            };
+            
+            // Use provided otherElements or empty array if not provided
+            const elementsToAlign = otherElements || [];
+            
+            // Check for snapping
+            const { x: snappedX, y: snappedY, guides } = checkForSnapping(currentElement, elementsToAlign, scale);
+            
+            // Update alignment guides
+            setAlignmentGuides(guides);
+            
+            // If snapping occurred, update position
+            if (snappedX !== null || snappedY !== null) {
+                // The snapped position will be applied by the Rnd component
+                // through the position prop in the next render
+            }
+        },
+        [width, height, scale, scaleX, scaleY, otherElements],
+    );
+
     const handleDragStop = useCallback(
         (_: DraggableEvent, data: DraggableData) => {
+            // Clear alignment guides
+            setAlignmentGuides([]);
+            setIsDragging(false);
+            
             // 将实际显示位置转换回标准位置
             onResize({ 
                 x: data.x / scaleX, 
@@ -116,27 +162,35 @@ export function ResizableText({
     };
 
     return (
-        <Rnd
-            size={{ width: displayWidth, height: displayHeight }} // 使用缩放后的尺寸
-            position={{ x: displayX, y: displayY }} // 使用缩放后的位置
-            onDragStop={handleDragStop}
-            onResizeStop={handleResizeStop}
-            onMouseDown={(e: MouseEvent) => {
-                e.stopPropagation()
-                onSelect(e)
-            }}
-            style={{
-                zIndex: zIndex
-            }}
-        >
-            <div
-                className={`w-full h-full flex items-center ${isSelected ? "outline outline-1 outline-blue-500" : ""}`}
-                style={{
-                    ...textStyle,
-                    transform: `rotate(${rotation}deg)`
+        <>
+            {/* Alignment guides - only show when dragging */}
+            {isDragging && alignmentGuides.length > 0 && (
+                <AlignmentGuides guides={alignmentGuides} scale={scale} />
+            )}
+            
+            <Rnd
+                size={{ width: displayWidth, height: displayHeight }} // 使用缩放后的尺寸
+                position={{ x: displayX, y: displayY }} // 使用缩放后的位置
+                onDragStart={handleDragStart}
+                onDrag={handleDrag}
+                onDragStop={handleDragStop}
+                onResizeStop={handleResizeStop}
+                onMouseDown={(e: MouseEvent) => {
+                    e.stopPropagation()
+                    onSelect(e)
                 }}
-                onDoubleClick={() => setIsEditing(true)}
+                style={{
+                    zIndex: zIndex
+                }}
             >
+                <div
+                    className={`w-full h-full flex items-center ${isSelected ? "outline outline-1 outline-blue-500" : ""}`}
+                    style={{
+                        ...textStyle,
+                        transform: `rotate(${rotation}deg)`
+                    }}
+                    onDoubleClick={() => setIsEditing(true)}
+                >
                 {isEditing ? (
                     <input
                         type="text"
@@ -180,8 +234,9 @@ export function ResizableText({
                         </div>
                     </>
                 )}
-            </div>
-        </Rnd>
+                </div>
+            </Rnd>
+        </>
     )
 }
 

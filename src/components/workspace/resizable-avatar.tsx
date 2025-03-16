@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Rnd } from "react-rnd"
 import { DraggableData, DraggableEvent } from "react-draggable"
+import { ElementPosition } from "@/utils/alignment-utils"
 
 interface ResizableAvatarProps {
     src: string
@@ -14,6 +15,13 @@ interface ResizableAvatarProps {
     onResize: (newSize: Partial<ResizableAvatarProps>) => void
     onSelect: () => void
     isSelected: boolean
+    // Optional props for alignment
+    canvasWidth?: number
+    canvasHeight?: number
+    containerWidth?: number
+    containerHeight?: number
+    // Add other elements for alignment
+    otherElements?: ElementPosition[]
 }
 
 export function ResizableAvatar({
@@ -27,6 +35,11 @@ export function ResizableAvatar({
     onResize,
     onSelect,
     isSelected,
+    canvasWidth = 1920,
+    canvasHeight = 1080,
+    containerWidth,
+    containerHeight,
+    otherElements,
 }: ResizableAvatarProps) {
     const [aspectRatio, setAspectRatio] = useState(width / height)
     const imageRef = useRef<HTMLImageElement>(null)

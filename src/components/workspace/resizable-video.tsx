@@ -2,6 +2,8 @@
 import { useCallback, useRef, useState, useEffect } from "react"
 import { Rnd } from "react-rnd"
 import { DraggableData, DraggableEvent } from "react-draggable"
+import { checkForSnapping, ElementPosition, AlignmentGuide } from "@/utils/alignment-utils"
+import { AlignmentGuides } from "./alignment-guides"
 
 interface ResizableVideoProps {
     src: string
@@ -17,6 +19,10 @@ interface ResizableVideoProps {
     onResize: (newSize: Partial<ResizableVideoProps>) => void
     onSelect: () => void
     isSelected: boolean
+    canvasWidth?: number
+    canvasHeight?: number
+    containerWidth?: number
+    containerHeight?: number
 }
 
 export function ResizableVideo({
@@ -33,10 +39,21 @@ export function ResizableVideo({
     onResize,
     onSelect,
     isSelected,
+    canvasWidth = 1920,
+    canvasHeight = 1080,
+    containerWidth,
+    containerHeight,
 }: ResizableVideoProps) {
     const videoRef = useRef<HTMLVideoElement>(null)
     const [isPlaying, setIsPlaying] = useState(autoPlay)
     const [aspectRatio, setAspectRatio] = useState(16/9) // 默认视频比例
+    const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuide[]>([])
+    const [isDragging, setIsDragging] = useState(false)
+    
+    // Calculate scale for responsive display
+    const scaleX = (containerWidth || canvasWidth) / canvasWidth
+    const scaleY = (containerHeight || canvasHeight) / canvasHeight
+    const scale = Math.min(scaleX, scaleY)
 
     // 加载视频后获取实际宽高比
     useEffect(() => {
@@ -121,8 +138,50 @@ export function ResizableVideo({
         [onResize, aspectRatio],
     )
 
+    // Handle drag start to set dragging state
+    const handleDragStart = useCallback(() => {
+        setIsDragging(true)
+    }, [])
+    
+    // Handle drag to check for alignment
+    const handleDrag = useCallback(
+        (_: DraggableEvent, data: DraggableData) => {
+            // Current element position
+            const currentElement: ElementPosition = {
+                x: data.x,
+                y: data.y,
+                width,
+                height
+            }
+            
+            // For now, we'll just use empty array for other elements
+            // In a real implementation, we would get other elements from the scene
+            const otherElements: ElementPosition[] = []
+            
+            // Check for snapping
+            const { x: snappedX, y: snappedY, guides } = checkForSnapping(currentElement, otherElements, scale)
+            
+            // Update alignment guides
+            setAlignmentGuides(guides)
+            
+            // If snapping occurred, update position
+            if (snappedX !== null || snappedY !== null) {
+                const newX = snappedX !== null ? snappedX : data.x
+                const newY = snappedY !== null ? snappedY : data.y
+                
+                // Update the position directly in the Rnd component
+                // This is handled by the Rnd component's position prop
+            }
+        },
+        [width, height, scale],
+    )
+
     const handleDragStop = useCallback(
         (_: DraggableEvent, data: DraggableData) => {
+            // Clear alignment guides
+            setAlignmentGuides([])
+            setIsDragging(false)
+            
             onResize({ x: data.x, y: data.y })
         },
         [onResize],
@@ -133,37 +192,45 @@ export function ResizableVideo({
     }, [])
 
     return (
-        <Rnd
-            size={{ width, height }}
-            position={{ x, y }}
-            onResizeStop={handleResizeStop}
-            onDragStop={handleDragStop}
-            onClick={(e: React.MouseEvent) => {
-                e.stopPropagation()
-                onSelect()
-            }}
-            style={{
-                transform: `rotate(${rotation}deg)`,
-                zIndex: isSelected ? 10 : 1,
-            }}
-            lockAspectRatio={aspectRatio}
-            resizeHandleStyles={{
-                bottomRight: {
-                    display: isSelected ? "block" : "none",
-                    width: "10px",
-                    height: "10px",
-                    background: "#1a73e8",
-                    borderRadius: "50%",
-                    bottom: "-5px",
-                    right: "-5px",
-                },
-            }}
-            resizeHandleComponent={{
-                bottomRight: isSelected ? (
-                    <div className="w-3 h-3 bg-blue-500 rounded-full absolute bottom-0 right-0 transform translate-x-1/2 translate-y-1/2 cursor-se-resize" />
-                ) : undefined,
-            }}
-        >
+        <>
+            {/* Alignment guides - only show when dragging */}
+            {isDragging && alignmentGuides.length > 0 && (
+                <AlignmentGuides guides={alignmentGuides} scale={scale} />
+            )}
+            
+            <Rnd
+                size={{ width, height }}
+                position={{ x, y }}
+                onDragStart={handleDragStart}
+                onDrag={handleDrag}
+                onResizeStop={handleResizeStop}
+                onDragStop={handleDragStop}
+                onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation()
+                    onSelect()
+                }}
+                style={{
+                    transform: `rotate(${rotation}deg)`,
+                    zIndex: isSelected ? 10 : 1,
+                }}
+                lockAspectRatio={aspectRatio}
+                resizeHandleStyles={{
+                    bottomRight: {
+                        display: isSelected ? "block" : "none",
+                        width: "10px",
+                        height: "10px",
+                        background: "#1a73e8",
+                        borderRadius: "50%",
+                        bottom: "-5px",
+                        right: "-5px",
+                    },
+                }}
+                resizeHandleComponent={{
+                    bottomRight: isSelected ? (
+                        <div className="w-3 h-3 bg-blue-500 rounded-full absolute bottom-0 right-0 transform translate-x-1/2 translate-y-1/2 cursor-se-resize" />
+                    ) : undefined,
+                }}
+            >
             <div className="relative w-full h-full group">
                 <video
                     ref={videoRef}
@@ -207,6 +274,7 @@ export function ResizableVideo({
                     <div className="absolute inset-0 border-2 border-blue-500 pointer-events-none" />
                 )}
             </div>
-        </Rnd>
+            </Rnd>
+        </>
     )
 }
