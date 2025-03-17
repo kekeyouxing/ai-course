@@ -1,12 +1,11 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"  // 移除 useState
+import { useRef, useState } from "react"  // 移除 useState
 import { Mic, Play, Sparkles, Wand2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import CustomEditor from "@/components/script/custom-editor"
 import TimePicker from "@/components/script/time-picker"
-// 移除 AnimationPicker 导入
 
 interface Avatar {
   id: string
@@ -21,8 +20,8 @@ interface ScriptContentProps {
 }
 
 export default function ScriptContent({ script, setScript }: ScriptContentProps) {
+
   // 移除内部的 script 状态
-  // const [script, setScript] = useState<string>( ... )
   const avatars: Avatar[] = [
     { id: "1", name: "Zoe", country: "US" },
     { id: "2", name: "Emma", country: "UK" },
@@ -34,11 +33,11 @@ export default function ScriptContent({ script, setScript }: ScriptContentProps)
   const [showTimePicker, setShowTimePicker] = useState(false)
   const [timeValue, setTimeValue] = useState(3)
   // 移除动画选择器相关状态
-  const editorRef = useRef<{ 
+  const editorRef = useRef<{
     insertTimeTag: (seconds: number) => void,
-    insertAnimationTag: () => void 
+    insertAnimationTag: () => void
   }>(null)
-  
+
   // 添加插入动画标记函数
   const insertAnimationTag = () => {
     if (editorRef.current) {
@@ -109,7 +108,7 @@ export default function ScriptContent({ script, setScript }: ScriptContentProps)
             <Button variant="ghost" size="sm" className="rounded-full hover:bg-primary/10 h-8 w-8 p-0">
               <Sparkles className="h-4 w-4" />
             </Button>
-            
+
             <TimePicker
               value={timeValue}
               onChange={setTimeValue}
@@ -117,17 +116,17 @@ export default function ScriptContent({ script, setScript }: ScriptContentProps)
               isOpen={showTimePicker}
               onToggle={handleTimePickerToggle}
             />
-            
+
             {/* 替换 AnimationPicker 为简单的按钮 */}
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="rounded-full hover:bg-primary/10 h-8 w-8 p-0"
               onClick={insertAnimationTag}
             >
               <Wand2 className="h-4 w-4" />
             </Button>
-            
+
             <div className="h-5 w-px bg-border" />
             <Button variant="ghost" size="sm" className="rounded-full text-primary hover:bg-primary/10 h-8 w-8 p-0">
               <Play className="h-4 w-4 fill-primary" />

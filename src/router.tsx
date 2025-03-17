@@ -9,6 +9,7 @@ import VideoEditor from "@/app/video-edioter";
 import VoiceCloningUI from "@/components/voice/voice-cloning-ui";
 import {VoiceCloningProvider} from '@/hooks/VoiceCloningContext';
 import AuthRoute from "@/components/auth/AuthRoute";
+import { AnimationMarkersProvider } from "./hooks/animation-markers-context";
 
 export const routes: RouteObject[] = [
     {
@@ -56,7 +57,7 @@ export const routes: RouteObject[] = [
     },
     {
         path: "projects/:id", // 独立路径
-        element: <VideoEditor/>, // 独立页面
+        element: <AnimationMarkersProvider><VideoEditor/></AnimationMarkersProvider>, // 独立页面
     },
     {
         path: "clone", // 独立路径

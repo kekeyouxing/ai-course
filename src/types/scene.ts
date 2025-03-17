@@ -111,6 +111,7 @@ export type Background = ColorBackground | ImageBackground | VideoBackground;
 
 // 场景接口
 export interface Scene {
+    id: string      // 添加唯一标识符
     title: string
     media: Media
     texts: TextElement[]

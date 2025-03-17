@@ -222,7 +222,7 @@ export function ResizableText({
                         transform: `rotate(${rotation}deg)`,
                         animationDuration: "1s"
                     }}
-                    onDoubleClick={() => setIsEditing(true)}
+                    onDoubleClick={() => setIsEditing(true)}                
                 >
                 {isEditing ? (
                     <input

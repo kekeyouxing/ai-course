@@ -57,6 +57,7 @@ import {
     usePasteElementOperation,
     useDeleteElementOperation
 } from "@/utils/editor-operations"
+import { useAnimationMarkers } from "@/hooks/animation-markers-context";
 
 export default function VideoEditor() {
     // 添加复制粘贴相关状态
@@ -68,6 +69,7 @@ export default function VideoEditor() {
     const [activeScene, setActiveScene] = useState<number>(0)
     const [scenes, setScenes] = useState<Scene[]>([
         {
+            id: uuidv4(),
             title: "Title",
             media: [
                 {
@@ -99,6 +101,7 @@ export default function VideoEditor() {
             }
         },
         {
+            id: uuidv4(),
             title: "Introduction",
             media: [
                 {
@@ -172,11 +175,15 @@ export default function VideoEditor() {
         },
         [history, historyIndex],
     )
-
+    // 在组件内部使用 useAnimationMarkers
+    const { setCurrentSceneId } = useAnimationMarkers();
+    // 修改 handleSceneClick 函数，添加设置当前场景ID的逻辑
     const handleSceneClick = useCallback((index: number) => {
-        setActiveScene(index)
-        setSelectedElement(null)
-    }, [])
+        setActiveScene(index);
+        setSelectedElement(null);
+        // 设置当前场景ID，用于动画标记关联
+        setCurrentSceneId(scenes[index].id);
+    }, [scenes, setCurrentSceneId]);
 
     const handleTextChange = useCallback(
         (newText: string) => {
@@ -456,6 +463,7 @@ export default function VideoEditor() {
 
     const addNewScene = useCallback(() => {
         const newScene: Scene = {
+            id : uuidv4(),
             title: `Scene ${scenes.length + 1}`,
             media: [],
             texts: [],  // 初始化为空数组
@@ -520,7 +528,12 @@ export default function VideoEditor() {
             resizeObserver.disconnect();
         };
     }, []);
-
+    // 在组件挂载时设置初始场景ID
+    useEffect(() => {
+        if (scenes.length > 0 && activeScene >= 0 && activeScene < scenes.length) {
+            setCurrentSceneId(scenes[activeScene].id);
+        }
+    }, []);
     return (
         <div className="flex flex-col h-screen bg-white">
             {/* Top Navigation */}

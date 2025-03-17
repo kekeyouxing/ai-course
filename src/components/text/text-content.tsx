@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider"
 import { Input } from "@/components/ui/input"
-
+import { useAnimationMarkers } from '@/hooks/animation-markers-context';
 import "./color-picker.css" // 导入自定义样式
 
 type TextAlignment = "left" | "center" | "right"
@@ -31,7 +31,6 @@ interface TextElement {
   animationType?: "none" | "fade" | "slide";
   animationBehavior?: "enter" | "exit" | "both";
   animationDirection?: "right" | "left" | "down" | "up";
-  // 移除 usePercentageForTiming 字段
   startAt?: number;
   endAt?: number; // 添加结束时间字段
 }
@@ -58,7 +57,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
   })
   const [fontFamily, setFontFamily] = useState(textElement?.fontFamily || "lora")
   const [fontSize, setFontSize] = useState(textElement?.fontSize?.toString() || "24")
-  
+
   // Animation states
   const [animationType, setAnimationType] = useState(textElement?.animationType || "none")
   const [animationBehavior, setAnimationBehavior] = useState(textElement?.animationBehavior || "enter")
@@ -106,6 +105,64 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
     "#C8E1FF",
     "#79B8FF",
   ]
+  // 现有状态...
+
+  // 获取动画标记
+  const { markers } = useAnimationMarkers();
+
+  // 将标记按时间排序
+  const sortedMarkers = [...markers].sort((a, b) => a.timePercent - b.timePercent);
+
+  // 修改开始时间和结束时间的下拉选择器
+  const renderStartAtSelect = () => (
+    <Select value={startAt.toString()} onValueChange={(value) => handleStartAtChange(parseInt(value))}>
+      <SelectTrigger className="w-36">
+        <SelectValue placeholder="选择时间" />
+      </SelectTrigger>
+      <SelectContent>
+        {/* 默认选项 */}
+        <SelectItem value="0">开始 (0%)</SelectItem>
+
+        {/* 动态生成的标记选项 */}
+        {sortedMarkers.map(marker => (
+          <SelectItem key={marker.id} value={marker.timePercent.toString()}>
+            {marker.name} ({marker.timePercent}%)
+          </SelectItem>
+        ))}
+
+        {/* 其他固定选项 */}
+        <SelectItem value="25">25%</SelectItem>
+        <SelectItem value="50">中间 (50%)</SelectItem>
+        <SelectItem value="75">75%</SelectItem>
+        <SelectItem value="100">结束 (100%)</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+
+  const renderEndAtSelect = () => (
+    <Select value={endAt.toString()} onValueChange={(value) => handleEndAtChange(parseInt(value))}>
+      <SelectTrigger className="w-36">
+        <SelectValue placeholder="选择时间" />
+      </SelectTrigger>
+      <SelectContent>
+        {/* 默认选项 */}
+        <SelectItem value="0">开始 (0%)</SelectItem>
+
+        {/* 动态生成的标记选项 */}
+        {sortedMarkers.map(marker => (
+          <SelectItem key={marker.id} value={marker.timePercent.toString()}>
+            {marker.name} ({marker.timePercent}%)
+          </SelectItem>
+        ))}
+
+        {/* 其他固定选项 */}
+        <SelectItem value="25">25%</SelectItem>
+        <SelectItem value="50">中间 (50%)</SelectItem>
+        <SelectItem value="75">75%</SelectItem>
+        <SelectItem value="100">结束 (100%)</SelectItem>
+      </SelectContent>
+    </Select>
+  );
   // 处理文本对齐变化
   const handleTextAlignmentChange = (alignment: TextAlignment) => {
     setTextAlignment(alignment)
@@ -147,18 +204,18 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
   const parseRgbaString = (rgba: string): RgbaColor => {
     // 默认值
     const defaultColor: RgbaColor = { r: 255, g: 255, b: 255, a: 1 };
-    
+
     // 如果不是rgba格式，返回默认白色
     if (!rgba.startsWith('rgba(')) {
       return defaultColor;
     }
-    
+
     // 提取rgba值
     const values = rgba.replace('rgba(', '').replace(')', '').split(',');
     if (values.length !== 4) {
       return defaultColor;
     }
-    
+
     return {
       r: parseInt(values[0].trim()),
       g: parseInt(values[1].trim()),
@@ -172,7 +229,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
     const rgbaColor = typeof color === 'object' && color.r !== undefined
       ? `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a})`
       : color;
-    
+
     setBackgroundColor(rgbaColor)
     onUpdate({ backgroundColor: rgbaColor })
   }
@@ -239,7 +296,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
       });
       setFontFamily(textElement.fontFamily || "lora");
       setFontSize(textElement.fontSize?.toString() || "24");
-      
+
       // 更新动画状态
       setAnimationType(textElement.animationType || "none");
       setAnimationBehavior(textElement.animationBehavior || "enter");
@@ -250,12 +307,12 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
     }
   }, [textElement]);
 
-    // 如果没有文本元素且有创建文本的回调，显示创建选项
-    if (!textElement) {
-      return (
-        <div className="p-4 flex flex-col items-center justify-center h-full">
-        </div>
-      );
+  // 如果没有文本元素且有创建文本的回调，显示创建选项
+  if (!textElement) {
+    return (
+      <div className="p-4 flex flex-col items-center justify-center h-full">
+      </div>
+    );
   }
   return (
     <div className="w-full max-w-4xl mx-auto overflow-hidden bg-white">
@@ -273,17 +330,15 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
         <div className="grid grid-cols-2 w-full bg-gray-100">
           <button
             onClick={() => setActiveTab("format")}
-            className={`text-base font-normal py-3 focus:outline-none transition-colors ${
-              activeTab === "format" ? "bg-white border-b-2 border-black font-medium" : "hover:bg-gray-200"
-            }`}
+            className={`text-base font-normal py-3 focus:outline-none transition-colors ${activeTab === "format" ? "bg-white border-b-2 border-black font-medium" : "hover:bg-gray-200"
+              }`}
           >
             格式
           </button>
           <button
             onClick={() => setActiveTab("animate")}
-            className={`text-base font-normal py-3 focus:outline-none transition-colors ${
-              activeTab === "animate" ? "bg-white border-b-2 border-black font-medium" : "hover:bg-gray-200"
-            }`}
+            className={`text-base font-normal py-3 focus:outline-none transition-colors ${activeTab === "animate" ? "bg-white border-b-2 border-black font-medium" : "hover:bg-gray-200"
+              }`}
           >
             动画
           </button>
@@ -346,13 +401,13 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
                   />
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-8 w-8 p-0 absolute right-0 top-0 rounded-l-none"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="m6 9 6 6 6-6"/>
+                          <path d="m6 9 6 6 6-6" />
                         </svg>
                       </Button>
                     </PopoverTrigger>
@@ -474,9 +529,9 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
                   </PopoverTrigger>
                   <PopoverContent className="w-64 p-3">
                     <div className="mb-3 custom-color-picker">
-                      <RgbaColorPicker 
-                        color={backgroundColor.startsWith("rgba") ? parseRgbaString(backgroundColor) : { r: 255, g: 255, b: 255, a: 1 }} 
-                        onChange={handleBackgroundColorChange} 
+                      <RgbaColorPicker
+                        color={backgroundColor.startsWith("rgba") ? parseRgbaString(backgroundColor) : { r: 255, g: 255, b: 255, a: 1 }}
+                        onChange={handleBackgroundColorChange}
                       />
                     </div>
                     <div className="grid grid-cols-5 gap-2 mb-3">
@@ -583,7 +638,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
                   </SelectContent>
                 </Select>
               </div>
-              
+
               {/* 只有当动画类型不是"无"时才显示以下选项 */}
               {animationType !== "none" && (
                 <>
@@ -639,7 +694,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Behavior */}
                   <div>
                     <label className="text-base font-normal text-gray-800 block mb-3">行为</label>
@@ -670,56 +725,20 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
                       </Button>
                     </div>
                   </div>
-                  {/* 当行为是"进入"或"两者"时显示开始于 */}
                   {(animationBehavior === "enter" || animationBehavior === "both") && (
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <label className="text-base font-normal text-gray-800">开始于</label>
-                        <Select value={startAt.toString()} onValueChange={(value) => handleStartAtChange(parseInt(value))}>
-                          <SelectTrigger className="w-24">
-                            <SelectValue placeholder="选择时间" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="0">0%</SelectItem>
-                            <SelectItem value="10">10%</SelectItem>
-                            <SelectItem value="20">20%</SelectItem>
-                            <SelectItem value="30">30%</SelectItem>
-                            <SelectItem value="40">40%</SelectItem>
-                            <SelectItem value="50">50%</SelectItem>
-                            <SelectItem value="60">60%</SelectItem>
-                            <SelectItem value="70">70%</SelectItem>
-                            <SelectItem value="80">80%</SelectItem>
-                            <SelectItem value="90">90%</SelectItem>
-                            <SelectItem value="100">100%</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        {renderStartAtSelect()}
                       </div>
                     </div>
                   )}
-                  
-                  {/* 当行为是"退出"或"两者"时显示结束于 */}
+
                   {(animationBehavior === "exit" || animationBehavior === "both") && (
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <label className="text-base font-normal text-gray-800">结束于</label>
-                        <Select value={endAt.toString()} onValueChange={(value) => handleEndAtChange(parseInt(value))}>
-                          <SelectTrigger className="w-24">
-                            <SelectValue placeholder="选择时间" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="0">0%</SelectItem>
-                            <SelectItem value="10">10%</SelectItem>
-                            <SelectItem value="20">20%</SelectItem>
-                            <SelectItem value="30">30%</SelectItem>
-                            <SelectItem value="40">40%</SelectItem>
-                            <SelectItem value="50">50%</SelectItem>
-                            <SelectItem value="60">60%</SelectItem>
-                            <SelectItem value="70">70%</SelectItem>
-                            <SelectItem value="80">80%</SelectItem>
-                            <SelectItem value="90">90%</SelectItem>
-                            <SelectItem value="100">100%</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        {renderEndAtSelect()}
                       </div>
                     </div>
                   )}
