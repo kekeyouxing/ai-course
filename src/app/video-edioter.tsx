@@ -49,11 +49,20 @@ export type {
     SelectedElementType
 } from "@/types/scene"
 
+// 导入封装的操作函数
+import {
+    useUndoOperation,
+    useRedoOperation,
+    useCopyElementOperation,
+    usePasteElementOperation,
+    useDeleteElementOperation
+} from "@/utils/editor-operations"
+
 export default function VideoEditor() {
     // 添加复制粘贴相关状态
     const [clipboardItem, setClipboardItem] = useState<{
         type: "text" | "image" | "video" | "avatar";
-        data: any;
+        data: any;  // 使用 any 类型或者更具体的联合类型
     } | null>(null);
     const [activeTab, setActiveTab] = useState<string>("Script")
     const [activeScene, setActiveScene] = useState<number>(0)
@@ -122,7 +131,7 @@ export default function VideoEditor() {
             }
         },
     ])
-
+    const [videoTitle, setVideoTitle] = useState<string>("编辑您的项目名称")
     const tabs: string[] = [
         "Script",
         "Avatar",
@@ -133,7 +142,10 @@ export default function VideoEditor() {
     const [history, setHistory] = useState<Scene[][]>([scenes])
     const [historyIndex, setHistoryIndex] = useState<number>(0)
     const [selectedElement, setSelectedElement] = useState<SelectedElementType | null>(null)
-
+    // 添加脚本内容状态
+    const [scriptContent, setScriptContent] = useState<string>(
+        "use engaging media to grab your audiences attention, or even simulate conversations between multiple avatars. All with an intuitive interface that anyone can use!"
+    );
     const handleElementSelect = useCallback((element: SelectedElementType | null) => {
         setSelectedElement(element)
 
@@ -235,167 +247,12 @@ export default function VideoEditor() {
         },
         [scenes, activeScene, updateHistory],
     )
-
-
-    const handleUndo = useCallback(() => {
-        if (historyIndex > 0) {
-            const newIndex = historyIndex - 1
-            setHistoryIndex(newIndex)
-            // 使用深拷贝确保状态独立
-            setScenes(JSON.parse(JSON.stringify(history[newIndex])))
-        }
-    }, [history, historyIndex])
-
-    const handleRedo = useCallback(() => {
-        if (historyIndex < history.length - 1) {
-            const newIndex = historyIndex + 1
-            setHistoryIndex(newIndex)
-            // 使用深拷贝确保状态独立
-            setScenes(JSON.parse(JSON.stringify(history[newIndex])))
-        }
-    }, [history, historyIndex])
-
-
-    // 复制元素
-    const handleCopyElement = useCallback(() => {
-        if (!selectedElement) return;
-
-        const newClipboardItem = { type: selectedElement.type, data: null };
-        const newScenes = [...scenes];
-
-        if (selectedElement.type === "text" && selectedElement.index !== undefined) {
-            // 复制文本元素
-            newClipboardItem.data = { ...newScenes[activeScene].texts[selectedElement.index] };
-        } else if (selectedElement.type === "image" && selectedElement.mediaId) {
-            // 复制图片元素
-            const mediaItem = newScenes[activeScene].media.find(
-                item => item.id === selectedElement.mediaId && item.type === "image"
-            );
-            if (mediaItem) {
-                newClipboardItem.data = { ...mediaItem.element };
-            }
-        } else if (selectedElement.type === "video" && selectedElement.mediaId) {
-            // 复制视频元素
-            const mediaItem = newScenes[activeScene].media.find(
-                item => item.id === selectedElement.mediaId && item.type === "video"
-            );
-            if (mediaItem) {
-                newClipboardItem.data = { ...mediaItem.element };
-            }
-        } else if (selectedElement.type === "avatar") {
-            // 复制头像元素
-            if (newScenes[activeScene].avatar) {
-                newClipboardItem.data = { ...newScenes[activeScene].avatar };
-            }
-        }
-
-        if (newClipboardItem.data) {
-            setClipboardItem(newClipboardItem);
-        }
-    }, [scenes, activeScene, selectedElement]);
-
-    // 粘贴元素
-    const handlePasteElement = useCallback(() => {
-        if (!clipboardItem || !clipboardItem.data) return;
-
-        const newScenes = [...scenes];
-        const OFFSET = 20; // 粘贴后的位置偏移量
-
-        if (clipboardItem.type === "text") {
-            // 粘贴文本元素
-            const newText = { 
-                ...clipboardItem.data,
-                x: clipboardItem.data.x + OFFSET,
-                y: clipboardItem.data.y + OFFSET
-            };
-            newScenes[activeScene].texts.push(newText);
-            
-            // 选中新粘贴的文本元素
-            updateHistory(newScenes);
-            setSelectedElement({
-                type: "text",
-                index: newScenes[activeScene].texts.length - 1
-            });
-        } else if (clipboardItem.type === "image") {
-            // 粘贴图片元素
-            const newMediaId = uuidv4();
-            newScenes[activeScene].media.push({
-                id: newMediaId,
-                type: "image",
-                element: {
-                    ...clipboardItem.data,
-                    x: clipboardItem.data.x + OFFSET,
-                    y: clipboardItem.data.y + OFFSET
-                }
-            });
-            
-            // 选中新粘贴的图片元素
-            updateHistory(newScenes);
-            setSelectedElement({
-                type: "image",
-                mediaId: newMediaId
-            });
-        } else if (clipboardItem.type === "video") {
-            // 粘贴视频元素
-            const newMediaId = uuidv4();
-            newScenes[activeScene].media.push({
-                id: newMediaId,
-                type: "video",
-                element: {
-                    ...clipboardItem.data,
-                    x: clipboardItem.data.x + OFFSET,
-                    y: clipboardItem.data.y + OFFSET
-                }
-            });
-            
-            // 选中新粘贴的视频元素
-            updateHistory(newScenes);
-            setSelectedElement({
-                type: "video",
-                mediaId: newMediaId
-            });
-        } else if (clipboardItem.type === "avatar") {
-            // 粘贴头像元素
-            const newAvatar: AvatarElement = {
-                ...clipboardItem.data,
-                x: clipboardItem.data.x + OFFSET,
-                y: clipboardItem.data.y + OFFSET
-            };
-            
-            newScenes[activeScene].avatar = newAvatar;
-            
-            // 选中新粘贴的头像元素
-            updateHistory(newScenes);
-            setSelectedElement({
-                type: "avatar"
-            });
-        }
-    }, [clipboardItem, scenes, activeScene, updateHistory]);
-    // 更新删除元素的处理函数
-    const handleDeleteElement = useCallback(() => {
-        if (!selectedElement) return;
-
-        const newScenes = [...scenes];
-
-        if (selectedElement.type === "text" && selectedElement.index !== undefined) {
-            // 删除指定索引的文本元素
-            newScenes[activeScene].texts.splice(selectedElement.index, 1);
-        } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
-            // 删除指定ID的媒体元素
-            newScenes[activeScene].media = newScenes[activeScene].media.filter(
-                item => item.id !== selectedElement.mediaId
-            );
-        } else if (selectedElement.type === "avatar") {
-            // 将选中的元素设置为 null
-            newScenes[activeScene].avatar = null;
-        }
-
-        // 更新历史记录
-        updateHistory(newScenes);
-
-        // 清除选中状态
-        setSelectedElement(null);
-    }, [scenes, activeScene, selectedElement, updateHistory]);
+    // 使用封装的操作函数
+    const handleUndo = useUndoOperation(history, historyIndex, setHistoryIndex, setScenes);
+    const handleRedo = useRedoOperation(history, historyIndex, setHistoryIndex, setScenes);
+    const handleCopyElement = useCopyElementOperation(scenes, activeScene, selectedElement, setClipboardItem);
+    const handlePasteElement = usePasteElementOperation(clipboardItem, scenes, activeScene, updateHistory, setSelectedElement);
+    const handleDeleteElement = useDeleteElementOperation(scenes, activeScene, selectedElement, updateHistory, setSelectedElement);
 
     // 添加处理文本类型选择的函数
     const handleSelectTextType = useCallback(
@@ -484,7 +341,10 @@ export default function VideoEditor() {
     const renderTabContent = () => {
         switch (activeTab) {
             case "Script":
-                return <ScriptContent />
+                return <ScriptContent
+                    script={scriptContent}
+                    setScript={setScriptContent}
+                />
             case "Avatar":
                 return <AvatarContent />
             case "Background":
@@ -536,7 +396,7 @@ export default function VideoEditor() {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleUndo, handleRedo, selectedElement, handleDeleteElement, handleCopyElement, handlePasteElement]);
-    const [videoTitle, setVideoTitle] = useState<string>("编辑您的项目名称")
+
     // 添加处理媒体添加的函数
     // 添加处理媒体添加的函数
     const handleAddMedia = useCallback(

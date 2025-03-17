@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useRef, useState } from "react"  // 移除 useState
 import { Mic, Play, Sparkles, Wand2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -14,10 +14,15 @@ interface Avatar {
   country: string
 }
 
-export default function ScriptContent() {
-  const [script, setScript] = useState<string>(
-    "Create dynamic, powerful and informative videos with an avatar as your host. Instantly translate your video into over eighty languages, use engaging media to grab your audiences attention, or even simulate conversations between multiple avatars. All with an intuitive interface that anyone can use!",
-  )
+// 添加 props 类型
+interface ScriptContentProps {
+  script: string;
+  setScript: (script: string) => void;
+}
+
+export default function ScriptContent({ script, setScript }: ScriptContentProps) {
+  // 移除内部的 script 状态
+  // const [script, setScript] = useState<string>( ... )
 
   const avatars: Avatar[] = [
     { id: "1", name: "Zoe", country: "US" },
