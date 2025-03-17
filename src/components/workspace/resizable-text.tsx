@@ -6,6 +6,9 @@ import { DraggableData, DraggableEvent } from "react-draggable";
 import { checkForSnapping, ElementPosition, AlignmentGuide } from "@/utils/alignment-utils"
 import { AlignmentGuides } from "./alignment-guides"
 
+// Import animations
+import "./text-animations.css"
+
 interface ResizableTextProps {
     content: string
     fontSize: number
@@ -32,6 +35,12 @@ interface ResizableTextProps {
     containerHeight?: number
     // 添加其他元素用于对齐
     otherElements?: ElementPosition[]
+    // 添加动画属性
+    animationType?: "none" | "fade" | "slide"
+    animationBehavior?: "enter" | "exit" | "both"
+    animationDirection?: "right" | "left" | "down" | "up"
+    startAt?: number
+    endAt?: number
 }
 
 export function ResizableText({
@@ -59,6 +68,12 @@ export function ResizableText({
     containerWidth,
     containerHeight,
     otherElements,
+    // 动画属性
+    animationType = "none",
+    animationBehavior = "enter",
+    animationDirection = "right",
+    startAt = 0,
+    endAt = 0,
 }: ResizableTextProps) {
     const [isEditing, setIsEditing] = useState(false)
     const [localContent, setLocalContent] = useState(content)
@@ -184,10 +199,28 @@ export function ResizableText({
                 }}
             >
                 <div
-                    className={`w-full h-full flex items-center ${isSelected ? "outline outline-1 outline-blue-500" : ""}`}
+                    className={`w-full h-full flex items-center ${isSelected ? "outline outline-1 outline-blue-500" : ""} ${
+                        animationType === "fade" && animationBehavior === "enter" ? "animate-fade-in" :
+                        animationType === "fade" && animationBehavior === "exit" ? "animate-fade-out" :
+                        animationType === "fade" && animationBehavior === "both" ? "animate-fade-in" :
+                        animationType === "slide" && animationBehavior === "enter" && animationDirection === "right" ? "animate-slide-in-left" :
+                        animationType === "slide" && animationBehavior === "exit" && animationDirection === "right" ? "animate-slide-out-right" :
+                        animationType === "slide" && animationBehavior === "both" && animationDirection === "right" ? "animate-slide-in-right" :
+                        animationType === "slide" && animationBehavior === "enter" && animationDirection === "left" ? "animate-slide-in-right" :
+                        animationType === "slide" && animationBehavior === "exit" && animationDirection === "left" ? "animate-slide-out-left" :
+                        animationType === "slide" && animationBehavior === "both" && animationDirection === "left" ? "animate-slide-in-left" :
+                        animationType === "slide" && animationBehavior === "enter" && animationDirection === "down" ? "animate-slide-in-down" :
+                        animationType === "slide" && animationBehavior === "exit" && animationDirection === "down" ? "animate-slide-out-down" :
+                        animationType === "slide" && animationBehavior === "both" && animationDirection === "down" ? "animate-slide-in-down" :
+                        animationType === "slide" && animationBehavior === "enter" && animationDirection === "up" ? "animate-slide-in-up" :
+                        animationType === "slide" && animationBehavior === "exit" && animationDirection === "up" ? "animate-slide-out-up" :
+                        animationType === "slide" && animationBehavior === "both" && animationDirection === "up" ? "animate-slide-in-up" :
+                        ""
+                    }`}
                     style={{
                         ...textStyle,
-                        transform: `rotate(${rotation}deg)`
+                        transform: `rotate(${rotation}deg)`,
+                        animationDuration: "1s"
                     }}
                     onDoubleClick={() => setIsEditing(true)}
                 >

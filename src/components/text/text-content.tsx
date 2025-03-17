@@ -670,10 +670,6 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
                       </Button>
                     </div>
                   </div>
-                  
-                  {/* 移除使用百分比计时选项 */}
-                  
-                  {/* 根据行为显示不同的时间控制选项 */}
                   {/* 当行为是"进入"或"两者"时显示开始于 */}
                   {(animationBehavior === "enter" || animationBehavior === "both") && (
                     <div>
