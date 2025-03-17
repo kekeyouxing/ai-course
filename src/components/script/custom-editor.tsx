@@ -14,8 +14,9 @@ interface CustomEditorProps {
 
 // 自定义元素类型
 type CustomElement = {
-  type: 'paragraph' | 'time-tag'
+  type: 'paragraph' | 'time-tag' | 'animation-tag'
   seconds?: number
+  animation?: string
   children: CustomText[]
 }
 
@@ -43,6 +44,9 @@ const serialize = (nodes: Descendant[]): string => {
       if (node.type === 'time-tag') {
         return `<#${node.seconds}#>`
       }
+      if (node.type === 'animation-tag') {
+        return `<@animation:${node.animation}@>`
+      }
       return serialize(node.children)
     }
 
@@ -56,12 +60,40 @@ const serialize = (nodes: Descendant[]): string => {
 
 // 反序列化函数 - 将纯文本转换为 Slate 内容
 const deserialize = (text: string): Descendant[] => {
-  const tagRegex = /<#(\d+)#>/g
+  const timeTagRegex = /<#(\d+)#>/g
+  const animationTagRegex = /<@animation:(\d+|\w+)@>/g
   const nodes: Descendant[] = []
   let lastIndex = 0
   let match: RegExpExecArray | null
 
-  while ((match = tagRegex.exec(text)) !== null) {
+  // 处理所有标记
+  const allMatches: {type: string, index: number, length: number, value?: number, animation?: string}[] = []
+  
+  // 查找时间标记
+  while ((match = timeTagRegex.exec(text)) !== null) {
+    allMatches.push({
+      type: 'time-tag',
+      index: match.index,
+      length: match[0].length,
+      value: parseInt(match[1])
+    })
+  }
+  
+  // 查找动画标记
+  while ((match = animationTagRegex.exec(text)) !== null) {
+    allMatches.push({
+      type: 'animation-tag',
+      index: match.index,
+      length: match[0].length,
+      animation: match[1]
+    })
+  }
+  
+  // 按索引排序
+  allMatches.sort((a, b) => a.index - b.index)
+  
+  // 处理所有标记
+  for (const match of allMatches) {
     // 添加标记前的文本
     if (match.index > lastIndex) {
       nodes.push({
@@ -70,14 +102,22 @@ const deserialize = (text: string): Descendant[] => {
       })
     }
 
-    // 添加时间标记
-    nodes.push({
-      type: 'time-tag',
-      seconds: parseInt(match[1]),
-      children: [{ text: '' }]
-    })
+    // 添加标记
+    if (match.type === 'time-tag') {
+      nodes.push({
+        type: 'time-tag',
+        seconds: match.value,
+        children: [{ text: '' }]
+      })
+    } else if (match.type === 'animation-tag') {
+      nodes.push({
+        type: 'animation-tag',
+        animation: match.animation || '1',
+        children: [{ text: '' }]
+      })
+    }
 
-    lastIndex = match.index + match[0].length
+    lastIndex = match.index + match.length
   }
 
   // 添加剩余文本
@@ -119,6 +159,19 @@ const Element = (props: any) => {
           {children}
         </span>
       )
+    case 'animation-tag':
+      return (
+        <span
+          {...attributes}
+          className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium mx-0.5 ${
+            selected ? 'bg-primary/10 text-primary ring-2 ring-primary' : 'bg-primary/10 text-primary'
+          }`}
+          contentEditable={false}
+        >
+          <span className="mr-1">动画</span>
+          {children}
+        </span>
+      )
     default:
       return <span {...attributes}>{children}</span>
   }
@@ -126,7 +179,7 @@ const Element = (props: any) => {
 
 // 主组件
 const CustomEditor = React.forwardRef<
-  { insertTimeTag: (seconds: number) => void },
+  { insertTimeTag: (seconds: number) => void, insertAnimationTag: () => void },
   CustomEditorProps
 >((props, ref) => {
   const {
@@ -137,7 +190,17 @@ const CustomEditor = React.forwardRef<
   } = props
 
   // 创建编辑器实例
-  const editor = useMemo(() => withHistory(withReact(createEditor())), [])
+  const editor = useMemo(() => {
+    const e = withHistory(withReact(createEditor()))
+    
+    // 自定义 isVoid 函数，只将时间标签设为 void 元素，动画标签不是 void 元素
+    const { isVoid } = e
+    e.isVoid = element => {
+      return element.type === 'time-tag' ? true : isVoid(element)
+    }
+    
+    return e
+  }, [])
   
   // 将外部纯文本值转换为 Slate 内部格式
   const [internalValue, setInternalValue] = useState<Descendant[]>(() => 
@@ -163,69 +226,122 @@ const CustomEditor = React.forwardRef<
     // 移动光标到标签后面
     Transforms.move(editor, { distance: 1 })
   }, [editor])
+  
+  // 插入动画标签
+  const insertAnimationTag = useCallback(() => {
+    const { selection } = editor
+    
+    if (selection && !Range.isCollapsed(selection)) {
+      // 获取选中的文本
+      const selectedText = Editor.string(editor, selection)
+      
+      // 在选中文本前后插入动画标记
+      const startPoint = Editor.start(editor, selection)
+      const endPoint = Editor.end(editor, selection)
+      
+      // 先在选中文本后插入结束标记
+      Transforms.select(editor, endPoint)
+      const endTag: CustomElement = {
+        type: 'animation-tag',
+        animation: 'end',
+        children: [{ text: '' }]
+      }
+      Transforms.insertNodes(editor, endTag)
+      
+      // 再在选中文本前插入开始标记
+      Transforms.select(editor, startPoint)
+      const startTag: CustomElement = {
+        type: 'animation-tag',
+        animation: 'start',
+        children: [{ text: '' }]
+      }
+      Transforms.insertNodes(editor, startTag)
+    } else {
+      // 如果没有选择，直接插入单个动画标记
+      const animationTag: CustomElement = {
+        type: 'animation-tag',
+        animation: 'fade',
+        children: [{ text: '' }]
+      }
+      
+      Transforms.insertNodes(editor, animationTag)
+    }
+    
+    // 移动光标到标签后面
+    Transforms.move(editor, { distance: 1 })
+  }, [editor])
 
-  // 删除时间标签
-  const deleteTimeTag = useCallback(() => {
+  // 删除标签
+  const deleteTag = useCallback(() => {
     // 获取当前选择
     const { selection } = editor
     
-    if (selection) {
-      // 检查当前位置及其周围是否有时间标签
-      // 首先检查当前选择位置
-      const timeTagEntries = Array.from(Editor.nodes(editor, {
-        at: selection,
-        match: n => SlateElement.isElement(n) && n.type === 'time-tag',
-      }));
-      
-      let timeTagEntry = timeTagEntries.length > 0 ? timeTagEntries[0] : null;
-      
-      // 如果当前位置没有找到，检查前一个位置（用于退格键）
-      if (!timeTagEntry && !Range.isCollapsed(selection)) {
-        const [start] = Range.edges(selection);
-        const prevPoint = Editor.before(editor, start);
+    if (selection && Range.isCollapsed(selection)) {
+      try {
+        // 检查当前位置是否有标签
+        const [node, path] = Editor.node(editor, selection)
         
+        // 检查当前节点或父节点是否是标签
+        let tagPath = null
+        let isTag = false
+        
+        if (SlateElement.isElement(node) && (node.type === 'time-tag' || node.type === 'animation-tag')) {
+          tagPath = path
+          isTag = true
+        } else {
+          // 检查父节点
+          try {
+            // 使用 Editor.above 查找最近的父元素
+            const entry = Editor.above(editor, {
+              at: selection.anchor,
+              match: n => SlateElement.isElement(n) && 
+                (n.type === 'time-tag' || n.type === 'animation-tag')
+            })
+            
+            if (entry) {
+              const [ancestor, ancestorPath] = entry
+              tagPath = ancestorPath
+              isTag = true
+            }
+          } catch (error) {
+            // 忽略错误
+          }
+        }
+        
+        // 如果找到标签，删除它
+        if (isTag && tagPath) {
+          Transforms.removeNodes(editor, { at: tagPath })
+          return true
+        }
+        
+        // 检查前一个位置
+        const prevPoint = Editor.before(editor, selection.anchor)
         if (prevPoint) {
-          const prevEntries = Array.from(Editor.nodes(editor, {
-            at: prevPoint,
-            match: n => SlateElement.isElement(n) && n.type === 'time-tag',
-          }));
+          const [prevNode, prevPath] = Editor.node(editor, prevPoint)
           
-          timeTagEntry = prevEntries.length > 0 ? prevEntries[0] : null;
+          if (
+            SlateElement.isElement(prevNode) && 
+            (prevNode.type === 'time-tag' || prevNode.type === 'animation-tag')
+          ) {
+            Transforms.removeNodes(editor, { at: prevPath })
+            return true
+          }
         }
-      }
-      
-      // 如果前一个位置没有找到，检查后一个位置（用于删除键）
-      if (!timeTagEntry) {
-        const [end] = Range.edges(selection);
-        const nextPoint = Editor.after(editor, end);
-        
-        if (nextPoint) {
-          const nextEntries = Array.from(Editor.nodes(editor, {
-            at: nextPoint,
-            match: n => SlateElement.isElement(n) && n.type === 'time-tag',
-          }));
-          
-          timeTagEntry = nextEntries.length > 0 ? nextEntries[0] : null;
-        }
-      }
-      
-      // 如果找到时间标签，删除它
-      if (timeTagEntry) {
-        Transforms.removeNodes(editor, { at: timeTagEntry[1] });
-        return true;
+      } catch (error) {
+        // 忽略错误
       }
     }
     
-    return false;
-  }, [editor]);
+    return false
+  }, [editor])
 
   // 处理键盘事件
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       // 当按下删除键或退格键时
       if (event.key === 'Delete' || event.key === 'Backspace') {
-        // 尝试删除时间标签
-        const deleted = deleteTimeTag()
+        // 尝试删除标签
+        const deleted = deleteTag()
         
         // 如果成功删除了标签，阻止默认行为
         if (deleted) {
@@ -233,16 +349,17 @@ const CustomEditor = React.forwardRef<
         }
       }
     },
-    [deleteTimeTag]
+    [deleteTag]
   )
 
   // 暴露方法给父组件
   useImperativeHandle(
     ref,
     () => ({
-      insertTimeTag
+      insertTimeTag,
+      insertAnimationTag
     }),
-    [insertTimeTag]
+    [insertTimeTag, insertAnimationTag]
   )
 
   // 当外部 value 变化时更新内部值
@@ -252,9 +369,8 @@ const CustomEditor = React.forwardRef<
     if (serialize(internalValue) !== value) {
       setInternalValue(newInternalValue)
     }
-  }, [value])
+  }, [value, internalValue])
 
-  // In the return statement, change the Slate component props
   return (
     <div className={`p-2 outline-none text-base leading-relaxed overflow-auto ${className}`}>
       <Slate editor={editor} initialValue={internalValue} onChange={handleChange}>
@@ -262,11 +378,20 @@ const CustomEditor = React.forwardRef<
           placeholder={placeholder}
           renderElement={(props) => {
             // 添加选中状态到元素属性
-            const path = ReactEditor.findPath(editor, props.element);
-            const selected = editor.selection && path.every((node, i) => 
-              editor.selection && i < editor.selection.anchor.path.length && node === editor.selection.anchor.path[i]
-            );
-            return <Element {...props} selected={selected} />;
+            const path = ReactEditor.findPath(editor, props.element)
+            let selected = false
+            
+            if (editor.selection) {
+              try {
+                // 检查当前元素是否被选中
+                const nodeRange = Editor.range(editor, path)
+                selected = Range.includes(editor.selection, nodeRange)
+              } catch (error) {
+                // 忽略可能的错误
+              }
+            }
+            
+            return <Element {...props} selected={selected} />
           }}
           className="outline-none min-h-full"
           onKeyDown={handleKeyDown}
@@ -275,5 +400,7 @@ const CustomEditor = React.forwardRef<
     </div>
   )
 })
+
+CustomEditor.displayName = "CustomEditor"
 
 export default CustomEditor

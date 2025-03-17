@@ -28,9 +28,6 @@ import {
     AvatarElement,
     Background,
     SelectedElementType,
-    ColorBackground,
-    ImageBackground,
-    VideoBackground
 } from "@/types/scene"
 import { v4 as uuidv4 } from 'uuid';
 import { ResizableVideo } from "@/components/workspace/resizable-video";
@@ -53,6 +50,11 @@ export type {
 } from "@/types/scene"
 
 export default function VideoEditor() {
+    // 添加复制粘贴相关状态
+    const [clipboardItem, setClipboardItem] = useState<{
+        type: "text" | "image" | "video" | "avatar";
+        data: any;
+    } | null>(null);
     const [activeTab, setActiveTab] = useState<string>("Script")
     const [activeScene, setActiveScene] = useState<number>(0)
     const [scenes, setScenes] = useState<Scene[]>([
@@ -62,7 +64,7 @@ export default function VideoEditor() {
                 {
                     id: uuidv4(),
                     type: "image",
-                    element: { src: placeholderImage, width: 200, height: 300, x: 0, y: 0, rotation: 0, zIndex:2 }
+                    element: { src: placeholderImage, width: 200, height: 300, x: 0, y: 0, rotation: 0, zIndex: 2 }
                 }
             ],
             texts: [{  // 修改为数组
@@ -79,7 +81,7 @@ export default function VideoEditor() {
                 bold: false,
                 italic: false,
                 alignment: "center",
-                zIndex:2
+                zIndex: 2
             }],
             avatar: null,
             background: {
@@ -110,7 +112,7 @@ export default function VideoEditor() {
                 bold: false,
                 italic: false,
                 alignment: "center",
-                zIndex:2
+                zIndex: 2
             }],
             avatar: null,
             background: {
@@ -253,31 +255,122 @@ export default function VideoEditor() {
         }
     }, [history, historyIndex])
 
-    // 在 useEffect 中添加删除元素的键盘事件监听
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            // 检查是否在输入框中
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-                return;
-            }
 
-            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-                e.preventDefault();
-                handleUndo();
-            } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
-                e.preventDefault();
-                handleRedo();
-            } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedElement) {
-                // 当按下删除键且有选中的元素时，删除该元素
-                e.preventDefault();
-                handleDeleteElement();
+    // 复制元素
+    const handleCopyElement = useCallback(() => {
+        if (!selectedElement) return;
+
+        const newClipboardItem = { type: selectedElement.type, data: null };
+        const newScenes = [...scenes];
+
+        if (selectedElement.type === "text" && selectedElement.index !== undefined) {
+            // 复制文本元素
+            newClipboardItem.data = { ...newScenes[activeScene].texts[selectedElement.index] };
+        } else if (selectedElement.type === "image" && selectedElement.mediaId) {
+            // 复制图片元素
+            const mediaItem = newScenes[activeScene].media.find(
+                item => item.id === selectedElement.mediaId && item.type === "image"
+            );
+            if (mediaItem) {
+                newClipboardItem.data = { ...mediaItem.element };
+            }
+        } else if (selectedElement.type === "video" && selectedElement.mediaId) {
+            // 复制视频元素
+            const mediaItem = newScenes[activeScene].media.find(
+                item => item.id === selectedElement.mediaId && item.type === "video"
+            );
+            if (mediaItem) {
+                newClipboardItem.data = { ...mediaItem.element };
+            }
+        } else if (selectedElement.type === "avatar") {
+            // 复制头像元素
+            if (newScenes[activeScene].avatar) {
+                newClipboardItem.data = { ...newScenes[activeScene].avatar };
             }
         }
 
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleUndo, handleRedo, selectedElement]);
+        if (newClipboardItem.data) {
+            setClipboardItem(newClipboardItem);
+        }
+    }, [scenes, activeScene, selectedElement]);
 
+    // 粘贴元素
+    const handlePasteElement = useCallback(() => {
+        if (!clipboardItem || !clipboardItem.data) return;
+
+        const newScenes = [...scenes];
+        const OFFSET = 20; // 粘贴后的位置偏移量
+
+        if (clipboardItem.type === "text") {
+            // 粘贴文本元素
+            const newText = { 
+                ...clipboardItem.data,
+                x: clipboardItem.data.x + OFFSET,
+                y: clipboardItem.data.y + OFFSET
+            };
+            newScenes[activeScene].texts.push(newText);
+            
+            // 选中新粘贴的文本元素
+            updateHistory(newScenes);
+            setSelectedElement({
+                type: "text",
+                index: newScenes[activeScene].texts.length - 1
+            });
+        } else if (clipboardItem.type === "image") {
+            // 粘贴图片元素
+            const newMediaId = uuidv4();
+            newScenes[activeScene].media.push({
+                id: newMediaId,
+                type: "image",
+                element: {
+                    ...clipboardItem.data,
+                    x: clipboardItem.data.x + OFFSET,
+                    y: clipboardItem.data.y + OFFSET
+                }
+            });
+            
+            // 选中新粘贴的图片元素
+            updateHistory(newScenes);
+            setSelectedElement({
+                type: "image",
+                mediaId: newMediaId
+            });
+        } else if (clipboardItem.type === "video") {
+            // 粘贴视频元素
+            const newMediaId = uuidv4();
+            newScenes[activeScene].media.push({
+                id: newMediaId,
+                type: "video",
+                element: {
+                    ...clipboardItem.data,
+                    x: clipboardItem.data.x + OFFSET,
+                    y: clipboardItem.data.y + OFFSET
+                }
+            });
+            
+            // 选中新粘贴的视频元素
+            updateHistory(newScenes);
+            setSelectedElement({
+                type: "video",
+                mediaId: newMediaId
+            });
+        } else if (clipboardItem.type === "avatar") {
+            // 粘贴头像元素
+            const newAvatar: AvatarElement = {
+                ...clipboardItem.data,
+                x: clipboardItem.data.x + OFFSET,
+                y: clipboardItem.data.y + OFFSET
+            };
+            
+            newScenes[activeScene].avatar = newAvatar;
+            
+            // 选中新粘贴的头像元素
+            updateHistory(newScenes);
+            setSelectedElement({
+                type: "avatar"
+            });
+        }
+    }, [clipboardItem, scenes, activeScene, updateHistory]);
     // 更新删除元素的处理函数
     const handleDeleteElement = useCallback(() => {
         if (!selectedElement) return;
@@ -349,38 +442,38 @@ export default function VideoEditor() {
         newScenes[activeScene].background = background;
         updateHistory(newScenes);
     }, [scenes, activeScene, updateHistory]);
-    
+
     // Z-Index 控制函数
     const handleBringToFront = useCallback(() => {
         if (!selectedElement) return;
-        
+
         const newScenes = bringToFront(scenes, activeScene, selectedElement);
         if (newScenes) {
             updateHistory(newScenes);
         }
     }, [scenes, activeScene, selectedElement, updateHistory]);
-    
+
     const handleSendToBack = useCallback(() => {
         if (!selectedElement) return;
-        
+
         const newScenes = sendToBack(scenes, activeScene, selectedElement);
         if (newScenes) {
             updateHistory(newScenes);
         }
     }, [scenes, activeScene, selectedElement, updateHistory]);
-    
+
     const handleBringForward = useCallback(() => {
         if (!selectedElement) return;
-        
+
         const newScenes = bringForward(scenes, activeScene, selectedElement);
         if (newScenes) {
             updateHistory(newScenes);
         }
     }, [scenes, activeScene, selectedElement, updateHistory]);
-    
+
     const handleSendBackward = useCallback(() => {
         if (!selectedElement) return;
-        
+
         const newScenes = sendBackward(scenes, activeScene, selectedElement);
         if (newScenes) {
             updateHistory(newScenes);
@@ -411,7 +504,38 @@ export default function VideoEditor() {
                 return <div>Content for {activeTab}</div>
         }
     }
+    // 在 useEffect 中添加复制粘贴的键盘事件监听
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // 检查是否在输入框中
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                return;
+            }
 
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                e.preventDefault();
+                handleUndo();
+            } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+                e.preventDefault();
+                handleRedo();
+            } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedElement) {
+                // 当按下删除键且有选中的元素时，删除该元素
+                e.preventDefault();
+                handleDeleteElement();
+            } else if ((e.ctrlKey || e.metaKey) && e.key === 'c' && selectedElement) {
+                // 复制元素
+                e.preventDefault();
+                handleCopyElement();
+            } else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+                // 粘贴元素
+                e.preventDefault();
+                handlePasteElement();
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [handleUndo, handleRedo, selectedElement, handleDeleteElement, handleCopyElement, handlePasteElement]);
     const [videoTitle, setVideoTitle] = useState<string>("编辑您的项目名称")
     // 添加处理媒体添加的函数
     // 添加处理媒体添加的函数
@@ -570,7 +694,7 @@ export default function VideoEditor() {
                     <div className="h-full flex flex-col bg-gray-100">
                         {/* 直接集成 VideoPreview 的内容 */}
                         <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
-                            <BackgroundRenderer 
+                            <BackgroundRenderer
                                 background={scenes[activeScene].background}
                                 onClick={(e: React.MouseEvent) => {
                                     if (e.target === e.currentTarget) {
@@ -646,7 +770,7 @@ export default function VideoEditor() {
                                                     canvasHeight={1080}
                                                     containerWidth={previewDimensions.width}
                                                     containerHeight={previewDimensions.height}
-                                                    // otherElements={getAllElementsForAlignment(scenes[activeScene], mediaItem.id, "video")}
+                                                // otherElements={getAllElementsForAlignment(scenes[activeScene], mediaItem.id, "video")}
                                                 />
                                             </ElementContextMenu>
                                         );
