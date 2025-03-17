@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"  // 移除 useState
+import { useEffect, useRef, useState } from "react"  // 移除 useState
 import { Mic, Play, Sparkles, Wand2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -23,7 +23,6 @@ interface ScriptContentProps {
 export default function ScriptContent({ script, setScript }: ScriptContentProps) {
   // 移除内部的 script 状态
   // const [script, setScript] = useState<string>( ... )
-
   const avatars: Avatar[] = [
     { id: "1", name: "Zoe", country: "US" },
     { id: "2", name: "Emma", country: "UK" },

@@ -45,7 +45,7 @@ const serialize = (nodes: Descendant[]): string => {
         return `<#${node.seconds}#>`
       }
       if (node.type === 'animation-tag') {
-        return `<@animation:${node.animation}@>`
+        return `<@animation@>`  // 简化为固定标记
       }
       return serialize(node.children)
     }
@@ -61,13 +61,13 @@ const serialize = (nodes: Descendant[]): string => {
 // 反序列化函数 - 将纯文本转换为 Slate 内容
 const deserialize = (text: string): Descendant[] => {
   const timeTagRegex = /<#(\d+)#>/g
-  const animationTagRegex = /<@animation:(\d+|\w+)@>/g
+  const animationTagRegex = /<@animation@>/g  // 简化为固定标记
   const nodes: Descendant[] = []
   let lastIndex = 0
   let match: RegExpExecArray | null
 
   // 处理所有标记
-  const allMatches: {type: string, index: number, length: number, value?: number, animation?: string}[] = []
+  const allMatches: {type: string, index: number, length: number, value?: number}[] = []
   
   // 查找时间标记
   while ((match = timeTagRegex.exec(text)) !== null) {
@@ -84,8 +84,7 @@ const deserialize = (text: string): Descendant[] => {
     allMatches.push({
       type: 'animation-tag',
       index: match.index,
-      length: match[0].length,
-      animation: match[1]
+      length: match[0].length
     })
   }
   
@@ -112,7 +111,7 @@ const deserialize = (text: string): Descendant[] => {
     } else if (match.type === 'animation-tag') {
       nodes.push({
         type: 'animation-tag',
-        animation: match.animation || '1',
+        animation: '',  // 不再需要存储动画类型
         children: [{ text: '' }]
       })
     }
@@ -229,43 +228,14 @@ const CustomEditor = React.forwardRef<
   
   // 插入动画标签
   const insertAnimationTag = useCallback(() => {
-    const { selection } = editor
-    
-    if (selection && !Range.isCollapsed(selection)) {
-      // 获取选中的文本
-      const selectedText = Editor.string(editor, selection)
-      
-      // 在选中文本前后插入动画标记
-      const startPoint = Editor.start(editor, selection)
-      const endPoint = Editor.end(editor, selection)
-      
-      // 先在选中文本后插入结束标记
-      Transforms.select(editor, endPoint)
-      const endTag: CustomElement = {
-        type: 'animation-tag',
-        animation: 'end',
-        children: [{ text: '' }]
-      }
-      Transforms.insertNodes(editor, endTag)
-      
-      // 再在选中文本前插入开始标记
-      Transforms.select(editor, startPoint)
-      const startTag: CustomElement = {
-        type: 'animation-tag',
-        animation: 'start',
-        children: [{ text: '' }]
-      }
-      Transforms.insertNodes(editor, startTag)
-    } else {
-      // 如果没有选择，直接插入单个动画标记
-      const animationTag: CustomElement = {
-        type: 'animation-tag',
-        animation: 'fade',
-        children: [{ text: '' }]
-      }
-      
-      Transforms.insertNodes(editor, animationTag)
+    // 简化为直接插入固定的动画标签
+    const animationTag: CustomElement = {
+      type: 'animation-tag',
+      animation: '',
+      children: [{ text: '' }]
     }
+    
+    Transforms.insertNodes(editor, animationTag)
     
     // 移动光标到标签后面
     Transforms.move(editor, { distance: 1 })
