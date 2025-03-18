@@ -20,7 +20,6 @@ interface VideoTabsProps {
     tabs: string[]
     activeTab: string
     setActiveTab: (tab: string) => void
-    onSelectAvatar?: (profile: Profile) => void
     onSelectTextType?: (type: "title" | "subtitle" | "body") => void
 }
 
@@ -68,7 +67,7 @@ function TextTypeSelector({
     )
 }
 
-export function VideoTabs({ tabs, activeTab, setActiveTab, onSelectAvatar, onSelectTextType }: VideoTabsProps) {
+export function VideoTabs({ tabs, activeTab, setActiveTab, onSelectTextType }: VideoTabsProps) {
     const [isTextPopoverOpen, setIsTextPopoverOpen] = useState(false)
 
     const handleTabClick = (tab: string) => {

@@ -39,9 +39,10 @@ interface TextElement {
 interface TextContentProps {
   textElement?: TextElement;
   onUpdate: (updates: Partial<TextElement>) => void;
+  currentSceneId?: string; // 添加当前场景ID属性
 }
 
-export default function TextContent({ textElement, onUpdate }: TextContentProps) {
+export default function TextContent({ textElement, onUpdate,currentSceneId = '' }: TextContentProps) {
   const [activeTab, setActiveTab] = useState("format")
   const [textAlignment, setTextAlignment] = useState<TextAlignment>(textElement?.alignment || "left")
   const [fontColor, setFontColor] = useState(textElement?.fontColor || "#000000")
@@ -105,13 +106,12 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
     "#C8E1FF",
     "#79B8FF",
   ]
-  // 现有状态...
-
-  // 获取动画标记
-  const { markers } = useAnimationMarkers();
-
-  // 将标记按时间排序
-  const sortedMarkers = [...markers].sort((a, b) => a.timePercent - b.timePercent);
+  // Get animation markers context
+  const { getMarkersBySceneId } = useAnimationMarkers();
+  // Filter markers by current scene ID
+  const currentSceneMarkers = currentSceneId ? getMarkersBySceneId(currentSceneId) : [];
+  // Sort markers by time
+  const sortedMarkers = [...currentSceneMarkers].sort((a, b) => a.timePercent - b.timePercent);
 
   // 修改开始时间和结束时间的下拉选择器
   const renderStartAtSelect = () => (
@@ -120,21 +120,12 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
         <SelectValue placeholder="选择时间" />
       </SelectTrigger>
       <SelectContent>
-        {/* 默认选项 */}
-        <SelectItem value="0">开始 (0%)</SelectItem>
-
-        {/* 动态生成的标记选项 */}
-        {sortedMarkers.map(marker => (
-          <SelectItem key={marker.id} value={marker.timePercent.toString()}>
-            {marker.name} ({marker.timePercent}%)
+      {sortedMarkers.map(marker => (
+          <SelectItem key={marker.id} value={marker.id}>
+            {marker.description}
           </SelectItem>
         ))}
 
-        {/* 其他固定选项 */}
-        <SelectItem value="25">25%</SelectItem>
-        <SelectItem value="50">中间 (50%)</SelectItem>
-        <SelectItem value="75">75%</SelectItem>
-        <SelectItem value="100">结束 (100%)</SelectItem>
       </SelectContent>
     </Select>
   );
@@ -145,21 +136,12 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
         <SelectValue placeholder="选择时间" />
       </SelectTrigger>
       <SelectContent>
-        {/* 默认选项 */}
-        <SelectItem value="0">开始 (0%)</SelectItem>
-
         {/* 动态生成的标记选项 */}
         {sortedMarkers.map(marker => (
-          <SelectItem key={marker.id} value={marker.timePercent.toString()}>
-            {marker.name} ({marker.timePercent}%)
+          <SelectItem key={marker.id} value={marker.id}>
+            {marker.description}
           </SelectItem>
         ))}
-
-        {/* 其他固定选项 */}
-        <SelectItem value="25">25%</SelectItem>
-        <SelectItem value="50">中间 (50%)</SelectItem>
-        <SelectItem value="75">75%</SelectItem>
-        <SelectItem value="100">结束 (100%)</SelectItem>
       </SelectContent>
     </Select>
   );

@@ -359,13 +359,15 @@ export default function VideoEditor() {
                     currentBackground={scenes[activeScene].background}
                     onBackgroundChange={handleBackgroundChange}
                 />
+            // 在 renderTabContent 函数中修改 TextContent 的渲染
             case "Text":
-                return <TextContent
-                    textElement={selectedElement?.type === "text" && selectedElement.index !== undefined
-                        ? scenes[activeScene].texts[selectedElement.index]
-                        : undefined}
-                    onUpdate={handleTextUpdate}
-                />
+            return <TextContent
+            textElement={selectedElement?.type === "text" && selectedElement.index !== undefined
+            ? scenes[activeScene].texts[selectedElement.index]
+            : undefined}
+            onUpdate={handleTextUpdate}
+            currentSceneId={scenes[activeScene].id} // 传递当前场景ID
+            />
             // Add more cases for other tabs
             default:
                 return <div>Content for {activeTab}</div>
@@ -404,63 +406,6 @@ export default function VideoEditor() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleUndo, handleRedo, selectedElement, handleDeleteElement, handleCopyElement, handlePasteElement]);
 
-    // 添加处理媒体添加的函数
-    // 添加处理媒体添加的函数
-    const handleAddMedia = useCallback(
-        (mediaType: "image" | "video", src: string) => {
-            const newScenes = [...scenes];
-            const mediaId = uuidv4();
-
-            if (mediaType === "image") {
-                newScenes[activeScene].media.push({
-                    id: mediaId,
-                    type: "image",
-                    element: {
-                        src,
-                        width: 400,
-                        height: 300,
-                        x: 1920 / 2 - 200, // 居中
-                        y: 1080 / 2 - 150, // 居中
-                        rotation: 0
-                    }
-                });
-
-                // 选中新添加的图片元素
-                setSelectedElement({
-                    type: "image",
-                    mediaId
-                });
-            } else if (mediaType === "video") {
-                newScenes[activeScene].media.push({
-                    id: mediaId,
-                    type: "video",
-                    element: {
-                        src,
-                        width: 400,
-                        height: 300,
-                        x: 1920 / 2 - 200, // 居中
-                        y: 1080 / 2 - 150, // 居中
-                        rotation: 0,
-                        volume: 1,
-                        autoPlay: true,
-                        loop: true,
-                        muted: false
-                    }
-                });
-
-                // 选中新添加的视频元素
-                setSelectedElement({
-                    type: "video",
-                    mediaId
-                });
-            }
-
-            updateHistory(newScenes);
-            setActiveTab("Media");
-        },
-        [scenes, activeScene, updateHistory]
-    );
-
     const addNewScene = useCallback(() => {
         const newScene: Scene = {
             id : uuidv4(),
@@ -477,28 +422,7 @@ export default function VideoEditor() {
         updateHistory([...scenes, newScene])
         setActiveScene(scenes.length)
     }, [scenes, updateHistory])
-    // 在 VideoEditor 组件中添加处理头像选择的函数
-    const handleSelectAvatar = useCallback(
-        (profile: { id: string; name: string; image: string }) => {
-            const newScenes = [...scenes]
-            // 创建新的头像元素
-            const newAvatar: AvatarElement = {
-                src: profile.image,
-                width: 150,
-                height: 150,
-                x: 50,
-                y: 50,
-                rotation: 0
-            }
 
-            // 更新当前场景的头像
-            newScenes[activeScene].avatar = newAvatar
-            updateHistory(newScenes)
-            // setSelectedElement("avatar")
-            setActiveTab("Avatar")
-        },
-        [scenes, activeScene, updateHistory]
-    )
     // 添加预览容器尺寸状态
     const [previewDimensions, setPreviewDimensions] = useState({
         width: 0,
@@ -550,7 +474,6 @@ export default function VideoEditor() {
                 tabs={tabs}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
-                onSelectAvatar={handleSelectAvatar}
                 onSelectTextType={handleSelectTextType} // 添加文本类型选择处理函数
             />
 
