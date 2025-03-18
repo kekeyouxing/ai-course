@@ -10,30 +10,7 @@ import { Slider } from "@/components/ui/slider"
 import { Input } from "@/components/ui/input"
 import { useAnimationMarkers } from '@/hooks/animation-markers-context';
 import "./color-picker.css" // 导入自定义样式
-
-type TextAlignment = "left" | "center" | "right"
-// 定义文本元素接口
-interface TextElement {
-  content: string;
-  fontSize?: number;
-  fontFamily?: string;
-  fontColor?: string;
-  backgroundColor?: string;
-  bold?: boolean;
-  italic?: boolean;
-  alignment?: TextAlignment;
-  rotation?: number;
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-  // Animation properties
-  animationType?: "none" | "fade" | "slide";
-  animationBehavior?: "enter" | "exit" | "both";
-  animationDirection?: "right" | "left" | "down" | "up";
-  startAt?: number;
-  endAt?: number; // 添加结束时间字段
-}
+import { TextElement, TextAlignment } from "@/types/scene"
 
 // 组件属性接口
 interface TextContentProps {
@@ -63,12 +40,9 @@ export default function TextContent({ textElement, onUpdate,currentSceneId = '' 
   const [animationType, setAnimationType] = useState(textElement?.animationType || "none")
   const [animationBehavior, setAnimationBehavior] = useState(textElement?.animationBehavior || "enter")
   const [animationDirection, setAnimationDirection] = useState(textElement?.animationDirection || "right")
-  // 移除 usePercentageForTiming 状态
-  const [startAt, setStartAt] = useState(textElement?.startAt || 0)
-  const [endAt, setEndAt] = useState(textElement?.endAt || 0) // 添加结束时间状态
 
   // 字体大小预设选项
-  const fontSizeOptions = [18, 24, 32, 36, 48, 56, 64, 72, 96, 120, 144, 180, 210, 225, 240];
+  const fontSizeOptions = [32, 56, 96, 120, 144, 180, 210, 225, 240];
 
   // 预设颜色
   const presetColors = [
@@ -115,32 +89,51 @@ export default function TextContent({ textElement, onUpdate,currentSceneId = '' 
 
   // 修改开始时间和结束时间的下拉选择器
   const renderStartAtSelect = () => (
-    <Select value={startAt.toString()} onValueChange={(value) => handleStartAtChange(parseInt(value))}>
+    <Select 
+    value={textElement?.startMarkerId || "default"} 
+    onValueChange={(value) => {
+      const markerId = value === "default" ? undefined : value;
+      onUpdate({ startMarkerId: markerId });
+    }}
+  >
       <SelectTrigger className="w-36">
         <SelectValue placeholder="选择时间" />
       </SelectTrigger>
       <SelectContent>
       {sortedMarkers.map(marker => (
           <SelectItem key={marker.id} value={marker.id}>
-            {marker.description}
+            <div className="flex items-center space-x-2">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                动画
+              </span>
+              <span className="truncate">{marker.description}</span>
+            </div>
           </SelectItem>
         ))}
-
       </SelectContent>
     </Select>
   );
 
   const renderEndAtSelect = () => (
-    <Select value={endAt.toString()} onValueChange={(value) => handleEndAtChange(parseInt(value))}>
+    <Select 
+    value={textElement?.endMarkerId || "default"} 
+    onValueChange={(value) => {
+      const markerId = value === "default" ? undefined : value;
+      onUpdate({ endMarkerId: markerId });
+    }}
+  >
       <SelectTrigger className="w-36">
         <SelectValue placeholder="选择时间" />
       </SelectTrigger>
       <SelectContent>
         {/* 动态生成的标记选项 */}
         {sortedMarkers.map(marker => (
-          <SelectItem key={marker.id} value={marker.id}>
-            {marker.description}
-          </SelectItem>
+            <div className="flex items-center space-x-2">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+              动画
+            </span>
+            <span className="truncate">{marker.description}</span>
+          </div>
         ))}
       </SelectContent>
     </Select>
@@ -249,18 +242,6 @@ export default function TextContent({ textElement, onUpdate,currentSceneId = '' 
     onUpdate({ animationDirection: value as "right" | "left" | "down" | "up" })
   }
 
-  // 处理开始时间变化
-  const handleStartAtChange = (value: number) => {
-    setStartAt(value)
-    onUpdate({ startAt: value })
-  }
-
-  // 添加处理结束时间变化的函数
-  const handleEndAtChange = (value: number) => {
-    setEndAt(value)
-    onUpdate({ endAt: value })
-  }
-
   // 当 textElement 属性变化时更新本地状态
   useEffect(() => {
     if (textElement) {
@@ -283,9 +264,6 @@ export default function TextContent({ textElement, onUpdate,currentSceneId = '' 
       setAnimationType(textElement.animationType || "none");
       setAnimationBehavior(textElement.animationBehavior || "enter");
       setAnimationDirection(textElement.animationDirection || "right");
-      // 移除 usePercentageForTiming 更新
-      setStartAt(textElement.startAt || 0);
-      setEndAt(textElement.endAt || 0); // 添加结束时间更新
     }
   }, [textElement]);
 

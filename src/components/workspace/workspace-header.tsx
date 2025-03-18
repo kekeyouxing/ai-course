@@ -10,6 +10,7 @@ import {
     Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Scene } from "@/types/scene"
 import PreviewModal from "./preview-modal"
 
 interface VideoHeaderProps {
@@ -19,6 +20,9 @@ interface VideoHeaderProps {
     handleRedo: () => void
     historyIndex: number
     historyLength: number
+    currentScene?: Scene  // 添加当前场景
+    scenes?: Scene[]      // 添加所有场景
+    activeSceneIndex?: number // 当前场景索引
 }
 
 export function VideoHeader({
@@ -27,7 +31,10 @@ export function VideoHeader({
     handleUndo,
     handleRedo,
     historyIndex,
-    historyLength
+    historyLength,
+    currentScene,
+    scenes = [],
+    activeSceneIndex = 0
 }: VideoHeaderProps) {
     const [isEditingTitle, setIsEditingTitle] = useState<boolean>(false)
     // 添加预览模态框的状态
@@ -35,7 +42,6 @@ export function VideoHeader({
 
     return (
         <>
-
         <header className="flex items-center justify-between px-4 py-3 border-b">
             <div className="flex items-center space-x-4">
                 <div className="flex items-center">
@@ -103,9 +109,10 @@ export function VideoHeader({
                     >
                         <Edit className="h-4 w-4" />
                     </Button>
-                    <Button 
-                        variant="outline" 
-                        className="h-8 px-3 text-sm flex items-center gap-1 mr-2"
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-2"
                         onClick={() => setPreviewOpen(true)}
                     >
                         <Eye className="h-4 w-4" />
@@ -118,8 +125,14 @@ export function VideoHeader({
                 </div>
             </header>
             
-            {/* 添加预览模态框组件 */}
-            <PreviewModal open={previewOpen} onOpenChange={setPreviewOpen} />
+            {/* 添加预览模态框组件，传递场景数据 */}
+            <PreviewModal 
+                open={previewOpen} 
+                onOpenChange={setPreviewOpen} 
+                currentScene={currentScene}
+                scenes={scenes}
+                activeSceneIndex={activeSceneIndex}
+            />
         </>
     )
 }

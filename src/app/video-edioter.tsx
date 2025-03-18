@@ -98,7 +98,8 @@ export default function VideoEditor() {
             background: {
                 type: "color",
                 color: "#FFFFFF"
-            }
+            },
+            script: "这是第一个场景的脚本内容"  // 添加脚本内容
         },
         {
             id: uuidv4(),
@@ -131,7 +132,8 @@ export default function VideoEditor() {
                 type: "color",
                 color: "#FFFFFF"
                 // Removed z-index comment to avoid confusion
-            }
+            },
+            script: "这是第二个场景的脚本内容"  // 添加脚本内容
         },
     ])
     const [videoTitle, setVideoTitle] = useState<string>("编辑您的项目名称")
@@ -146,9 +148,10 @@ export default function VideoEditor() {
     const [historyIndex, setHistoryIndex] = useState<number>(0)
     const [selectedElement, setSelectedElement] = useState<SelectedElementType | null>(null)
     // 添加脚本内容状态
-    const [scriptContent, setScriptContent] = useState<string>(
-        "use engaging media to grab your audiences attention, or even simulate conversations between multiple avatars. All with an intuitive interface that anyone can use!"
-    );
+    // 移除全局脚本内容状态
+    // const [scriptContent, setScriptContent] = useState<string>(
+    //    "use engaging media to grab your audiences attention, or even simulate conversations between multiple avatars. All with an intuitive interface that anyone can use!"
+    // );
     const handleElementSelect = useCallback((element: SelectedElementType | null) => {
         setSelectedElement(element)
 
@@ -178,12 +181,13 @@ export default function VideoEditor() {
     // 在组件内部使用 useAnimationMarkers
     const { setCurrentSceneId } = useAnimationMarkers();
     // 修改 handleSceneClick 函数，添加设置当前场景ID的逻辑
+    // 修改 handleSceneClick 函数，确保脚本内容更新
     const handleSceneClick = useCallback((index: number) => {
         setActiveScene(index);
         setSelectedElement(null);
         // 设置当前场景ID，用于动画标记关联
         setCurrentSceneId(scenes[index].id);
-    }, [scenes, setCurrentSceneId]);
+    }, [scenes, setCurrentSceneId, activeTab]);
 
     const handleTextChange = useCallback(
         (newText: string) => {
@@ -343,14 +347,19 @@ export default function VideoEditor() {
             updateHistory(newScenes);
         }
     }, [scenes, activeScene, selectedElement, updateHistory]);
-
+    // 添加处理脚本更新的函数
+    const handleScriptUpdate = useCallback((newScript: string) => {
+        const newScenes = [...scenes];
+        newScenes[activeScene].script = newScript;
+        updateHistory(newScenes);
+    }, [scenes, activeScene, updateHistory]);
     // 修改渲染Tab内容的函数
     const renderTabContent = () => {
         switch (activeTab) {
             case "Script":
                 return <ScriptContent
-                    script={scriptContent}
-                    setScript={setScriptContent}
+                    script={scenes[activeScene].script || ""}
+                    setScript={handleScriptUpdate}
                 />
             case "Avatar":
                 return <AvatarContent />
@@ -361,13 +370,13 @@ export default function VideoEditor() {
                 />
             // 在 renderTabContent 函数中修改 TextContent 的渲染
             case "Text":
-            return <TextContent
-            textElement={selectedElement?.type === "text" && selectedElement.index !== undefined
-            ? scenes[activeScene].texts[selectedElement.index]
-            : undefined}
-            onUpdate={handleTextUpdate}
-            currentSceneId={scenes[activeScene].id} // 传递当前场景ID
-            />
+                return <TextContent
+                    textElement={selectedElement?.type === "text" && selectedElement.index !== undefined
+                        ? scenes[activeScene].texts[selectedElement.index]
+                        : undefined}
+                    onUpdate={handleTextUpdate}
+                    currentSceneId={scenes[activeScene].id} // 传递当前场景ID
+                />
             // Add more cases for other tabs
             default:
                 return <div>Content for {activeTab}</div>
@@ -408,7 +417,7 @@ export default function VideoEditor() {
 
     const addNewScene = useCallback(() => {
         const newScene: Scene = {
-            id : uuidv4(),
+            id: uuidv4(),
             title: `Scene ${scenes.length + 1}`,
             media: [],
             texts: [],  // 初始化为空数组
@@ -416,8 +425,8 @@ export default function VideoEditor() {
             background: {
                 type: "color",
                 color: "#FFFFFF"
-                // Removed z-index comment to avoid confusion
-            }
+            },
+            script: ""  // 确保添加空脚本字段
         }
         updateHistory([...scenes, newScene])
         setActiveScene(scenes.length)
@@ -468,6 +477,9 @@ export default function VideoEditor() {
                 handleRedo={handleRedo}
                 historyIndex={historyIndex}
                 historyLength={history.length}
+                currentScene={scenes[activeScene]}
+                scenes={scenes}
+                activeSceneIndex={activeScene}
             />
 
             <VideoTabs

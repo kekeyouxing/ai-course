@@ -1,3 +1,4 @@
+export type TextAlignment = "left" | "center" | "right"
 // 文本元素接口
 export interface TextElement {
     content: string
@@ -12,8 +13,14 @@ export interface TextElement {
     backgroundColor?: string
     bold?: boolean
     italic?: boolean
-    alignment?: "left" | "center" | "right"
+    alignment?: TextAlignment
     zIndex?: number; // 添加 zIndex 属性
+    // 动画相关字段
+    animationType?: "none" | "fade" | "slide";
+    animationBehavior?: "enter" | "exit" | "both";
+    animationDirection?: "right" | "left" | "down" | "up";
+    startMarkerId?: string; // 开始动画的标记ID
+    endMarkerId?: string;   // 结束动画的标记ID
 }
 
 // 图片元素接口
@@ -117,6 +124,8 @@ export interface Scene {
     texts: TextElement[]
     avatar: AvatarElement | null
     background: Background
+    script?: string  // 添加脚本字段
+    audioSrc?: string
 }
 
 // 选中元素类型

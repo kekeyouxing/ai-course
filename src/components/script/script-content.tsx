@@ -49,8 +49,6 @@ export default function ScriptContent({ script, setScript }: ScriptContentProps)
     setShowTimePicker(!showTimePicker)
   }
 
-  // 移除动画选择器切换函数
-
   // 插入时间标记
   const insertTimeTag = () => {
     // 直接调用 CustomEditor 的方法

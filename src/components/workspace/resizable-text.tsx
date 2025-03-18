@@ -39,8 +39,8 @@ interface ResizableTextProps {
     animationType?: "none" | "fade" | "slide"
     animationBehavior?: "enter" | "exit" | "both"
     animationDirection?: "right" | "left" | "down" | "up"
-    startAt?: number
-    endAt?: number
+    startMarkerId?: string; // 开始动画的标记ID
+    endMarkerId?: string;   // 结束动画的标记ID
 }
 
 export function ResizableText({
@@ -72,8 +72,8 @@ export function ResizableText({
     animationType = "none",
     animationBehavior = "enter",
     animationDirection = "right",
-    startAt = 0,
-    endAt = 0,
+    startMarkerId = "",
+    endMarkerId = ""
 }: ResizableTextProps) {
     const [isEditing, setIsEditing] = useState(false)
     const [localContent, setLocalContent] = useState(content)

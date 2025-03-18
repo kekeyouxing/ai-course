@@ -435,19 +435,30 @@ const CustomEditor = React.forwardRef<
     }),
     [insertTimeTag, insertAnimationTag]
   )
-
+  
   // 当外部 value 变化时更新内部值
   React.useEffect(() => {
+    // 直接更新内部值，不进行条件判断
     const newInternalValue = deserialize(value || '')
-    // 只有当序列化后的值不同时才更新，避免光标重置
-    if (serialize(internalValue) !== value) {
-      setInternalValue(newInternalValue)
-    }
-  }, [value, internalValue])
+    
+    // 更新内部值
+    setInternalValue(newInternalValue)
+    
+    // 重置编辑器内容
+    editor.children = newInternalValue
+    editor.selection = null
+    
+  }, [value, editor])
 
+  // 使用 key 属性强制重新渲染组件
   return (
     <div className={`p-2 outline-none text-base leading-relaxed overflow-auto ${className}`}>
-      <Slate editor={editor} initialValue={internalValue} onChange={handleChange}>
+      <Slate 
+        editor={editor} 
+        initialValue={internalValue} 
+        onChange={handleChange}
+        key={value} // 添加 key 属性，当 value 变化时强制重新渲染
+      >
         <Editable
           placeholder={placeholder}
           renderElement={(props) => {

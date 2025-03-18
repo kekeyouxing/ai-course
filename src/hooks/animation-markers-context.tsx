@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 
 // 动画标记数据结构
 export interface AnimationMarker {
@@ -26,9 +26,7 @@ const AnimationMarkersContext = createContext<AnimationMarkersContextType | unde
 export function AnimationMarkersProvider({ children }: { children: ReactNode }) {
   const [markers, setMarkers] = useState<AnimationMarker[]>([]);
   const [currentSceneId, setCurrentSceneId] = useState<string>('');
-  useEffect(() => {
-    console.log('markers:', markers);
-  }, [markers]);
+
   // 添加标记时自动关联到当前场景
   const addMarker = (marker: AnimationMarker) => {
     // 简化逻辑，移除计数相关代码
