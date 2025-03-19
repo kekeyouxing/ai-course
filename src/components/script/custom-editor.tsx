@@ -438,17 +438,31 @@ const CustomEditor = React.forwardRef<
   
   // 当外部 value 变化时更新内部值
   React.useEffect(() => {
-    // 直接更新内部值，不进行条件判断
-    const newInternalValue = deserialize(value || '')
-    
-    // 更新内部值
-    setInternalValue(newInternalValue)
-    
-    // 重置编辑器内容
-    editor.children = newInternalValue
-    editor.selection = null
-    
-  }, [value, editor])
+    // 只有当序列化后的内部值与外部值不同，且不是由内部编辑引起的变化时才更新
+    const currentValue = serialize(internalValue);
+    if (value !== currentValue && !editor.operations.some(op => op.type !== 'set_selection')) {
+      const newInternalValue = deserialize(value || '');
+      setInternalValue(newInternalValue);
+      
+      // 保存当前选择状态
+      const selection = editor.selection;
+      
+      // 更新编辑器内容
+      editor.children = newInternalValue;
+      
+      // 恢复选择状态
+      if (selection) {
+        setTimeout(() => {
+          try {
+            ReactEditor.focus(editor);
+            Transforms.select(editor, selection);
+          } catch (e) {
+            // 如果选择状态无效，忽略错误
+          }
+        }, 0);
+      }
+    }
+  }, [value, editor, internalValue]);
 
   // 使用 key 属性强制重新渲染组件
   return (
@@ -457,7 +471,7 @@ const CustomEditor = React.forwardRef<
         editor={editor} 
         initialValue={internalValue} 
         onChange={handleChange}
-        key={value} // 添加 key 属性，当 value 变化时强制重新渲染
+        // key={value} // 添加 key 属性，当 value 变化时强制重新渲染
       >
         <Editable
           placeholder={placeholder}

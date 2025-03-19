@@ -46,8 +46,6 @@ export function VideoTimeline({ scenes, activeScene, handleSceneClick, addNewSce
                     </div>
                 </div>
             </div>
-
-            <div className="text-xs text-gray-500">Estimated video length: 01:11</div>
         </div>
     )
 }

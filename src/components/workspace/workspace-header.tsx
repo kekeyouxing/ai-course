@@ -8,10 +8,19 @@ import {
     Redo,
     Undo,
     Zap,
+    Square
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Scene } from "@/types/scene"
 import PreviewModal from "./preview-modal"
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
+
+// 定义比例类型
+export type AspectRatioType = "16:9" | "9:16" | "1:1" | "4:3";
 
 interface VideoHeaderProps {
     videoTitle: string
@@ -23,6 +32,9 @@ interface VideoHeaderProps {
     currentScene?: Scene  // 添加当前场景
     scenes?: Scene[]      // 添加所有场景
     activeSceneIndex?: number // 当前场景索引
+    // 添加比例相关属性
+    aspectRatio?: AspectRatioType
+    onAspectRatioChange?: (ratio: AspectRatioType) => void
 }
 
 export function VideoHeader({
@@ -34,11 +46,19 @@ export function VideoHeader({
     historyLength,
     currentScene,
     scenes = [],
-    activeSceneIndex = 0
+    activeSceneIndex = 0,
+    // 添加比例相关属性的默认值
+    aspectRatio = "16:9",
+    onAspectRatioChange = () => {}
 }: VideoHeaderProps) {
     const [isEditingTitle, setIsEditingTitle] = useState<boolean>(false)
     // 添加预览模态框的状态
     const [previewOpen, setPreviewOpen] = useState<boolean>(false)
+    // 添加比例选择器的开关状态
+    const [aspectRatioOpen, setAspectRatioOpen] = useState<boolean>(false)
+
+    // 比例选项
+    const aspectRatioOptions: AspectRatioType[] = ["16:9", "9:16", "1:1", "4:3"];
 
     return (
         <>
@@ -68,6 +88,40 @@ export function VideoHeader({
                         >
                             <Redo className="h-4 w-4" />
                         </Button>
+                        <div className="h-4 border-r border-gray-300 mx-1"></div>
+                        
+                        {/* 添加比例切换按钮和弹出菜单 */}
+                        <Popover open={aspectRatioOpen} onOpenChange={setAspectRatioOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 px-3 text-xs flex items-center gap-1"
+                                >
+                                    <Square className="h-3.5 w-3.5" />
+                                    {aspectRatio}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48 p-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                    {aspectRatioOptions.map((ratio) => (
+                                        <Button
+                                            key={ratio}
+                                            variant={aspectRatio === ratio ? "default" : "outline"}
+                                            size="sm"
+                                            className="w-full justify-center"
+                                            onClick={() => {
+                                                onAspectRatioChange(ratio);
+                                                setAspectRatioOpen(false);
+                                            }}
+                                        >
+                                            {ratio}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                        
                         <div className="h-4 border-r border-gray-300 mx-1"></div>
                         <Button
                             variant="outline"

@@ -19,7 +19,7 @@ interface TextContentProps {
   currentSceneId?: string; // 添加当前场景ID属性
 }
 
-export default function TextContent({ textElement, onUpdate,currentSceneId = '' }: TextContentProps) {
+export default function TextContent({ textElement, onUpdate, currentSceneId = '' }: TextContentProps) {
   const [activeTab, setActiveTab] = useState("format")
   const [textAlignment, setTextAlignment] = useState<TextAlignment>(textElement?.alignment || "left")
   const [fontColor, setFontColor] = useState(textElement?.fontColor || "#000000")
@@ -89,18 +89,18 @@ export default function TextContent({ textElement, onUpdate,currentSceneId = '' 
 
   // 修改开始时间和结束时间的下拉选择器
   const renderStartAtSelect = () => (
-    <Select 
-    value={textElement?.startMarkerId || "default"} 
-    onValueChange={(value) => {
-      const markerId = value === "default" ? undefined : value;
-      onUpdate({ startMarkerId: markerId });
-    }}
-  >
+    <Select
+      value={textElement?.startMarkerId || "default"}
+      onValueChange={(value) => {
+        const markerId = value === "default" ? undefined : value;
+        onUpdate({ startMarkerId: markerId });
+      }}
+    >
       <SelectTrigger className="w-36">
         <SelectValue placeholder="选择时间" />
       </SelectTrigger>
       <SelectContent>
-      {sortedMarkers.map(marker => (
+        {sortedMarkers.map(marker => (
           <SelectItem key={marker.id} value={marker.id}>
             <div className="flex items-center space-x-2">
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
@@ -115,20 +115,20 @@ export default function TextContent({ textElement, onUpdate,currentSceneId = '' 
   );
 
   const renderEndAtSelect = () => (
-    <Select 
-    value={textElement?.endMarkerId || "default"} 
-    onValueChange={(value) => {
-      const markerId = value === "default" ? undefined : value;
-      onUpdate({ endMarkerId: markerId });
-    }}
-  >
+    <Select
+      value={textElement?.endMarkerId || "default"}
+      onValueChange={(value) => {
+        const markerId = value === "default" ? undefined : value;
+        onUpdate({ endMarkerId: markerId });
+      }}
+    >
       <SelectTrigger className="w-36">
         <SelectValue placeholder="选择时间" />
       </SelectTrigger>
       <SelectContent>
         {/* 动态生成的标记选项 */}
         {sortedMarkers.map(marker => (
-            <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2">
             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
               动画
             </span>

@@ -6,6 +6,7 @@ interface BackgroundRendererProps {
   onClick?: (e: React.MouseEvent) => void;
   editorRef?: React.RefObject<HTMLDivElement | null>;
   children?: React.ReactNode;
+  style?: React.CSSProperties; // 添加 style 属性
 }
 
 /**
@@ -16,7 +17,8 @@ export const BackgroundRenderer: React.FC<BackgroundRendererProps> = ({
   background, 
   onClick, 
   editorRef,
-  children 
+  children,
+  style // 接收 style 属性
 }) => {
   // 获取背景样式
   const getBackgroundStyle = () => {
@@ -112,10 +114,13 @@ export const BackgroundRenderer: React.FC<BackgroundRendererProps> = ({
   return (
     <div
       ref={editorRef}
-      className="w-full max-w-3xl aspect-video shadow-md relative"
-      style={getBackgroundStyle()}
-      data-width="1920"
-      data-height="1080"
+      className="shadow-md relative"
+      style={{
+        ...getBackgroundStyle(),
+        ...(style || {})
+      }}
+      // data-width="1920"
+      // data-height="1080"
       onClick={onClick}
     >
       {renderVideoBackground()}
