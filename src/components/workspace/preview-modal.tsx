@@ -14,7 +14,7 @@ import {
     Download
 } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
-import { Scene, TextElement, ImageMedia, VideoMedia } from "@/types/scene"
+import { Scene, ImageMedia, VideoMedia, AspectRatioType } from "@/types/scene"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 // 修改组件接口，添加场景数据
@@ -57,13 +57,13 @@ export default function PreviewModal({
             setCurrentTime(0);
             setIsPlaying(false);
             setError(null);
-            
+
             // 如果有音频正在播放，停止它
             if (audioRef.current) {
                 audioRef.current.pause();
                 audioRef.current.currentTime = 0;
             }
-            
+
             // 如果处于全屏状态，退出全屏
             if (document.fullscreenElement) {
                 document.exitFullscreen().catch(err => {
@@ -71,7 +71,7 @@ export default function PreviewModal({
                 });
             }
         }
-        
+
         // 调用原始的 onOpenChange
         onOpenChange(open);
     };
@@ -118,27 +118,19 @@ export default function PreviewModal({
             setSceneDataLoaded(false);
             return;
         }
-        
-        console.log("模态框打开，准备渲染场景:", {
-            currentScene,
-            scenes,
-            activeSceneIndex,
-            hasTexts: scenes[activeSceneIndex]?.texts?.length > 0
-        });
-        
+
         // 重置状态
         setCurrentTime(0);
         setIsPlaying(false);
         setCurrentSceneIndex(activeSceneIndex);
         setError(null);
-        
+
         // 使用 ResizeObserver 监听容器尺寸变化
         const resizeObserver = new ResizeObserver(() => {
             const containerEl = videoContainerRef.current?.querySelector('.absolute.inset-0');
             if (containerEl && containerEl.clientWidth > 0 && containerEl.clientHeight > 0) {
-                console.log("容器尺寸已准备好:", containerEl.clientWidth, containerEl.clientHeight);
                 setContainerReady(true);
-                
+
                 // 延迟一帧设置场景数据加载完成，确保DOM已更新
                 requestAnimationFrame(() => {
                     setSceneDataLoaded(true);
@@ -148,11 +140,11 @@ export default function PreviewModal({
                 });
             }
         });
-        
+
         if (videoContainerRef.current) {
             resizeObserver.observe(videoContainerRef.current);
         }
-        
+
         // 如果 ResizeObserver 没有立即触发，使用定时器作为备选方案
         const timer = setTimeout(() => {
             if (!containerReady) {
@@ -163,7 +155,7 @@ export default function PreviewModal({
                 setCurrentTime(0.01);
             }
         }, 300);
-        
+
         return () => {
             resizeObserver.disconnect();
             clearTimeout(timer);
@@ -239,7 +231,7 @@ export default function PreviewModal({
             });
         }
     }
-    
+
     // 切换到下一个场景
     const handleNextScene = () => {
         if (currentSceneIndex < scenes.length - 1) {
@@ -299,7 +291,7 @@ export default function PreviewModal({
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
 
-    // 计算缩放后的位置和尺寸
+    // 修改计算缩放后的位置和尺寸函数
     const calculateScaledPosition = (x: number, y: number, width: number, height: number) => {
         // 获取预览容器的实际尺寸
         const containerEl = videoContainerRef.current?.querySelector('.absolute.inset-0');
@@ -318,30 +310,111 @@ export default function PreviewModal({
             };
         }
 
-        // 计算缩放比例
-        const scaleX = containerWidth / 1920;
-        const scaleY = containerHeight / 1080;
+        // 根据场景的宽高比例获取原始画布尺寸
+        let originalWidth = 1920;
+        let originalHeight = 1080;
 
-        // 返回缩放后的位置和尺寸
+        if (scene?.aspectRatio) {
+            switch (scene.aspectRatio) {
+                case "9:16":
+                    originalWidth = 1080;
+                    originalHeight = 1920;
+                    break;
+                case "1:1":
+                    originalWidth = 1080;
+                    originalHeight = 1080;
+                    break;
+                case "4:3":
+                    originalWidth = 1440;
+                    originalHeight = 1080;
+                    break;
+                // 16:9 是默认值，不需要修改
+            }
+        }
+
+        // 计算缩放比例 - 使用统一的缩放比例以保持宽高比
+        const scale = Math.min(containerWidth / originalWidth, containerHeight / originalHeight);
+
+        // 计算缩放后的内容实际尺寸
+        const scaledContentWidth = originalWidth * scale;
+        const scaledContentHeight = originalHeight * scale;
+
+        // 计算内容在容器中的偏移量（居中显示）
+        const offsetX = (containerWidth - scaledContentWidth) / 2;
+        const offsetY = (containerHeight - scaledContentHeight) / 2;
+
+        // 移除调试日志
+        // console.log("原始宽高比:", {
+        //     x: x * scale,
+        //     y: y * scale,
+        //     width: width * scale,
+        //     height: height * scale
+        // });
+
+        // 返回缩放后的位置和尺寸，考虑偏移量
         return {
-            x: x * scaleX,
-            y: y * scaleY,
-            width: width * scaleX,
-            height: height * scaleY
+            x: x * scale + offsetX,
+            y: y * scale + offsetY,
+            width: width * scale,
+            height: height * scale
         };
     }
 
-    // 计算缩放后的字体大小
+    // 同样修改字体大小计算函数
     const calculateScaledFontSize = (fontSize: number) => {
         const containerEl = videoContainerRef.current?.querySelector('.absolute.inset-0');
         const containerWidth = containerEl?.clientWidth || 0;
-        const scaleX = containerWidth / 1920;
-        return fontSize * scaleX;
+        const containerHeight = containerEl?.clientHeight || 0;
+
+        // 根据场景的宽高比例获取原始画布尺寸
+        let originalWidth = 1920;
+        let originalHeight = 1080;
+
+        if (scene?.aspectRatio) {
+            switch (scene.aspectRatio) {
+                case "9:16":
+                    originalWidth = 1080;
+                    originalHeight = 1920;
+                    break;
+                case "1:1":
+                    originalWidth = 1080;
+                    originalHeight = 1080;
+                    break;
+                case "4:3":
+                    originalWidth = 1440;
+                    originalHeight = 1080;
+                    break;
+                // 16:9 是默认值，不需要修改
+            }
+        }
+
+        // 使用统一的缩放比例
+        const scale = Math.min(containerWidth / originalWidth, containerHeight / originalHeight);
+        return fontSize * scale;
     }
 
     // 获取当前场景
     const scene = scenes[currentSceneIndex] || currentScene;
 
+    const getContainerStyle = (aspectRatio: AspectRatioType = "16:9") => {
+        // 根据不同的宽高比返回不同的样式
+        const aspectRatioValue = aspectRatio === "9:16" ? "9/16" :
+            aspectRatio === "16:9" ? "16/9" :
+                aspectRatio === "1:1" ? "1/1" : "4/3";
+
+        // 判断是宽度大还是高度大
+        const isWidthGreater = aspectRatio === "16:9"
+        const isHeightGreater = aspectRatio === "9:16" || aspectRatio === "1:1" || aspectRatio === "4:3"; // 将1:1也视为高度优先
+
+        // 根据宽高比特性返回不同的样式
+        return {
+            ...(isWidthGreater ? { width: "100%" } : { height: "100%" }),
+            aspectRatio: aspectRatioValue,
+            maxHeight: "100%",
+            maxWidth: "100%",
+            margin: "0 auto"
+        };
+    };
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent
@@ -356,10 +429,14 @@ export default function PreviewModal({
             >
                 <div className="flex h-full overflow-hidden rounded-lg bg-white">
                     {/* 左侧 - 预览区域 */}
-                    <div ref={videoContainerRef} className="relative flex-1 bg-gray-900">
-                        {/* 添加16:9宽高比容器 */}
-                        <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+                    <div ref={videoContainerRef} className="relative flex-1 bg-gray-900 flex items-center justify-center">
+                        {/* 根据场景的宽高比例设置容器 */}
+                        <div
+                            className="relative overflow-hidden"
+                            style={getContainerStyle(scene?.aspectRatio)}
+                        >
                             <div className="absolute inset-0 flex items-center justify-center">
+                                {/* 内容保持不变 */}
                                 {!isPlaying && <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />}
 
                                 {/* 场景背景 */}
@@ -401,7 +478,6 @@ export default function PreviewModal({
                                     return (
                                         <div
                                             key={`text-${index}`}
-                                            // 移除transition-all类，避免元素位置变化时的过渡动画
                                             className="absolute"
                                             style={{
                                                 left: `${x}px`,
@@ -421,8 +497,10 @@ export default function PreviewModal({
                                                 alignItems: "center",
                                                 justifyContent: text.alignment === "center" ? "center" :
                                                     text.alignment === "right" ? "flex-end" : "flex-start",
-                                                // 添加这一行以确保没有过渡动画
                                                 transition: "none",
+                                                overflow: "visible", // 确保文本不会被裁剪
+                                                whiteSpace: "pre-wrap", // 保留文本格式
+                                                wordBreak: "break-word" // 确保长文本能够换行
                                             }}
                                         >
                                             {text.content}
@@ -533,6 +611,11 @@ export default function PreviewModal({
                                     <Button
                                         onClick={togglePlay}
                                         className="absolute z-20 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm p-6"
+                                        style={{
+                                            left: '50%',
+                                            top: '50%',
+                                            transform: 'translate(-50%, -50%)'
+                                        }}
                                     >
                                         <Play className="h-8 w-8 text-white fill-white" />
                                     </Button>
@@ -675,8 +758,8 @@ export default function PreviewModal({
                                     <div
                                         key={index}
                                         className={`p-2 rounded cursor-pointer transition-colors ${currentSceneIndex === index
-                                                ? "bg-blue-100 text-blue-700"
-                                                : "hover:bg-gray-100"
+                                            ? "bg-blue-100 text-blue-700"
+                                            : "hover:bg-gray-100"
                                             }`}
                                         onClick={() => {
                                             // 先清除当前场景的元素，避免过渡动画

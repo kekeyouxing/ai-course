@@ -11,7 +11,7 @@ import {
     Square
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Scene } from "@/types/scene"
+import { AspectRatioType, Scene } from "@/types/scene"
 import PreviewModal from "./preview-modal"
 import {
     Popover,
@@ -19,8 +19,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 
-// 定义比例类型
-export type AspectRatioType = "16:9" | "9:16" | "1:1" | "4:3";
+
 
 interface VideoHeaderProps {
     videoTitle: string

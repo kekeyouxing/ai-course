@@ -1,4 +1,7 @@
 export type TextAlignment = "left" | "center" | "right"
+
+// 定义比例类型
+export type AspectRatioType = "16:9" | "9:16" | "1:1" | "4:3";
 // 文本元素接口
 export interface TextElement {
     content: string
@@ -126,6 +129,7 @@ export interface Scene {
     background: Background
     script?: string  // 添加脚本字段
     audioSrc?: string
+    aspectRatio?: AspectRatioType  // 添加宽高比例字段
 }
 
 // 选中元素类型

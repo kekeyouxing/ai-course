@@ -4,7 +4,7 @@ import { ResizablePanel, ResizablePanelGroup, ResizableHandle } from "@/componen
 import ScriptContent from "@/components/script/script-content";
 import { BackgroundContent } from "@/components/background/background-content";
 import { BackgroundRenderer } from "@/components/background/background-renderer";
-import { VideoHeader, AspectRatioType } from "@/components/workspace/workspace-header";
+import { VideoHeader } from "@/components/workspace/workspace-header";
 import { VideoTimeline } from "@/components/workspace/workspace-timeline";
 import { VideoTabs } from "@/components/workspace/workspace-tabs";
 import AvatarContent from "@/components/avatar/avatar-content";
@@ -27,6 +27,7 @@ import {
     AvatarElement,
     Background,
     SelectedElementType,
+    AspectRatioType,  // 导入新添加的类型
 } from "@/types/scene"
 import { v4 as uuidv4 } from 'uuid';
 import { ResizableVideo } from "@/components/workspace/resizable-video";
@@ -45,7 +46,8 @@ export type {
     ColorBackground,
     ImageBackground,
     VideoBackground,
-    SelectedElementType
+    SelectedElementType,
+    AspectRatioType  // 导出新添加的类型
 } from "@/types/scene"
 
 // 导入封装的操作函数
@@ -79,7 +81,8 @@ export default function VideoEditor() {
                 type: "color",
                 color: "#FFFFFF"
             },
-            script: "这是第一个场景的脚本内容"  // 添加脚本内容
+            script: "这是第一个场景的脚本内容",  // 添加脚本内容
+            aspectRatio: "16:9"  // 添加默认宽高比例
         },
         {
             id: uuidv4(),
@@ -90,9 +93,9 @@ export default function VideoEditor() {
             background: {
                 type: "color",
                 color: "#FFFFFF"
-                // Removed z-index comment to avoid confusion
             },
-            script: "这是第二个场景的脚本内容"  // 添加脚本内容
+            script: "这是第二个场景的脚本内容",  // 添加脚本内容
+            aspectRatio: "16:9"  // 添加默认宽高比例
         },
     ])
     const [videoTitle, setVideoTitle] = useState<string>("编辑您的项目名称")
@@ -106,7 +109,11 @@ export default function VideoEditor() {
     const [history, setHistory] = useState<Scene[][]>([scenes])
     const [historyIndex, setHistoryIndex] = useState<number>(0)
     const [selectedElement, setSelectedElement] = useState<SelectedElementType | null>(null)
-
+    // 添加比例状态，默认为16:9
+    const [aspectRatio, setAspectRatio] = useState<AspectRatioType>(() => {
+        // 初始化时，如果有场景且场景有aspectRatio，则使用场景的aspectRatio
+        return scenes[0]?.aspectRatio || "16:9";
+    });
     const handleElementSelect = useCallback((element: SelectedElementType | null) => {
         setSelectedElement(element)
 
@@ -119,7 +126,8 @@ export default function VideoEditor() {
             setActiveTab("Media")
         }
     }, [])
-
+    // 在组件内部使用 useAnimationMarkers
+    const { setCurrentSceneId } = useAnimationMarkers();
     // 改进的历史记录更新函数
     const updateHistory = useCallback(
         (newScenes: Scene[]) => {
@@ -133,15 +141,18 @@ export default function VideoEditor() {
         },
         [history, historyIndex],
     )
-    // 在组件内部使用 useAnimationMarkers
-    const { setCurrentSceneId } = useAnimationMarkers();
-    // 修改 handleSceneClick 函数，添加设置当前场景ID的逻辑
+    // 场景切换
     const handleSceneClick = useCallback((index: number) => {
         setActiveScene(index);
         setSelectedElement(null);
         // 设置当前场景ID，用于动画标记关联
         setCurrentSceneId(scenes[index].id);
-    }, [scenes, setCurrentSceneId, activeTab]);
+
+        // 设置当前场景的宽高比例
+        if (scenes[index].aspectRatio) {
+            setAspectRatio(scenes[index].aspectRatio);
+        }
+    }, [scenes, setCurrentSceneId]);
 
     const handleTextChange = useCallback(
         (newText: string) => {
@@ -412,6 +423,7 @@ export default function VideoEditor() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleUndo, handleRedo, selectedElement, handleDeleteElement, handleCopyElement, handlePasteElement]);
 
+    // 修改添加新场景的函数，包含当前选择的宽高比例
     const addNewScene = useCallback(() => {
         const newScene: Scene = {
             id: uuidv4(),
@@ -423,21 +435,24 @@ export default function VideoEditor() {
                 type: "color",
                 color: "#FFFFFF"
             },
-            script: ""  // 确保添加空脚本字段
+            script: "",  // 确保添加空脚本字段
+            aspectRatio: aspectRatio  // 使用当前选择的宽高比例
         }
         updateHistory([...scenes, newScene])
         setActiveScene(scenes.length)
-    }, [scenes, updateHistory])
+    }, [scenes, updateHistory, aspectRatio])
+    // 修改获取当前画布尺寸的逻辑，优先使用当前场景的宽高比例
+    const getCurrentAspectRatio = () => {
+        // 如果当前场景有设置宽高比例，则使用场景的设置
+        if (scenes[activeScene]?.aspectRatio) {
+            return scenes[activeScene].aspectRatio;
+        }
+        // 否则使用全局设置的宽高比例
+        return aspectRatio;
+    };
 
-    // 添加预览容器尺寸状态和比例状态
-    const [previewDimensions, setPreviewDimensions] = useState({
-        width: 1920,
-        height: 1080
-    });
-
-    // 添加比例状态，默认为16:9
-    const [aspectRatio, setAspectRatio] = useState<AspectRatioType>("16:9");
-
+    // 获取当前画布尺寸
+    const currentAspectRatio = getCurrentAspectRatio();
     // 添加画布尺寸常量
     const CANVAS_DIMENSIONS = {
         "16:9": { width: 1920, height: 1080 },
@@ -447,11 +462,18 @@ export default function VideoEditor() {
     };
 
     // 获取当前画布尺寸
-    const currentCanvasDimensions = CANVAS_DIMENSIONS[aspectRatio];
+    const currentCanvasDimensions = CANVAS_DIMENSIONS[currentAspectRatio];
 
     // 添加 editorRef
     const editorRef = useRef<HTMLDivElement>(null);
-
+    // 添加预览容器尺寸状态，初始化为当前比例对应的尺寸
+    const [previewDimensions, setPreviewDimensions] = useState(() => {
+        // 使用函数形式的初始化，确保只在组件挂载时执行一次
+        return {
+            width: currentCanvasDimensions.width,
+            height: currentCanvasDimensions.height
+        };
+    });
     // 使用 ResizeObserver 监听预览容器尺寸变化
     useEffect(() => {
         if (!editorRef.current) return;
@@ -463,17 +485,17 @@ export default function VideoEditor() {
         const resizeObserver = new ResizeObserver(entries => {
             for (const entry of entries) {
                 const { width, height } = entry.contentRect;
-                
+
                 // 确保宽高不为0
                 if (width === 0 || height === 0) continue;
 
                 // 获取当前画布比例
                 const canvasRatio = currentCanvasDimensions.width / currentCanvasDimensions.height;
-                
+
                 // 根据容器尺寸和画布比例计算预览尺寸
                 const containerRatio = width / height;
                 let previewWidth, previewHeight;
-                
+
                 if (containerRatio > canvasRatio) {
                     // 容器更宽，以高度为基准
                     previewHeight = height * 0.9; // 留一些边距
@@ -504,24 +526,31 @@ export default function VideoEditor() {
             setCurrentSceneId(scenes[activeScene].id);
         }
     }, []);
+
+    // 修改宽高比例变化处理函数，同时更新当前场景的宽高比例
     const handleAspectRatioChange = useCallback((newRatio: AspectRatioType) => {
         setAspectRatio(newRatio);
-        
+
+        // 更新当前场景的宽高比例
+        const newScenes = [...scenes];
+        newScenes[activeScene].aspectRatio = newRatio;
+        updateHistory(newScenes);
+
         // 获取固定的容器元素
         const mainContainer = document.querySelector('.flex-1.flex.items-center.justify-center.p-4');
         if (!mainContainer) return;
-        
+
         // 获取容器尺寸
         const { width, height } = mainContainer.getBoundingClientRect();
-        
+
         // 获取新比例的画布尺寸
         const newCanvasDimensions = CANVAS_DIMENSIONS[newRatio];
         const newCanvasRatio = newCanvasDimensions.width / newCanvasDimensions.height;
-        
+
         // 根据容器尺寸和新画布比例计算预览尺寸
         const containerRatio = width / height;
         let previewWidth, previewHeight;
-        
+
         if (containerRatio > newCanvasRatio) {
             // 容器更宽，以高度为基准
             previewHeight = height * 0.9; // 留一些边距
@@ -531,12 +560,12 @@ export default function VideoEditor() {
             previewWidth = width * 0.9; // 留一些边距
             previewHeight = previewWidth / newCanvasRatio;
         }
-    
+
         setPreviewDimensions({
             width: previewWidth,
             height: previewHeight
         });
-    }, [CANVAS_DIMENSIONS]);
+    }, [CANVAS_DIMENSIONS, scenes, activeScene, updateHistory]);
 
     return (
         <div className="flex flex-col h-screen bg-white">
@@ -641,8 +670,8 @@ export default function VideoEditor() {
                                                         onResize={(newSize) => handleImageResize(newSize, mediaItem.id!)}
                                                         onSelect={() => handleElementSelect({ type: "image", mediaId: mediaItem.id })}
                                                         isSelected={selectedElement?.type === "image" && selectedElement.mediaId === mediaItem.id}
-                                                        canvasWidth={1920}
-                                                        canvasHeight={1080}
+                                                        canvasWidth={currentCanvasDimensions.width}
+                                                        canvasHeight={currentCanvasDimensions.height}
                                                         containerWidth={previewDimensions.width}
                                                         containerHeight={previewDimensions.height}
                                                         otherElements={getAllElementsForAlignment(scenes[activeScene], mediaItem.id, "image")}
@@ -664,8 +693,8 @@ export default function VideoEditor() {
                                                         onResize={(newSize) => handleVideoResize(newSize, mediaItem.id!)}
                                                         onSelect={() => handleElementSelect({ type: "video", mediaId: mediaItem.id })}
                                                         isSelected={selectedElement?.type === "video" && selectedElement.mediaId === mediaItem.id}
-                                                        canvasWidth={1920}
-                                                        canvasHeight={1080}
+                                                        canvasWidth={currentCanvasDimensions.width}
+                                                        canvasHeight={currentCanvasDimensions.height}
                                                         containerWidth={previewDimensions.width}
                                                         containerHeight={previewDimensions.height}
                                                     // otherElements={getAllElementsForAlignment(scenes[activeScene], mediaItem.id, "video")}
