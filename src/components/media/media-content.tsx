@@ -30,7 +30,7 @@ export default function MediaContent({ onAddMedia }: MediaContentProps) {
     const [activeTab, setActiveTab] = useState("library")
     const [mediaItems, setMediaItems] = useState<MediaItem[]>([
         { id: "1", name: "3-4.jpeg", url: placeholder, type: "image" },
-        { id: "2", name: "sample-video.mp4", url: "/placeholder.svg?height=200&width=200", type: "video" },
+        { id: "2", name: "sample-video.mp4", url: "https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/liu.mov", type: "video" },
     ])
     const [itemToDelete, setItemToDelete] = useState<string | null>(null)
     const [itemToRename, setItemToRename] = useState<string | null>(null)

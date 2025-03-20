@@ -91,7 +91,7 @@ export function VideoHeader({
                         
                         {/* 添加比例切换按钮和弹出菜单 */}
                         <Popover open={aspectRatioOpen} onOpenChange={setAspectRatioOpen}>
-                            <PopoverTrigger asChild>
+                            <PopoverTrigger>
                                 <Button
                                     variant="outline"
                                     size="sm"

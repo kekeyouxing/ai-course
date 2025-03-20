@@ -4,6 +4,7 @@ import {Rnd} from "react-rnd"
 import {DraggableData, DraggableEvent} from "react-draggable"
 import { checkForSnapping, ElementPosition, AlignmentGuide } from "@/utils/alignment-utils"
 import { AlignmentGuides } from "./alignment-guides"
+
 interface ResizableImageProps {
     src: string
     width: number
@@ -50,6 +51,12 @@ export function ResizableImage({
     const scaleY = (containerHeight || canvasHeight) / canvasHeight;
     const scale = Math.min(scaleX, scaleY);
     
+    // 将标准坐标和尺寸转换为实际显示尺寸
+    const displayX = x * scaleX;
+    const displayY = y * scaleY;
+    const displayWidth = width * scaleX;
+    const displayHeight = height * scaleY;
+    
     const handleResizeStop = useCallback(
         (
             e: MouseEvent | TouchEvent,
@@ -58,16 +65,17 @@ export function ResizableImage({
             delta: { width: number; height: number },
             position: { x: number; y: number },
         ) => {
+            // 将实际显示尺寸转换回标准尺寸，并确保为整数
             onResize({
-                width: Number.parseInt(ref.style.width),
-                height: Number.parseInt(ref.style.height),
-                x: position.x,
-                y: position.y,
+                width: Math.round(Number.parseInt(ref.style.width) / scaleX),
+                height: Math.round(Number.parseInt(ref.style.height) / scaleY),
+                x: Math.round(position.x / scaleX),
+                y: Math.round(position.y / scaleY),
             })
             // Clear alignment guides after resize
             setAlignmentGuides([]);
         },
-        [onResize],
+        [onResize, scaleX, scaleY],
     )
 
     // Handle drag start to set dragging state
@@ -78,10 +86,10 @@ export function ResizableImage({
     // Handle drag to check for alignment
     const handleDrag = useCallback(
         (_: DraggableEvent, data: DraggableData) => {
-            // Current element position
+            // Current element position (使用整数坐标)
             const currentElement: ElementPosition = {
-                x: data.x,
-                y: data.y,
+                x: Math.round(data.x / scaleX), // 转换为标准坐标并取整
+                y: Math.round(data.y / scaleY),
                 width,
                 height
             };
@@ -104,7 +112,7 @@ export function ResizableImage({
                 // This is handled by the Rnd component's position prop
             }
         },
-        [width, height, scale, otherElements],
+        [width, height, scale, scaleX, scaleY, otherElements],
     );
 
     const handleDragStop = useCallback(
@@ -113,10 +121,13 @@ export function ResizableImage({
             setAlignmentGuides([]);
             setIsDragging(false);
             
-            // Update position
-            onResize({x: data.x, y: data.y})
+            // 将实际显示位置转换回标准位置，并确保为整数
+            onResize({
+                x: Math.round(data.x / scaleX), 
+                y: Math.round(data.y / scaleY)
+            })
         },
-        [onResize],
+        [onResize, scaleX, scaleY],
     )
 
     return (
@@ -127,8 +138,8 @@ export function ResizableImage({
             )}
             
             <Rnd
-                size={{width, height}}
-                position={{x, y}}
+                size={{width: displayWidth, height: displayHeight}}
+                position={{x: displayX, y: displayY}}
                 onDragStart={handleDragStart}
                 onDrag={handleDrag}
                 onDragStop={handleDragStop}

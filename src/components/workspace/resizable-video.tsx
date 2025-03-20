@@ -23,6 +23,8 @@ interface ResizableVideoProps {
     canvasHeight?: number
     containerWidth?: number
     containerHeight?: number
+    otherElements?: ElementPosition[] // 添加其他元素用于对齐
+    zIndex?: number // 添加 zIndex 属性
 }
 
 export function ResizableVideo({
@@ -43,6 +45,8 @@ export function ResizableVideo({
     canvasHeight = 1080,
     containerWidth,
     containerHeight,
+    otherElements = [],
+    zIndex = 1,
 }: ResizableVideoProps) {
     const videoRef = useRef<HTMLVideoElement>(null)
     const [isPlaying, setIsPlaying] = useState(autoPlay)
@@ -50,10 +54,16 @@ export function ResizableVideo({
     const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuide[]>([])
     const [isDragging, setIsDragging] = useState(false)
     
-    // Calculate scale for responsive display
+    // 计算实际显示尺寸与标准尺寸的比例
     const scaleX = (containerWidth || canvasWidth) / canvasWidth
     const scaleY = (containerHeight || canvasHeight) / canvasHeight
     const scale = Math.min(scaleX, scaleY)
+    
+    // 将标准坐标和尺寸转换为实际显示尺寸
+    const displayX = x * scaleX
+    const displayY = y * scaleY
+    const displayWidth = width * scaleX
+    const displayHeight = height * scaleY
 
     // 加载视频后获取实际宽高比
     useEffect(() => {
@@ -121,21 +131,24 @@ export function ResizableVideo({
             delta: { width: number; height: number },
             position: { x: number; y: number },
         ) => {
-            // 获取新的宽度
-            const newWidth = Number.parseInt(ref.style.width)
+            // 获取新的宽度并转换回标准尺寸
+            const newWidth = Math.round(Number.parseInt(ref.style.width) / scaleX)
             // 根据宽高比计算新的高度
             const newHeight = direction.includes('y') 
-                ? Number.parseInt(ref.style.height) 
-                : newWidth / aspectRatio
+                ? Math.round(Number.parseInt(ref.style.height) / scaleY) 
+                : Math.round(newWidth / aspectRatio)
 
             onResize({
                 width: newWidth,
                 height: newHeight,
-                x: position.x,
-                y: position.y,
+                x: Math.round(position.x / scaleX),
+                y: Math.round(position.y / scaleY),
             })
+            
+            // 清除对齐参考线
+            setAlignmentGuides([])
         },
-        [onResize, aspectRatio],
+        [onResize, aspectRatio, scaleX, scaleY],
     )
 
     // Handle drag start to set dragging state
@@ -146,17 +159,13 @@ export function ResizableVideo({
     // Handle drag to check for alignment
     const handleDrag = useCallback(
         (_: DraggableEvent, data: DraggableData) => {
-            // Current element position
+            // Current element position (使用整数坐标)
             const currentElement: ElementPosition = {
-                x: data.x,
-                y: data.y,
+                x: Math.round(data.x / scaleX), // 转换为标准坐标并取整
+                y: Math.round(data.y / scaleY),
                 width,
                 height
             }
-            
-            // For now, we'll just use empty array for other elements
-            // In a real implementation, we would get other elements from the scene
-            const otherElements: ElementPosition[] = []
             
             // Check for snapping
             const { x: snappedX, y: snappedY, guides } = checkForSnapping(currentElement, otherElements, scale)
@@ -166,14 +175,11 @@ export function ResizableVideo({
             
             // If snapping occurred, update position
             if (snappedX !== null || snappedY !== null) {
-                const newX = snappedX !== null ? snappedX : data.x
-                const newY = snappedY !== null ? snappedY : data.y
-                
-                // Update the position directly in the Rnd component
-                // This is handled by the Rnd component's position prop
+                // The snapped position will be applied by the Rnd component
+                // through the position prop in the next render
             }
         },
-        [width, height, scale],
+        [width, height, scale, scaleX, scaleY, otherElements],
     )
 
     const handleDragStop = useCallback(
@@ -182,9 +188,13 @@ export function ResizableVideo({
             setAlignmentGuides([])
             setIsDragging(false)
             
-            onResize({ x: data.x, y: data.y })
+            // 将实际显示位置转换回标准位置，并确保为整数
+            onResize({ 
+                x: Math.round(data.x / scaleX), 
+                y: Math.round(data.y / scaleY) 
+            })
         },
-        [onResize],
+        [onResize, scaleX, scaleY],
     )
 
     const togglePlay = useCallback(() => {
@@ -199,8 +209,8 @@ export function ResizableVideo({
             )}
             
             <Rnd
-                size={{ width, height }}
-                position={{ x, y }}
+                size={{ width: displayWidth, height: displayHeight }}
+                position={{ x: displayX, y: displayY }}
                 onDragStart={handleDragStart}
                 onDrag={handleDrag}
                 onResizeStop={handleResizeStop}
@@ -211,25 +221,9 @@ export function ResizableVideo({
                 }}
                 style={{
                     transform: `rotate(${rotation}deg)`,
-                    zIndex: isSelected ? 10 : 1,
+                    zIndex: isSelected ? 10 : zIndex,
                 }}
                 lockAspectRatio={aspectRatio}
-                resizeHandleStyles={{
-                    bottomRight: {
-                        display: isSelected ? "block" : "none",
-                        width: "10px",
-                        height: "10px",
-                        background: "#1a73e8",
-                        borderRadius: "50%",
-                        bottom: "-5px",
-                        right: "-5px",
-                    },
-                }}
-                resizeHandleComponent={{
-                    bottomRight: isSelected ? (
-                        <div className="w-3 h-3 bg-blue-500 rounded-full absolute bottom-0 right-0 transform translate-x-1/2 translate-y-1/2 cursor-se-resize" />
-                    ) : undefined,
-                }}
             >
             <div className="relative w-full h-full group">
                 <video
@@ -269,9 +263,26 @@ export function ResizableVideo({
                     </div>
                 )}
 
-                {/* 选中边框 */}
+                {/* 选中边框和控制点 */}
                 {isSelected && (
-                    <div className="absolute inset-0 border-2 border-blue-500 pointer-events-none" />
+                    <>
+                        <div className="absolute inset-0 outline outline-1 outline-blue-500 pointer-events-none" />
+                        <div className="absolute top-0 left-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-ns-resize">
+                            <div className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                        </div>
+                        <div className="absolute right-0 top-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full translate-x-1/2 -translate-y-1/2 cursor-ew-resize">
+                            <div className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                        </div>
+                        <div className="absolute bottom-0 left-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 translate-y-1/2 cursor-ns-resize">
+                            <div className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                        </div>
+                        <div className="absolute left-0 top-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-ew-resize">
+                            <div className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                        </div>
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-white border border-blue-500 rounded-full translate-x-1/2 translate-y-1/2 cursor-se-resize">
+                            <div className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                        </div>
+                    </>
                 )}
             </div>
             </Rnd>
