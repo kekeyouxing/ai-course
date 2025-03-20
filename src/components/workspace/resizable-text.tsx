@@ -105,12 +105,12 @@ export function ResizableText({
             delta: { width: number; height: number },
             position: { x: number; y: number },
         ) => {
-            // 将实际显示尺寸转换回标准尺寸
+            // 将实际显示尺寸转换回标准尺寸，并确保为整数
             onResize({
-                width: Number.parseInt(ref.style.width) / scaleX,
-                height: Number.parseInt(ref.style.height) / scaleY,
-                x: position.x / scaleX,
-                y: position.y / scaleY,
+                width: Math.round(Number.parseInt(ref.style.width) / scaleX),
+                height: Math.round(Number.parseInt(ref.style.height) / scaleY),
+                x: Math.round(position.x / scaleX),
+                y: Math.round(position.y / scaleY),
             })
         },
         [onResize, scaleX, scaleY],
@@ -124,10 +124,10 @@ export function ResizableText({
     // Handle drag to check for alignment
     const handleDrag = useCallback(
         (_: DraggableEvent, data: DraggableData) => {
-            // Current element position
+            // Current element position (使用整数坐标)
             const currentElement: ElementPosition = {
-                x: data.x / scaleX, // Convert to standard coordinates
-                y: data.y / scaleY,
+                x: Math.round(data.x / scaleX), // 转换为标准坐标并取整
+                y: Math.round(data.y / scaleY),
                 width,
                 height
             };
@@ -156,10 +156,10 @@ export function ResizableText({
             setAlignmentGuides([]);
             setIsDragging(false);
             
-            // 将实际显示位置转换回标准位置
+            // 将实际显示位置转换回标准位置，并确保为整数
             onResize({ 
-                x: data.x / scaleX, 
-                y: data.y / scaleY 
+                x: Math.round(data.x / scaleX), 
+                y: Math.round(data.y / scaleY) 
             })
         },
         [onResize, scaleX, scaleY],

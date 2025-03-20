@@ -128,12 +128,14 @@ export default function TextContent({ textElement, onUpdate, currentSceneId = ''
       <SelectContent>
         {/* 动态生成的标记选项 */}
         {sortedMarkers.map(marker => (
-          <div className="flex items-center space-x-2">
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
-              动画
-            </span>
-            <span className="truncate">{marker.description}</span>
-          </div>
+          <SelectItem key={marker.id} value={marker.id}>
+            <div className="flex items-center space-x-2">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                动画
+              </span>
+              <span className="truncate">{marker.description}</span>
+            </div>
+          </SelectItem>
         ))}
       </SelectContent>
     </Select>
@@ -171,6 +173,7 @@ export default function TextContent({ textElement, onUpdate, currentSceneId = ''
 
   // 处理颜色变化
   const handleFontColorChange = (color: string) => {
+    console.log(color)
     setFontColor(color)
     onUpdate({ fontColor: color })
   }
@@ -217,9 +220,12 @@ export default function TextContent({ textElement, onUpdate, currentSceneId = ''
 
   // 处理布局变化
   const handleLayoutChange = (property: keyof typeof layout, value: number) => {
+    // 确保所有布局属性都是整数
+    const roundedValue = Math.round(value);
+    
     setLayout(prev => {
-      const newLayout = { ...prev, [property]: value }
-      onUpdate({ [property]: value })
+      const newLayout = { ...prev, [property]: roundedValue }
+      onUpdate({ [property]: roundedValue })
       return newLayout
     })
   }
@@ -360,22 +366,29 @@ export default function TextContent({ textElement, onUpdate, currentSceneId = ''
                     className="h-8 text-sm pr-8"
                   />
                   <Popover>
-                    <PopoverTrigger asChild>
+                    <PopoverTrigger>
                       <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0 absolute right-0 top-0 rounded-l-none"
+                        className="h-8 w-8 p-0 absolute right-0 top-0 rounded-l-none hover:bg-gray-100"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="m6 9 6 6 6-6" />
                         </svg>
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-28 p-0" align="end" alignOffset={0} sideOffset={5}>
+                    <PopoverContent 
+                    side="bottom"
+                      align="start"
+                      className="w-28 p-0"
+                      sideOffset={1}
+                    >
                       <div className="max-h-[200px] overflow-auto">
                         {fontSizeOptions.map((size) => (
                           <Button
                             key={size}
+                            type="button"
                             variant="ghost"
                             size="sm"
                             onClick={() => handleFontSizeChange(size.toString())}
@@ -440,7 +453,7 @@ export default function TextContent({ textElement, onUpdate, currentSceneId = ''
               <div className="flex items-center justify-between">
                 <label className="text-base font-normal text-gray-800">颜色</label>
                 <Popover>
-                  <PopoverTrigger asChild>
+                  <PopoverTrigger>
                     <Button variant="outline" className="h-8 w-8 p-0 rounded-md">
                       <div
                         className="h-6 w-6 rounded-sm border border-gray-200"
@@ -478,7 +491,7 @@ export default function TextContent({ textElement, onUpdate, currentSceneId = ''
               <div className="flex items-center justify-between">
                 <label className="text-base font-normal text-gray-800">背景颜色</label>
                 <Popover>
-                  <PopoverTrigger asChild>
+                  <PopoverTrigger>
                     <Button variant="outline" className="h-8 w-8 p-0 rounded-md">
                       <div
                         className="h-6 w-6 rounded-sm border border-gray-200"
