@@ -42,7 +42,6 @@ export default function PreviewModal({
     const [error, setError] = useState<string | null>(null)
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [currentSceneIndex, setCurrentSceneIndex] = useState(activeSceneIndex)
-    const [isGeneratingVideo, setIsGeneratingVideo] = useState(false)
     const [sceneDataLoaded, setSceneDataLoaded] = useState(false);
     // 引用
     const videoContainerRef = useRef<HTMLDivElement>(null)
@@ -246,44 +245,6 @@ export default function PreviewModal({
         }
     }
 
-    // 生成视频
-    const handleGenerateVideo = async () => {
-        try {
-            setIsGeneratingVideo(true);
-            setError(null);
-
-            // 这里应该调用后端API来生成视频
-            // 示例代码:
-            const response = await fetch('/api/generate-video', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    scenes: scenes,
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error('视频生成失败');
-            }
-
-            const data = await response.json();
-
-            // 提供下载链接
-            const downloadLink = document.createElement('a');
-            downloadLink.href = data.videoUrl;
-            downloadLink.download = 'generated-video.mp4';
-            downloadLink.click();
-
-            setIsGeneratingVideo(false);
-        } catch (err) {
-            console.error('视频生成错误:', err);
-            setError('视频生成失败，请稍后再试');
-            setIsGeneratingVideo(false);
-        }
-    }
-
     // 格式化时间显示
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
@@ -343,14 +304,7 @@ export default function PreviewModal({
         const offsetX = (containerWidth - scaledContentWidth) / 2;
         const offsetY = (containerHeight - scaledContentHeight) / 2;
 
-        // 移除调试日志
-        // console.log("原始宽高比:", {
-        //     x: x * scale,
-        //     y: y * scale,
-        //     width: width * scale,
-        //     height: height * scale
-        // });
-
+        console.log("容器尺寸:", containerWidth, containerHeight);
         // 返回缩放后的位置和尺寸，考虑偏移量
         return {
             x: x * scale + offsetX,
@@ -430,7 +384,13 @@ export default function PreviewModal({
                 <div className="flex h-full overflow-hidden rounded-lg bg-white">
                     {/* 左侧 - 预览区域 */}
                     <div ref={videoContainerRef} className="relative flex-1 bg-gray-900 flex items-center justify-center">
-                        {/* 根据场景的宽高比例设置容器 */}
+
+                        {/* 根据场景的宽高比例设置容器 */}                        {/* 预览模式水印 */}
+                        <div className="absolute bottom-20 right-6 z-30 opacity-70 pointer-events-none">
+                            <div className="bg-black/40 text-white text-xs px-2 py-1 rounded">
+                                预览模式 · 无嘴唇和表情同步
+                            </div>
+                        </div>
                         <div
                             className="relative overflow-hidden"
                             style={getContainerStyle(scene?.aspectRatio)}
@@ -721,26 +681,6 @@ export default function PreviewModal({
                                             className="text-white hover:bg-white/10 h-8 w-8"
                                         >
                                             <Maximize2 className="h-4 w-4" />
-                                        </Button>
-
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={handleGenerateVideo}
-                                            disabled={isGeneratingVideo}
-                                            className="text-white bg-white/10 hover:bg-white/20 border-white/20"
-                                        >
-                                            {isGeneratingVideo ? (
-                                                <span className="flex items-center">
-                                                    <span className="h-3 w-3 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                                                    生成中...
-                                                </span>
-                                            ) : (
-                                                <span className="flex items-center">
-                                                    <Download className="h-4 w-4 mr-1" />
-                                                    生成视频
-                                                </span>
-                                            )}
                                         </Button>
                                     </div>
                                 </div>
