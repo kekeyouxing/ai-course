@@ -25,6 +25,7 @@ interface ResizableVideoProps {
     containerHeight?: number
     otherElements?: ElementPosition[] // 添加其他元素用于对齐
     zIndex?: number // 添加 zIndex 属性
+    displayMode: "freeze" | "hide" | "loop"; // 显示模式
 }
 
 export function ResizableVideo({
@@ -47,12 +48,14 @@ export function ResizableVideo({
     containerHeight,
     otherElements = [],
     zIndex = 1,
+    displayMode = "freeze", // 添加默认值
 }: ResizableVideoProps) {
     const videoRef = useRef<HTMLVideoElement>(null)
     const [isPlaying, setIsPlaying] = useState(autoPlay)
     const [aspectRatio, setAspectRatio] = useState(16/9) // 默认视频比例
     const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuide[]>([])
     const [isDragging, setIsDragging] = useState(false)
+    const [videoEnded, setVideoEnded] = useState(false) // 添加视频结束状态
     
     // 计算实际显示尺寸与标准尺寸的比例
     const scaleX = (containerWidth || canvasWidth) / canvasWidth
@@ -122,6 +125,39 @@ export function ResizableVideo({
             })
         }
     }, [autoPlay])
+
+    // 处理视频结束事件和displayMode
+    useEffect(() => {
+        const video = videoRef.current
+        if (!video) return
+
+        // 根据displayMode设置loop属性
+        video.loop = displayMode === "loop"
+
+        const handleEnded = () => {
+            setVideoEnded(true)
+            setIsPlaying(false)
+
+            // 根据displayMode处理视频结束后的行为
+            if (displayMode === "freeze") {
+                // 固定最后一帧 - 不需要额外操作，视频自然停在最后一帧
+            } else if (displayMode === "hide") {
+                // 视频结束后隐藏 - 在渲染时处理
+            } else if (displayMode === "loop") {
+                // 循环播放 - 通过video.loop属性已设置
+                setIsPlaying(true)
+            }
+        }
+
+        video.addEventListener('ended', handleEnded)
+        
+        // 重置状态
+        setVideoEnded(false)
+
+        return () => {
+            video.removeEventListener('ended', handleEnded)
+        }
+    }, [displayMode])
 
     const handleResizeStop = useCallback(
         (
@@ -198,8 +234,20 @@ export function ResizableVideo({
     )
 
     const togglePlay = useCallback(() => {
+        if (videoEnded && displayMode !== "loop") {
+            // 如果视频已结束且不是循环模式，则重新开始播放
+            if (videoRef.current) {
+                videoRef.current.currentTime = 0
+            }
+            setVideoEnded(false)
+        }
         setIsPlaying(prev => !prev)
-    }, [])
+    }, [videoEnded, displayMode])
+
+    // 如果视频已结束且displayMode为hide，则不显示视频
+    if (videoEnded && displayMode === "hide") {
+        return null
+    }
 
     return (
         <>
@@ -230,7 +278,7 @@ export function ResizableVideo({
                     ref={videoRef}
                     src={src}
                     className="w-full h-full object-contain"
-                    loop={loop}
+                    loop={displayMode === "loop"}
                     muted={muted}
                     onClick={(e) => {
                         e.stopPropagation()
@@ -277,9 +325,6 @@ export function ResizableVideo({
                             <div className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                         </div>
                         <div className="absolute left-0 top-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-ew-resize">
-                            <div className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                        </div>
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-white border border-blue-500 rounded-full translate-x-1/2 translate-y-1/2 cursor-se-resize">
                             <div className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                         </div>
                     </>

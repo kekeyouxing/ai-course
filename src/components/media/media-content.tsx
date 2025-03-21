@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import placeholder from "@/assets/placeholder.svg"
 import ImageContent from "@/components/media/image-content"
+import VideoContent from "@/components/media/video-content" // 添加 VideoContent 导入
 import { ImageElement, MediaItem, VideoElement } from "@/types/scene"
 // 媒体库项类型定义
 export interface ContentMediaItem {
@@ -30,6 +31,7 @@ interface MediaContentProps {
     onUpdateImage?: (mediaId: string, updates: Partial<ImageElement>) => void;
     onUpdateVideo?: (mediaId: string, updates: Partial<VideoElement>) => void;
     currentSceneId?: string;
+    onDelete: () => void;
 }
 
 export default function MediaContent({
@@ -37,7 +39,8 @@ export default function MediaContent({
     selectedMedia,
     onUpdateImage,
     onUpdateVideo,
-    currentSceneId = ''
+    currentSceneId = '',
+    onDelete
 }: MediaContentProps) {
     const [activeTab, setActiveTab] = useState("library")
     const [mediaItems, setMediaItems] = useState<ContentMediaItem[]>([
@@ -208,45 +211,35 @@ export default function MediaContent({
 
     const renderMediaEditor = () => {
         if (!selectedMedia) return null;
-    
+
         if (selectedMedia.type === "image") {
-          return (
-            <ImageContent 
-              imageElement={selectedMedia.element as ImageElement} 
-              onUpdate={(updates) => onUpdateImage && onUpdateImage(selectedMedia.id, updates)}
-              currentSceneId={currentSceneId}
-            />
-          );
+            return (
+                <ImageContent
+                    imageElement={selectedMedia.element as ImageElement}
+                    onUpdate={(updates) => onUpdateImage && onUpdateImage(selectedMedia.id, updates)}
+                    currentSceneId={currentSceneId}
+                    onDelete={onDelete}
+                />
+            );
         } else if (selectedMedia.type === "video") {
-          return (
-            // <VideoContent 
-            //   videoElement={selectedMedia.element as VideoElement} 
-            //   onUpdate={(updates) => onUpdateVideo && onUpdateVideo(selectedMedia.id, updates)}
-            //   currentSceneId={currentSceneId}
-            // />
-            <div/>
-          );
+            return (
+                <VideoContent
+                    videoElement={selectedMedia.element as VideoElement}
+                    onUpdate={(updates) => onUpdateVideo && onUpdateVideo(selectedMedia.id, updates)}
+                    currentSceneId={currentSceneId}
+                    onDelete={onDelete}
+                />
+            );
         }
-    
+
         return null;
-      };
+    };
 
     return (
         <div className="max-w-4xl mx-auto bg-gray-50 h-full flex flex-col">
             {selectedMedia ? (
                 // 编辑模式 - 完全覆盖整个组件
                 <div className="flex-1 flex flex-col">
-                    <div className="bg-gray-100 p-2 flex justify-between items-center">
-                        <h3 className="text-sm font-medium">
-                            {selectedMedia.type === "image" ? "图片编辑" : "视频编辑"}
-                        </h3>
-                        <button
-                            onClick={() => setActiveTab("library")}
-                            className="text-xs px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-50"
-                        >
-                            返回素材库
-                        </button>
-                    </div>
                     <div className="flex-1 overflow-y-auto">
                         {renderMediaEditor()}
                     </div>
@@ -261,8 +254,8 @@ export default function MediaContent({
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
                                 className={`text-sm font-normal py-2 focus:outline-none transition-colors ${activeTab === tab
-                                        ? "bg-white border-b-2 border-black font-medium"
-                                        : "hover:bg-gray-200"
+                                    ? "bg-white border-b-2 border-black font-medium"
+                                    : "hover:bg-gray-200"
                                     }`}
                             >
                                 {tab === "library" ? "素材库" :

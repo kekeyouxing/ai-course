@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { RotateCcw, Image } from "lucide-react"
+import { RotateCcw, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Input } from "@/components/ui/input"
@@ -13,10 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface ImageContentProps {
   imageElement?: ImageElement;
   onUpdate: (updates: Partial<ImageElement>) => void;
+  onDelete: () => void; // 添加删除函数属性
   currentSceneId?: string; // 当前场景ID属性
 }
 
-export default function ImageContent({ imageElement, onUpdate, currentSceneId = '' }: ImageContentProps) {
+export default function ImageContent({ imageElement, onUpdate, currentSceneId = '', onDelete }: ImageContentProps) {
   const [activeTab, setActiveTab] = useState("format")
   const [rotation, setRotation] = useState(imageElement?.rotation || 0)
   const [layout, setLayout] = useState({
@@ -148,10 +149,39 @@ export default function ImageContent({ imageElement, onUpdate, currentSceneId = 
   return (
     <div className="w-full max-w-4xl mx-auto overflow-hidden bg-white">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-gray-100">
-        <div className="flex items-center gap-4">
-          <Image className="h-6 w-6" />
-          <span className="text-lg">图片</span>
+      <div className="bg-gray-100 p-3 flex flex-col mb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded overflow-hidden">
+              <img
+                src={imageElement.src}
+                alt="图片预览"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            
+            {/* 预览文本部分 */}
+            <div className="flex-1">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-normal">
+                  {"图片元素"}
+                </h2>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              className="w-8 h-8 bg-white rounded-full flex items-center justify-center border border-gray-200 cursor-pointer hover:bg-gray-50"
+              onClick={() => {
+                // 直接调用父组件传入的删除元素函数
+                if (onDelete) {
+                  onDelete();
+                }
+              }}
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -182,23 +212,6 @@ export default function ImageContent({ imageElement, onUpdate, currentSceneId = 
           {/* Format Tab Content */}
           {activeTab === "format" && (
             <div className="space-y-6">
-              {/* 图片预览 */}
-              <div className="mb-4 flex justify-center">
-                <div 
-                  className="relative border rounded-md overflow-hidden" 
-                  style={{ 
-                    width: '200px', 
-                    height: '150px',
-                  }}
-                >
-                  <img
-                    src={imageElement.src}
-                    alt="Selected image"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </div>
-              
               {/* Rotation */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -232,7 +245,7 @@ export default function ImageContent({ imageElement, onUpdate, currentSceneId = 
                 <label className="text-base font-normal text-gray-800 block mb-2">位置和尺寸</label>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <div className="text-xs text-gray-500 mb-1">X 坐标</div>
+                    <div className="text-xs text-gray-500 mb-1">X</div>
                     <Input
                       type="text"
                       value={layout.x}
@@ -244,7 +257,7 @@ export default function ImageContent({ imageElement, onUpdate, currentSceneId = 
                     />
                   </div>
                   <div className="space-y-1">
-                    <div className="text-xs text-gray-500 mb-1">Y 坐标</div>
+                    <div className="text-xs text-gray-500 mb-1">Y</div>
                     <Input
                       type="text"
                       value={layout.y}
@@ -256,7 +269,7 @@ export default function ImageContent({ imageElement, onUpdate, currentSceneId = 
                     />
                   </div>
                   <div className="space-y-1">
-                    <div className="text-xs text-gray-500 mb-1">宽度</div>
+                    <div className="text-xs text-gray-500 mb-1">宽</div>
                     <Input
                       type="text"
                       value={layout.width}
@@ -268,7 +281,7 @@ export default function ImageContent({ imageElement, onUpdate, currentSceneId = 
                     />
                   </div>
                   <div className="space-y-1">
-                    <div className="text-xs text-gray-500 mb-1">高度</div>
+                    <div className="text-xs text-gray-500 mb-1">高</div>
                     <Input
                       type="text"
                       value={layout.height}

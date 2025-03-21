@@ -32,6 +32,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { ResizableVideo } from "@/components/workspace/resizable-video";
 import { ContentMediaItem } from "@/components/media/media-content";
+import VideoContent from "@/components/media/video-content"; // 添加 VideoContent 导入
 // 更新导出类型
 export type {
     Scene,
@@ -332,9 +333,12 @@ export default function VideoEditor() {
                     y: currentCanvasDimensions.height / 2 - 150,
                     rotation: 0,
                     zIndex: 10,
-                    volume: 100,
+                    volume: 0.5,
                     loop: false,
-                    autoplay: true
+                    autoplay: true,
+                    displayMode: "freeze",
+                    thumbnail: "",
+                    duration: "00:00"
                 }
             };
 
@@ -467,8 +471,14 @@ export default function VideoEditor() {
                     currentSceneId={scenes[activeScene].id} // 传递当前场景ID
                 />
             case "Media":
-                return <MediaContent onAddMedia={handleAddMedia} onUpdateImage={handleImageUpdate}
-                    onUpdateVideo={handleVideoUpdate} selectedMedia={getSelectedMedia()} />
+                return <MediaContent
+                    onAddMedia={handleAddMedia}
+                    onUpdateImage={handleImageUpdate}
+                    onUpdateVideo={handleVideoUpdate}
+                    selectedMedia={getSelectedMedia()}
+                    currentSceneId={scenes[activeScene].id}
+                    onDelete={handleDeleteElement}
+                />
             // Add more cases for other tabs
             default:
                 return <div>Content for {activeTab}</div>
@@ -759,7 +769,7 @@ export default function VideoEditor() {
                                                         canvasHeight={currentCanvasDimensions.height}
                                                         containerWidth={previewDimensions.width}
                                                         containerHeight={previewDimensions.height}
-                                                    // otherElements={getAllElementsForAlignment(scenes[activeScene], mediaItem.id, "video")}
+                                                        otherElements={getAllElementsForAlignment(scenes[activeScene], mediaItem.id, "video")}
                                                     />
                                                 </ElementContextMenu>
                                             );

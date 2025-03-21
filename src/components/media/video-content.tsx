@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { RotateCcw, Video } from "lucide-react"
+import { RotateCcw, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Input } from "@/components/ui/input"
@@ -11,12 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 // 组件属性接口
 interface VideoContentProps {
-  videoElement?: VideoElement;
+  videoElement: VideoElement;
   onUpdate: (updates: Partial<VideoElement>) => void;
+  onDelete: () => void; // 添加删除函数属性
   currentSceneId?: string; // 当前场景ID属性
 }
 
-export default function VideoContent({ videoElement, onUpdate, currentSceneId = '' }: VideoContentProps) {
+export default function VideoContent({ videoElement, onUpdate, currentSceneId = '', onDelete }: VideoContentProps) {
   const [activeTab, setActiveTab] = useState("format")
   const [rotation, setRotation] = useState(videoElement?.rotation || 0)
   const [layout, setLayout] = useState({
@@ -27,9 +28,9 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
   })
 
   // 视频特有属性
-  const [volume, setVolume] = useState(videoElement?.volume || 100)
-  const [loop, setLoop] = useState(videoElement?.loop || false)
-  const [autoplay, setAutoplay] = useState<boolean>(videoElement?.autoplay ?? true)
+  const [volume, setVolume] = useState(videoElement?.volume || 0.5)
+  // 移除循环播放和自动播放，添加显示模式
+  const [displayMode, setDisplayMode] = useState(videoElement?.displayMode || "freeze")
 
   // 动画状态
   const [animationType, setAnimationType] = useState(videoElement?.animationType || "none")
@@ -53,9 +54,9 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
         width: videoElement.width || 400,
         height: videoElement.height || 300,
       })
-      setVolume(videoElement.volume || 100)
-      setLoop(videoElement.loop || false)
-      setAutoplay(videoElement.autoplay || true)
+      setVolume(videoElement.volume || 0.5)
+      // 更新显示模式
+      setDisplayMode(videoElement.displayMode || "freeze")
       setAnimationType(videoElement.animationType || "none")
       setAnimationBehavior(videoElement.animationBehavior || "enter")
       setAnimationDirection(videoElement.animationDirection || "right")
@@ -86,16 +87,10 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
     onUpdate({ volume: value[0] })
   }
 
-  // 处理循环变化
-  const handleLoopChange = (value: boolean) => {
-    setLoop(value)
-    onUpdate({ loop: value })
-  }
-
-  // 处理自动播放变化
-  const handleAutoplayChange = (value: boolean) => {
-    setAutoplay(value)
-    onUpdate({ autoplay: value })
+  // 处理显示模式变化
+  const handleDisplayModeChange = (value: string) => {
+    setDisplayMode(value as "freeze" | "hide" | "loop")
+    onUpdate({ displayMode: value as "freeze" | "hide" | "loop" })
   }
 
   // 处理动画类型变化
@@ -176,10 +171,43 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
   return (
     <div className="w-full max-w-4xl mx-auto overflow-hidden bg-white">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-gray-100">
-        <div className="flex items-center gap-4">
-          <Video className="h-6 w-6" />
-          <span className="text-lg">视频</span>
+      <div className="bg-gray-100 p-3 flex flex-col mb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded overflow-hidden">
+              <img
+                src={videoElement?.thumbnail || ''}
+                alt="视频预览"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            
+            {/* 预览文本部分 */}
+            <div className="flex-1">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-normal">
+                  {"视频元素"}
+                </h2>
+              </div>
+              {videoElement?.duration && (
+                <p className="text-sm text-gray-500">{videoElement.duration}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              className="w-8 h-8 bg-white rounded-full flex items-center justify-center border border-gray-200 cursor-pointer hover:bg-gray-50"
+              onClick={() => {
+                // 直接调用父组件传入的删除元素函数
+                if (onDelete) {
+                  onDelete();
+                }
+              }}
+              title="删除视频"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -210,23 +238,50 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
           {/* Format Tab Content */}
           {activeTab === "format" && (
             <div className="space-y-6">
-              {/* 视频预览 */}
-              <div className="mb-4 flex justify-center">
-                <div 
-                  className="relative border rounded-md overflow-hidden" 
-                  style={{ 
-                    width: '200px', 
-                    height: '150px',
-                  }}
-                >
-                  <video
-                    src={videoElement.src}
-                    controls
-                    className="w-full h-full object-cover"
-                  />
+                {/* 结束后显示 */}
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-base font-normal text-gray-800">结束后显示</label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={`h-8 px-3 ${
+                        displayMode === "freeze" 
+                          ? "bg-gray-100 border-gray-400 text-gray-900" 
+                          : "hover:bg-gray-50"
+                      }`}
+                      onClick={() => handleDisplayModeChange("freeze")}
+                    >
+                      固定最后一帧
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={`h-8 px-3 ${
+                        displayMode === "hide" 
+                          ? "bg-gray-100 border-gray-400 text-gray-900" 
+                          : "hover:bg-gray-50"
+                      }`}
+                      onClick={() => handleDisplayModeChange("hide")}
+                    >
+                      结束后消失
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={`h-8 px-3 ${
+                        displayMode === "loop" 
+                          ? "bg-gray-100 border-gray-400 text-gray-900" 
+                          : "hover:bg-gray-50"
+                      }`}
+                      onClick={() => handleDisplayModeChange("loop")}
+                    >
+                      循环播放
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              
               {/* Rotation */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -260,7 +315,7 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
                 <label className="text-base font-normal text-gray-800 block mb-2">位置和尺寸</label>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <div className="text-xs text-gray-500 mb-1">X 坐标</div>
+                    <div className="text-xs text-gray-500 mb-1">X</div>
                     <Input
                       type="text"
                       value={layout.x}
@@ -272,7 +327,7 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
                     />
                   </div>
                   <div className="space-y-1">
-                    <div className="text-xs text-gray-500 mb-1">Y 坐标</div>
+                    <div className="text-xs text-gray-500 mb-1">Y</div>
                     <Input
                       type="text"
                       value={layout.y}
@@ -284,7 +339,7 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
                     />
                   </div>
                   <div className="space-y-1">
-                    <div className="text-xs text-gray-500 mb-1">宽度</div>
+                    <div className="text-xs text-gray-500 mb-1">宽</div>
                     <Input
                       type="text"
                       value={layout.width}
@@ -296,7 +351,7 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
                     />
                   </div>
                   <div className="space-y-1">
-                    <div className="text-xs text-gray-500 mb-1">高度</div>
+                    <div className="text-xs text-gray-500 mb-1">高</div>
                     <Input
                       type="text"
                       value={layout.height}
@@ -316,55 +371,17 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-base font-normal text-gray-800">音量</label>
-                    <span className="text-sm font-medium">{volume}%</span>
+                    <span className="text-sm font-medium">{Math.round(volume * 100)}%</span>
                   </div>
                   <div className="px-1 py-2">
                     <Slider
                       value={[volume]}
                       min={0}
-                      max={100}
-                      step={1}
+                      max={1}
+                      step={0.01}
                       onValueChange={handleVolumeChange}
                       className="w-full"
                     />
-                  </div>
-                </div>
-
-                {/* 循环播放 */}
-                <div className="flex items-center justify-between">
-                  <label className="text-base font-normal text-gray-800">循环播放</label>
-                  <div className="flex items-center">
-                    <button
-                      onClick={() => handleLoopChange(!loop)}
-                      className={`w-10 h-5 rounded-full transition-colors ${
-                        loop ? 'bg-blue-500' : 'bg-gray-300'
-                      }`}
-                    >
-                      <div
-                        className={`w-4 h-4 rounded-full bg-white transform transition-transform ${
-                          loop ? 'translate-x-5' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-
-                {/* 自动播放 */}
-                <div className="flex items-center justify-between">
-                  <label className="text-base font-normal text-gray-800">自动播放</label>
-                  <div className="flex items-center">
-                    <button
-                      onClick={() => handleAutoplayChange(!autoplay)}
-                      className={`w-10 h-5 rounded-full transition-colors ${
-                        autoplay ? 'bg-blue-500' : 'bg-gray-300'
-                      }`}
-                    >
-                      <div
-                        className={`w-4 h-4 rounded-full bg-white transform transition-transform ${
-                          autoplay ? 'translate-x-5' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
                   </div>
                 </div>
               </div>
@@ -388,7 +405,7 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
                   </SelectContent>
                 </Select>
               </div>
-          
+
               {/* 只有当动画类型不是"无"时才显示以下选项 */}
               {animationType !== "none" && (
                 <>
@@ -444,10 +461,10 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
                       </div>
                     </div>
                   )}
-          
-                  {/* Animation Behavior */}
+
+                  {/* Behavior */}
                   <div>
-                    <label className="text-base font-normal text-gray-800 block mb-3">动画行为</label>
+                    <label className="text-base font-normal text-gray-800 block mb-3">行为</label>
                     <div className="grid grid-cols-3 gap-1 bg-gray-100 rounded-full p-1">
                       <Button
                         variant="ghost"
@@ -475,23 +492,24 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
                       </Button>
                     </div>
                   </div>
-          
-                  {/* Animation Timing */}
-                  <div className="space-y-4">
+                  
+                  {(animationBehavior === "enter" || animationBehavior === "both") && (
                     <div>
-                      <label className="text-base font-normal text-gray-800 block mb-2">开始于</label>
-                      <div className="flex items-center">
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-base font-normal text-gray-800">开始于</label>
                         {renderStartAtSelect()}
                       </div>
                     </div>
-                    
+                  )}
+
+                  {(animationBehavior === "exit" || animationBehavior === "both") && (
                     <div>
-                      <label className="text-base font-normal text-gray-800 block mb-2">结束于</label>
-                      <div className="flex items-center">
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-base font-normal text-gray-800">结束于</label>
                         {renderEndAtSelect()}
                       </div>
                     </div>
-                  </div>
+                  )}
                 </>
               )}
             </div>

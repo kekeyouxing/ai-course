@@ -52,18 +52,18 @@ export interface VideoElement {
     y: number
     rotation: number
     volume?: number // 音量，0-1之间
-    autoPlay?: boolean
-    loop?: boolean
-    muted?: boolean
-    zIndex?: number; // 添加 zIndex 属性
+    zIndex: number; // 添加 zIndex 属性
     autoplay: boolean;
+    thumbnail: string; // 添加缩略图字段
+    duration: string; // 添加时长字段
+    loop?: boolean
+    displayMode: "freeze" | "hide" | "loop"; // 显示模式
     // 动画相关字段
     animationType?: "none" | "fade" | "slide";
     animationBehavior?: "enter" | "exit" | "both";
     animationDirection?: "right" | "left" | "down" | "up";
     startMarkerId?: string; // 开始动画的标记ID
     endMarkerId?: string;   // 结束动画的标记ID
-
 }
 
 // 媒体类型基础接口
