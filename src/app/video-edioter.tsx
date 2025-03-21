@@ -32,7 +32,6 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { ResizableVideo } from "@/components/workspace/resizable-video";
 import { ContentMediaItem } from "@/components/media/media-content";
-import VideoContent from "@/components/media/video-content"; // 添加 VideoContent 导入
 // 更新导出类型
 export type {
     Scene,
