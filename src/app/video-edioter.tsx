@@ -448,6 +448,35 @@ export default function VideoEditor() {
         [scenes, activeScene, updateHistory]
     );
     // 修改渲染Tab内容的函数
+    // 添加处理头像选择的函数
+    const handleSelectAvatar = useCallback((avatarSrc: string) => {
+        const newScenes = [...scenes];
+        
+        // 创建新的头像元素或更新现有头像
+        const newAvatar: AvatarElement = {
+            src: avatarSrc,
+            width: 400,
+            height: 400,
+            x: currentCanvasDimensions.width / 2 - 200, // 居中放置
+            y: currentCanvasDimensions.height / 2 - 200,
+            rotation: 0,
+            zIndex: 10,
+        };
+        
+        // 更新当前场景的头像
+        newScenes[activeScene].avatar = newAvatar;
+        
+        // 更新历史记录
+        updateHistory(newScenes);
+        
+        // 选中新添加的头像元素
+        setSelectedElement({
+            type: "avatar"
+        });
+        
+    }, [scenes, activeScene, updateHistory, currentCanvasDimensions]);
+
+    // 修改渲染Tab内容的函数
     const renderTabContent = () => {
         switch (activeTab) {
             case "Script":
@@ -456,7 +485,9 @@ export default function VideoEditor() {
                     setScript={handleScriptUpdate}
                 />
             case "Avatar":
-                return <AvatarContent />
+                return <AvatarContent 
+                    onSelectAvatar={handleSelectAvatar}
+                />
             case "Background":
                 return <BackgroundContent
                     currentBackground={scenes[activeScene].background}
@@ -790,8 +821,8 @@ export default function VideoEditor() {
                                                 onResize={handleAvatarResize}
                                                 onSelect={() => handleElementSelect({ type: "avatar" })}
                                                 isSelected={selectedElement?.type === "avatar"}
-                                                canvasWidth={1920}
-                                                canvasHeight={1080}
+                                                canvasWidth={currentCanvasDimensions.width}
+                                                canvasHeight={currentCanvasDimensions.height}
                                                 containerWidth={previewDimensions.width}
                                                 containerHeight={previewDimensions.height}
                                                 otherElements={getAllElementsForAlignment(scenes[activeScene], undefined, "avatar")}

@@ -3,14 +3,20 @@
 import { useState } from "react"
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { AvatarElement } from "@/types/scene"
 
 interface AvatarContentProps {
   onSelectAvatar?: (avatarSrc: string, avatarName: string) => void
+  avatarElement?: AvatarElement | null
+  currentSceneId?: string
 }
 
-export default function AvatarContent({ onSelectAvatar }: AvatarContentProps) {
+export default function AvatarContent({ 
+  onSelectAvatar, 
+}: AvatarContentProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null)
+
 
   const avatars = [
     {
@@ -80,60 +86,53 @@ export default function AvatarContent({ onSelectAvatar }: AvatarContentProps) {
         />
       </div>
       
-      {/* 分类标签 */}
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-        <button 
-          className="px-4 py-1 rounded-full bg-blue-100 text-blue-700 whitespace-nowrap"
-          onClick={() => setSearchQuery("")}
-        >
-          全部
-        </button>
-        <button 
-          className="px-4 py-1 rounded-full bg-gray-100 hover:bg-blue-100 hover:text-blue-700 whitespace-nowrap"
-          onClick={() => setSearchQuery("商务")}
-        >
-          商务风格
-        </button>
-        <button 
-          className="px-4 py-1 rounded-full bg-gray-100 hover:bg-blue-100 hover:text-blue-700 whitespace-nowrap"
-          onClick={() => setSearchQuery("卡通")}
-        >
-          卡通风格
-        </button>
+      {/* 头像类别 */}
+      <div className="mb-6">
+        <h3 className="text-lg font-medium mb-3">头像类别</h3>
+        <div className="flex flex-wrap gap-2">
+          <button 
+            className={`px-4 py-2 rounded-full ${searchQuery === "" ? "bg-blue-100 text-blue-700" : "bg-gray-100"}`}
+            onClick={() => setSearchQuery("")}
+          >
+            全部
+          </button>
+          <button 
+            className={`px-4 py-2 rounded-full ${searchQuery === "商务" ? "bg-blue-100 text-blue-700" : "bg-gray-100"}`}
+            onClick={() => setSearchQuery("商务")}
+          >
+            商务
+          </button>
+          <button 
+            className={`px-4 py-2 rounded-full ${searchQuery === "卡通" ? "bg-blue-100 text-blue-700" : "bg-gray-100"}`}
+            onClick={() => setSearchQuery("卡通")}
+          >
+            卡通
+          </button>
+        </div>
       </div>
       
       {/* 头像网格 */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 overflow-visible">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {filteredAvatars.map((avatar) => (
           <div 
             key={avatar.id}
-            className={`cursor-pointer rounded-lg p-2 transition-all ${
-              selectedAvatarId === avatar.id 
-                ? 'ring-2 ring-blue-500 bg-blue-50' 
-                : 'hover:bg-gray-50 border border-gray-200'
+            className={`relative cursor-pointer rounded-lg overflow-hidden transition-all duration-200 ${
+              selectedAvatarId === avatar.id ? "ring-2 ring-blue-500 scale-95" : "hover:scale-95"
             }`}
             onClick={() => handleAvatarSelect(avatar)}
           >
-            <div className="aspect-square rounded-lg overflow-hidden mb-2">
-              <img
-                src={avatar.image}
-                alt={avatar.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="text-center">
-              <h3 className="font-medium text-sm">{avatar.name}</h3>
-              <p className="text-xs text-gray-500">{avatar.category}风格</p>
+            <img 
+              src={avatar.image} 
+              alt={avatar.name}
+              className="w-full aspect-square object-cover"
+            />
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+              <p className="text-white text-sm font-medium">{avatar.name}</p>
+              <p className="text-white/80 text-xs">{avatar.category}</p>
             </div>
           </div>
         ))}
       </div>
-      
-      {filteredAvatars.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          没有找到匹配的头像，请尝试其他搜索词
-        </div>
-      )}
     </div>
   )
 }
