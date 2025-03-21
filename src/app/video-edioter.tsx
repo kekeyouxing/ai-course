@@ -27,11 +27,11 @@ import {
     AvatarElement,
     Background,
     SelectedElementType,
-    AspectRatioType,  // 导入新添加的类型
+    AspectRatioType,
 } from "@/types/scene"
 import { v4 as uuidv4 } from 'uuid';
 import { ResizableVideo } from "@/components/workspace/resizable-video";
-
+import { ContentMediaItem } from "@/components/media/media-content";
 // 更新导出类型
 export type {
     Scene,
@@ -60,7 +60,7 @@ import {
 } from "@/utils/editor-operations"
 import { useAnimationMarkers } from "@/hooks/animation-markers-context";
 // 导入 MediaContent 和类型
-import MediaContent, { MediaItem } from "@/components/media/media-content";
+import MediaContent from "@/components/media/media-content";
 
 export default function VideoEditor() {
     // 添加复制粘贴相关状态
@@ -126,6 +126,28 @@ export default function VideoEditor() {
             setActiveTab("Media")
         }
     }, [])
+    // 修改获取当前画布尺寸的逻辑，优先使用当前场景的宽高比例
+    const getCurrentAspectRatio = () => {
+        // 如果当前场景有设置宽高比例，则使用场景的设置
+        if (scenes[activeScene]?.aspectRatio) {
+            return scenes[activeScene].aspectRatio;
+        }
+        // 否则使用全局设置的宽高比例
+        return aspectRatio;
+    };
+
+    // 获取当前画布尺寸
+    const currentAspectRatio = getCurrentAspectRatio();
+    // 添加画布尺寸常量
+    const CANVAS_DIMENSIONS = {
+        "16:9": { width: 1920, height: 1080 },
+        "9:16": { width: 1080, height: 1920 },
+        "1:1": { width: 1080, height: 1080 },
+        "4:3": { width: 1440, height: 1080 }
+    };
+
+    // 获取当前画布尺寸
+    const currentCanvasDimensions = CANVAS_DIMENSIONS[currentAspectRatio];
     // 在组件内部使用 useAnimationMarkers
     const { setCurrentSceneId } = useAnimationMarkers();
     // 改进的历史记录更新函数
@@ -268,25 +290,17 @@ export default function VideoEditor() {
         },
         [scenes, activeScene, updateHistory]
     )
-    const handleAddMedia = useCallback((mediaItem: MediaItem) => {
+    const handleAddMedia = useCallback((mediaItem: ContentMediaItem) => {
         const newScenes = [...scenes];
 
-        // 创建新的媒体元素
-        const newMedia = {
-            id: uuidv4(),
-            type: mediaItem.type,
-            element: mediaItem.type === "image"
-                ? {
-                    src: mediaItem.url,
-                    width: 400,
-                    height: 300,
-                    x: currentCanvasDimensions.width / 2 - 200, // 使用当前画布宽度居中放置
-                    y: currentCanvasDimensions.height / 2 - 150, // 使用当前画布高度居中放置
-                    rotation: 0,
-                    zIndex: 10 // 放在顶层
-                }
-                : {
-                    src: mediaItem.url,
+        // Create media element with proper typing
+        if (mediaItem.type === "image") {
+            // Create image media with correct type
+            const newImageMedia: ImageMedia = {
+                id: uuidv4(),
+                type: "image",
+                element: {
+                    src: mediaItem.src,
                     width: 400,
                     height: 300,
                     x: currentCanvasDimensions.width / 2 - 200,
@@ -294,23 +308,50 @@ export default function VideoEditor() {
                     rotation: 0,
                     zIndex: 10
                 }
-        };
+            };
 
-        // 添加到当前场景
-        newScenes[activeScene].media.push(newMedia);
+            // Add to current scene
+            newScenes[activeScene].media.push(newImageMedia);
 
-        // 更新历史记录
-        updateHistory(newScenes);
+            // Update history and select the new element
+            updateHistory(newScenes);
+            setSelectedElement({
+                type: "image",
+                mediaId: newImageMedia.id
+            });
+        } else if (mediaItem.type === "video") {
+            // Create video media with correct type
+            const newVideoMedia: VideoMedia = {
+                id: uuidv4(),
+                type: "video",
+                element: {
+                    src: mediaItem.src,
+                    width: 400,
+                    height: 300,
+                    x: currentCanvasDimensions.width / 2 - 200,
+                    y: currentCanvasDimensions.height / 2 - 150,
+                    rotation: 0,
+                    zIndex: 10,
+                    volume: 100,
+                    loop: false,
+                    autoplay: true
+                }
+            };
 
-        // 选中新添加的元素
-        setSelectedElement({
-            type: mediaItem.type,
-            mediaId: newMedia.id
-        });
+            // Add to current scene
+            newScenes[activeScene].media.push(newVideoMedia);
 
-        // 切换到媒体标签页
+            // Update history and select the new element
+            updateHistory(newScenes);
+            setSelectedElement({
+                type: "video",
+                mediaId: newVideoMedia.id
+            });
+        }
+
+        // Switch to Media tab
         setActiveTab("Media");
-    }, [scenes, activeScene, updateHistory]);
+    }, [scenes, activeScene, updateHistory, currentCanvasDimensions]);
     // 添加处理背景变化的函数
     const handleBackgroundChange = useCallback((background: Background) => {
         const newScenes = [...scenes];
@@ -360,6 +401,48 @@ export default function VideoEditor() {
         newScenes[activeScene].script = newScript;
         updateHistory(newScenes);
     }, [scenes, activeScene, updateHistory]);
+    // 获取当前选中的媒体元素
+    const getSelectedMedia = useCallback(() => {
+        if (!selectedElement || (selectedElement.type !== "image" && selectedElement.type !== "video")) {
+            return null;
+        }
+
+        const mediaId = selectedElement.mediaId;
+        const mediaItem = scenes[activeScene].media.find(item => item.id === mediaId);
+
+        if (!mediaItem) return null;
+
+        return mediaItem;
+    }, [selectedElement, scenes, activeScene]);
+    // 添加处理图片更新的函数
+    const handleImageUpdate = useCallback(
+        (mediaId: string, updates: Partial<ImageElement>) => {
+            const newScenes = [...scenes];
+            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === mediaId);
+
+            if (mediaIndex !== -1 && newScenes[activeScene].media[mediaIndex].type === "image") {
+                const imageMedia = newScenes[activeScene].media[mediaIndex] as ImageMedia;
+                imageMedia.element = { ...imageMedia.element, ...updates } as ImageElement;
+                updateHistory(newScenes);
+            }
+        },
+        [scenes, activeScene, updateHistory]
+    );
+
+    // 添加处理视频更新的函数
+    const handleVideoUpdate = useCallback(
+        (mediaId: string, updates: Partial<VideoElement>) => {
+            const newScenes = [...scenes];
+            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === mediaId);
+
+            if (mediaIndex !== -1 && newScenes[activeScene].media[mediaIndex].type === "video") {
+                const videoMedia = newScenes[activeScene].media[mediaIndex] as VideoMedia;
+                videoMedia.element = { ...videoMedia.element, ...updates } as VideoElement;
+                updateHistory(newScenes);
+            }
+        },
+        [scenes, activeScene, updateHistory]
+    );
     // 修改渲染Tab内容的函数
     const renderTabContent = () => {
         switch (activeTab) {
@@ -384,7 +467,8 @@ export default function VideoEditor() {
                     currentSceneId={scenes[activeScene].id} // 传递当前场景ID
                 />
             case "Media":
-                return <MediaContent onAddMedia={handleAddMedia} />
+                return <MediaContent onAddMedia={handleAddMedia} onUpdateImage={handleImageUpdate}
+                    onUpdateVideo={handleVideoUpdate} selectedMedia={getSelectedMedia()} />
             // Add more cases for other tabs
             default:
                 return <div>Content for {activeTab}</div>
@@ -441,28 +525,6 @@ export default function VideoEditor() {
         updateHistory([...scenes, newScene])
         setActiveScene(scenes.length)
     }, [scenes, updateHistory, aspectRatio])
-    // 修改获取当前画布尺寸的逻辑，优先使用当前场景的宽高比例
-    const getCurrentAspectRatio = () => {
-        // 如果当前场景有设置宽高比例，则使用场景的设置
-        if (scenes[activeScene]?.aspectRatio) {
-            return scenes[activeScene].aspectRatio;
-        }
-        // 否则使用全局设置的宽高比例
-        return aspectRatio;
-    };
-
-    // 获取当前画布尺寸
-    const currentAspectRatio = getCurrentAspectRatio();
-    // 添加画布尺寸常量
-    const CANVAS_DIMENSIONS = {
-        "16:9": { width: 1920, height: 1080 },
-        "9:16": { width: 1080, height: 1920 },
-        "1:1": { width: 1080, height: 1080 },
-        "4:3": { width: 1440, height: 1080 }
-    };
-
-    // 获取当前画布尺寸
-    const currentCanvasDimensions = CANVAS_DIMENSIONS[currentAspectRatio];
 
     // 添加 editorRef
     const editorRef = useRef<HTMLDivElement>(null);

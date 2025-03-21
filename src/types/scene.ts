@@ -35,6 +35,12 @@ export interface ImageElement {
     y: number
     rotation: number
     zIndex?: number; // 添加 zIndex 属性
+    // 动画相关字段
+    animationType?: "none" | "fade" | "slide";
+    animationBehavior?: "enter" | "exit" | "both";
+    animationDirection?: "right" | "left" | "down" | "up";
+    startMarkerId?: string; // 开始动画的标记ID
+    endMarkerId?: string;   // 结束动画的标记ID
 }
 
 // 视频元素接口
@@ -50,12 +56,20 @@ export interface VideoElement {
     loop?: boolean
     muted?: boolean
     zIndex?: number; // 添加 zIndex 属性
+    autoplay: boolean;
+    // 动画相关字段
+    animationType?: "none" | "fade" | "slide";
+    animationBehavior?: "enter" | "exit" | "both";
+    animationDirection?: "right" | "left" | "down" | "up";
+    startMarkerId?: string; // 开始动画的标记ID
+    endMarkerId?: string;   // 结束动画的标记ID
+
 }
 
 // 媒体类型基础接口
 export interface MediaBase {
     type: "image" | "video";
-    id?: string; // 添加唯一标识符
+    id: string; // 添加唯一标识符
 }
 
 // 图片媒体

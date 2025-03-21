@@ -556,36 +556,48 @@ export default function TextContent({ textElement, onUpdate, currentSceneId = ''
                   <div className="flex-1">
                     <div className="text-xs text-gray-500 mb-1">X</div>
                     <Input
-                      type="number"
+                      type="text"
                       value={layout.x}
-                      onChange={(e) => handleLayoutChange("x", Number.parseInt(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value) || 0;
+                        handleLayoutChange("x", value);
+                      }}
                       className="h-8 text-sm"
                     />
                   </div>
                   <div className="flex-1">
                     <div className="text-xs text-gray-500 mb-1">Y</div>
                     <Input
-                      type="number"
+                      type="text"
                       value={layout.y}
-                      onChange={(e) => handleLayoutChange("y", Number.parseInt(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value) || 0;
+                        handleLayoutChange("y", value);
+                      }}
                       className="h-8 text-sm"
                     />
                   </div>
                   <div className="flex-1">
                     <div className="text-xs text-gray-500 mb-1">宽</div>
                     <Input
-                      type="number"
+                      type="text"
                       value={layout.width}
-                      onChange={(e) => handleLayoutChange("width", Number.parseInt(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value) || 0;
+                        handleLayoutChange("width", value);
+                      }}
                       className="h-8 text-sm"
                     />
                   </div>
                   <div className="flex-1">
                     <div className="text-xs text-gray-500 mb-1">高</div>
                     <Input
-                      type="number"
+                      type="text"
                       value={layout.height}
-                      onChange={(e) => handleLayoutChange("height", Number.parseInt(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value) || 0;
+                        handleLayoutChange("height", value);
+                      }}
                       className="h-8 text-sm"
                     />
                   </div>
