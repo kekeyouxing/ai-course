@@ -11,9 +11,16 @@ import { v4 as uuidv4 } from 'uuid'
 import { toast } from "sonner"
 import instance_oss from "@/api/axios-oss"
 import instance from '@/api/axios'
-
-// 导入背景类型
-import type { Background, ColorBackground, ImageBackground, VideoBackground } from "@/app/video-edioter"
+import type { Background, ColorBackground, ImageBackground, VideoBackground } from "@/types/scene"
+// 定义ContentBackground类型，用于展示背景列表
+interface ContentBackground {
+  id: string;
+  type: "color" | "image" | "video";
+  title: string;
+  thumbnail?: string;
+  value: string; // 颜色值或资源URL
+  duration?: string; // 视频时长
+}
 
 // 修改组件接口定义
 interface BackgroundContentProps {
@@ -36,7 +43,49 @@ const colorPresets = [
   "#D1ECF1", // 青色
   "#E2E3E5", // 灰色
 ]
+// 将颜色预设转换为ContentBackground格式
+const colorBackgrounds: ContentBackground[] = colorPresets.map((color, index) => ({
+  id: `color-${index}`,
+  type: "color",
+  title: `颜色 ${index + 1}`,
+  value: color
+}));
 
+// 定义图片背景列表
+const imageBackgrounds: ContentBackground[] = [
+  {
+    id: "image-1",
+    type: "image",
+    title: "森林航拍",
+    thumbnail: avatarImage,
+    value: avatarImage
+  },
+  {
+    id: "image-2",
+    type: "image",
+    title: "海滩风光",
+    thumbnail: avatarImage,
+    value: avatarImage
+  },
+  {
+    id: "image-3",
+    type: "image",
+    title: "城市夜景",
+    thumbnail: avatarImage,
+    value: avatarImage
+  }
+];
+// 定义视频背景列表
+const videoBackgrounds: ContentBackground[] = [
+  {
+    id: "video-1",
+    type: "video",
+    title: "日落视频",
+    thumbnail: avatarImage,
+    value: "https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/liu.mov",
+    duration: "00:22"
+  }
+];
 export function BackgroundContent({ currentBackground, onBackgroundChange }: BackgroundContentProps) {
   const [activeTab, setActiveTab] = useState("Color")
   const [selectedColor, setSelectedColor] = useState(() => {
@@ -141,29 +190,27 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
       // 构建完整URL
       const fileUrl = `https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/${objectKey}`;
 
-      // 根据文件类型更新背景
-      if (file.type.startsWith('image/')) {
-        if (onBackgroundChange) {
-          onBackgroundChange({
-            type: "image",
-            src: fileUrl,
-            title: file.name
-          });
-        }
-      } else if (file.type.startsWith('video/')) {
-        if (onBackgroundChange) {
-          onBackgroundChange({
-            type: "video",
-            src: fileUrl,
-            title: file.name,
-            duration: "未知", // 这里可以添加获取视频时长的逻辑
-            thumbnail: avatarImage, // 可以添加生成视频缩略图的逻辑
-            volume: 0.5,
-            displayMode: "freeze" // 默认固定最后一帧
-          });
-        }
-        setShowVideoEditor(true);
-      }
+      // // 根据文件类型更新背景
+      // if (file.type.startsWith('image/')) {
+      //   if (onBackgroundChange) {
+      //     onBackgroundChange({
+      //       type: "image",
+      //       src: fileUrl,
+      //     });
+      //   }
+      // } else if (file.type.startsWith('video/')) {
+      //   if (onBackgroundChange) {
+      //     onBackgroundChange({
+      //       type: "video",
+      //       src: fileUrl,
+      //       duration: "未知", // 这里可以添加获取视频时长的逻辑
+      //       thumbnail: avatarImage, // 可以添加生成视频缩略图的逻辑
+      //       volume: 0.5,
+      //       displayMode: "freeze" // 默认固定最后一帧
+      //     });
+      //   }
+      //   setShowVideoEditor(true);
+      // }
 
       toast.success('文件上传成功!');
 
@@ -199,12 +246,11 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
   }
 
   // 处理图片选择
-  const handleImageSelect = (title: string) => {
+  const handleImageSelect = () => {
     if (onBackgroundChange) {
       onBackgroundChange({
         type: "image",
         src: avatarImage, // 这里使用实际图片路径
-        title: title
       });
     }
   }
@@ -215,12 +261,10 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
     if (onBackgroundChange) {
       // 根据标题选择对应的视频路径和缩略图
       let videoSrc = "";
-      let thumbnailSrc = avatarImage; // 默认使用头像图片作为缩略图
       switch (title) {
         case "日落视频":
           videoSrc = "https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/liu.mov";
           // 如果有专门的缩略图，可以在这里设置
-          // thumbnailSrc = "/thumbnails/sunset.jpg";
           break;
         default:
           videoSrc = "/videos/default.mp4";
@@ -229,9 +273,7 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
       onBackgroundChange({
         type: "video",
         src: videoSrc,
-        title: title,
         duration: "00:22",
-        thumbnail: thumbnailSrc,
         volume: 0.5, // 默认音量50%
         displayMode: "freeze" // 默认固定最后一帧
       });
@@ -260,7 +302,6 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
                       <div className="w-12 h-12 rounded overflow-hidden">
                         <img
                           src={(currentBackground as ImageBackground).src}
-                          alt={(currentBackground as ImageBackground).title}
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -270,8 +311,7 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
                       <div className="w-12 h-12 rounded overflow-hidden relative group">
                         {/* 视频缩略图 */}
                         <img
-                          src={(currentBackground as VideoBackground).thumbnail || avatarImage}
-                          alt={(currentBackground as VideoBackground).title}
+                          src={(currentBackground as VideoBackground).thumbnail}
                           className="w-full h-full object-cover transition-opacity duration-300"
                         />
                       </div>
@@ -288,8 +328,10 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
                     {currentBackground.type === "color"
                       ? "背景颜色"
                       : currentBackground.type === "image"
-                        ? (currentBackground as ImageBackground).title
-                        : (currentBackground as VideoBackground).title}
+                        ? "背景图片"
+                        : currentBackground.type === "video"
+                          ? "背景视频"
+                          : "未知类型"}
                   </h2>
                 </div>
                 {currentBackground.type === "video" && (
@@ -369,8 +411,8 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     className={`text-xs py-2 px-3 rounded-md transition-colors ${(currentBackground as VideoBackground).displayMode === "freeze"
-                        ? "bg-gray-200 text-gray-800 font-medium"
-                        : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
+                      ? "bg-gray-200 text-gray-800 font-medium"
+                      : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
                       }`}
                     onClick={() => {
                       if (onBackgroundChange) {
@@ -385,8 +427,8 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
                   </button>
                   <button
                     className={`text-xs py-2 px-3 rounded-md transition-colors ${(currentBackground as VideoBackground).displayMode === "hide"
-                        ? "bg-gray-200 text-gray-800 font-medium"
-                        : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
+                      ? "bg-gray-200 text-gray-800 font-medium"
+                      : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
                       }`}
                     onClick={() => {
                       if (onBackgroundChange) {
@@ -401,8 +443,8 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
                   </button>
                   <button
                     className={`text-xs py-2 px-3 rounded-md transition-colors ${(currentBackground as VideoBackground).displayMode === "loop"
-                        ? "bg-gray-200 text-gray-800 font-medium"
-                        : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
+                      ? "bg-gray-200 text-gray-800 font-medium"
+                      : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
                       }`}
                     onClick={() => {
                       if (onBackgroundChange) {
@@ -463,14 +505,14 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
                       <HexColorPicker color={selectedColor} onChange={handleColorSelect} />
                     </div>
                     <div className="grid grid-cols-5 gap-2 mb-3">
-                      {colorPresets.map((color) => (
-                        <Button
-                          key={color}
-                          variant="outline"
-                          className="h-6 w-6 p-0 rounded-md"
-                          style={{ backgroundColor: color }}
-                          onClick={() => handleColorSelect(color)}
-                        />
+                      {colorBackgrounds.map((background) => (
+                        <div
+                          key={background.id}
+                          className="aspect-video rounded-lg overflow-hidden cursor-pointer border border-gray-200"
+                          style={{ backgroundColor: background.value }}
+                          onClick={() => handleColorSelect(background.value)}
+                        >
+                        </div>
                       ))}
                     </div>
                     <div className="flex items-center justify-between">
@@ -510,33 +552,28 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
               <h3 className="text-x text-gray-600">场景</h3>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              <div className="rounded-lg overflow-hidden cursor-pointer" onClick={() => handleImageSelect("森林航拍")}>
-                <img
-                  src={avatarImage}
-                  width={300}
-                  height={200}
-                  alt="森林航拍"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="rounded-lg overflow-hidden cursor-pointer" onClick={() => handleImageSelect("海滩风光")}>
-                <img
-                  src={avatarImage}
-                  width={300}
-                  height={200}
-                  alt="海滩风光"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="rounded-lg overflow-hidden cursor-pointer" onClick={() => handleImageSelect("城市夜景")}>
-                <img
-                  src={avatarImage}
-                  width={300}
-                  height={200}
-                  alt="城市夜景"
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              {imageBackgrounds.map((background) => (
+                <div
+                  key={background.id}
+                  className="rounded-lg overflow-hidden cursor-pointer"
+                  onClick={() => {
+                    if (onBackgroundChange) {
+                      onBackgroundChange({
+                        type: "image",
+                        src: background.value,
+                      });
+                    }
+                  }}
+                >
+                  <img
+                    src={background.thumbnail || background.value}
+                    width={300}
+                    height={200}
+                    alt={background.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -548,23 +585,43 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
               <h3 className="text-x text-gray-600">视频素材</h3>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              <div
-                className="rounded-lg overflow-hidden relative cursor-pointer group"
-                onClick={() => handleVideoSelect("日落视频")}
-              >
-                <img
-                  src={avatarImage}
-                  width={300}
-                  height={200}
-                  alt="日落视频"
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-                <div className="absolute bottom-2 right-2">
+              {videoBackgrounds.map((background) => (
+                <div
+                  key={background.id}
+                  className="rounded-lg overflow-hidden relative cursor-pointer group"
+                  onClick={() => {
+                    setShowVideoEditor(true);
+                    if (onBackgroundChange) {
+                      onBackgroundChange({
+                        type: "video",
+                        src: background.value,
+                        duration: background.duration || "未知",
+                        thumbnail: background.thumbnail || avatarImage,
+                        volume: 0.5,
+                        displayMode: "freeze"
+                      });
+                    }
+                  }}
+                >
+                  <img
+                    src={background.thumbnail}
+                    width={300}
+                    height={200}
+                    alt={background.title}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  {/* <div className="absolute bottom-2 right-2">
                   <div className="w-8 h-8 bg-black bg-opacity-60 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
                     <Play size={16} color="white" fill="white" />
                   </div>
+                </div> */}
+                  {background.duration && (
+                    <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                      {background.duration}
+                    </div>
+                  )}
                 </div>
-              </div>
+              ))}
             </div>
           </div>
         )}
@@ -572,10 +629,9 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
         {/* 修改 Upload 选项卡内容 */}
         {activeTab === "Upload" && (
           <div className="flex flex-col items-center justify-center py-6">
-            <div 
-              className={`w-full max-w-md border-2 border-dashed rounded-lg p-6 text-center ${
-                isDragging ? 'border-gray-400 bg-gray-50' : 'border-gray-300'
-              }`}
+            <div
+              className={`w-full max-w-md border-2 border-dashed rounded-lg p-6 text-center ${isDragging ? 'border-gray-400 bg-gray-50' : 'border-gray-300'
+                }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
@@ -596,7 +652,7 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
                 accept="image/*,video/*"
                 onChange={handleFileChange}
               />
-              <Button 
+              <Button
                 variant="outline"
                 className="rounded-md border-gray-300 text-gray-700 hover:bg-gray-50"
                 onClick={() => fileInputRef.current?.click()}
@@ -617,7 +673,7 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
               <p className="mt-2 text-xs text-gray-500">
                 支持PNG, JPG, GIF, MP4格式
               </p>
-              
+
               {/* 上传进度条 */}
               {isUploading && (
                 <div className="mt-4 space-y-2">

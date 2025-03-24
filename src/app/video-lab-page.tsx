@@ -28,7 +28,10 @@ import {
 interface SystemVoice {
     voice_id: string;
     voice_name: string;
-    description: string[];
+    description: string;
+    audio_url: string;
+    gender: string;
+    language: string;
 }
 
 // 自定义声音数据结构
@@ -51,7 +54,6 @@ const initialCustomVoices: ClonedVoice[] = [];
 
 export default function VideoLabPage() {
     const [activeTab, setActiveTab] = useState("custom");
-    const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
 
     // 状态管理
@@ -60,7 +62,38 @@ export default function VideoLabPage() {
     const [filteredDefaultVoices, setFilteredDefaultVoices] = useState<SystemVoice[]>(initialDefaultVoices);
     const [filteredCustomVoices, setFilteredCustomVoices] = useState<ClonedVoice[]>(initialCustomVoices);
     const [loading, setLoading] = useState(true);
+    // 处理系统声音播放
+    const handlePlaySystemAudio = (voice: SystemVoice) => {
+        if (playingVoiceId === voice.voice_id) {
+            // 如果当前正在播放，则暂停
+            if (audioRef.current) {
+                audioRef.current.pause();
+                setPlayingVoiceId(null);
+            }
+        } else {
+            // 如果当前没有播放，则播放新的音频
+            if (audioRef.current) {
+                audioRef.current.pause();
+            }
 
+            // 创建新的音频元素
+            const audio = new Audio(voice.audio_url);
+            audioRef.current = audio;
+
+            // 播放结束时重置状态
+            audio.onended = () => {
+                setPlayingVoiceId(null);
+            };
+
+            // 开始播放
+            audio.play().catch(error => {
+                console.error('音频播放失败:', error);
+                setPlayingVoiceId(null);
+            });
+
+            setPlayingVoiceId(voice.voice_id);
+        }
+    };
     // 获取系统声音数据
     const fetchVoices = async () => {
         try {
@@ -95,7 +128,9 @@ export default function VideoLabPage() {
             setFilteredDefaultVoices(
                 defaultVoices.filter(voice =>
                     voice.voice_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    voice.description.some(desc => desc.toLowerCase().includes(searchTerm.toLowerCase()))
+                    (voice.gender && voice.gender.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                    (voice.description && voice.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                    (voice.language && voice.language.toLowerCase().includes(searchTerm.toLowerCase()))
                 )
             );
             setFilteredCustomVoices(
@@ -165,11 +200,11 @@ export default function VideoLabPage() {
     // 添加删除相关状态
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [voiceToDelete, setVoiceToDelete] = useState<ClonedVoice | null>(null);
-    
+
     // 处理删除确认
     const handleDeleteConfirm = async () => {
         if (!voiceToDelete) return;
-        
+
         try {
             const response = await instance.delete(`/characters/voice/delete/${voiceToDelete.character_id}`);
             if (response.data && response.data.code === 0) {
@@ -190,7 +225,7 @@ export default function VideoLabPage() {
             setVoiceToDelete(null);
         }
     };
-    
+
     // 处理删除点击
     const handleDeleteClick = (e: React.MouseEvent, voice: ClonedVoice) => {
         e.stopPropagation(); // 阻止事件冒泡
@@ -236,12 +271,7 @@ export default function VideoLabPage() {
                     />
                 </div>
                 {/* 费用提示信息 */}
-                <div className="bg-blue-50 p-3 rounded-lg mb-4 text-sm text-blue-700 flex items-start">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 flex-shrink-0 text-blue-500 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                    </svg>
-                    <p>首次在项目中使用自定义形象将收取10元费用，未使用则不扣费。使用系统形象不扣费</p>
-                </div>
+
                 {loading ? <LoadingState /> : (
                     <>
                         {/* 自定义声音 */}
@@ -260,7 +290,7 @@ export default function VideoLabPage() {
                                             >
                                                 <X className="h-3.5 w-3.5 text-gray-500 hover:text-red-500" />
                                             </button>
-                                            
+
                                             <div className="flex items-center gap-4 mb-3">
                                                 <Avatar className="h-14 w-14 ring-2 ring-offset-2 ring-blue-100 flex-shrink-0">
                                                     <AvatarImage
@@ -277,7 +307,7 @@ export default function VideoLabPage() {
                                                     <p className="text-sm text-gray-500">创建于: {formatDate(voice.created_time)}</p>
                                                 </div>
                                             </div>
-                                            
+
                                             <div className="flex flex-wrap gap-2 mt-3">
                                                 <span className="text-xs font-medium bg-blue-50 text-blue-600 px-3 py-1 rounded-full">
                                                     {voice.gender}
@@ -322,14 +352,14 @@ export default function VideoLabPage() {
                             )}
                         </TabsContent>
 
-                        {/* 默认声音 - 移除试听按钮 */}
+                        {/* 默认声音 - 添加试听按钮 */}
                         <TabsContent value="default">
                             {/* 声音列表 */}
                             <div className="grid grid-cols-3 gap-6">
                                 {filteredDefaultVoices.map((voice) => (
                                     <div
                                         key={voice.voice_id}
-                                        className="bg-white border rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
+                                        className="bg-white border rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group relative"
                                     >
                                         <div className="flex items-center gap-3 mb-3">
                                             <div className="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
@@ -337,40 +367,51 @@ export default function VideoLabPage() {
                                             </div>
                                             <div>
                                                 <h3 className="font-semibold text-lg text-gray-800">{voice.voice_name}</h3>
+                                                {voice.description && (
+                                                    <p className="text-sm text-gray-500 line-clamp-1">{voice.description}</p>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex flex-wrap gap-2 mt-3">
-                                            {voice.description.map((desc, index) => {
-                                                // 根据描述类型设置不同的颜色
-                                                let bgColor = "bg-gray-50";
-                                                let textColor = "text-gray-600";
-
-                                                if (desc.includes("男声")) {
-                                                    bgColor = "bg-blue-50";
-                                                    textColor = "text-blue-600";
-                                                } else if (desc.includes("女声")) {
-                                                    bgColor = "bg-pink-50";
-                                                    textColor = "text-pink-600";
-                                                } else if (desc.includes("中文")) {
-                                                    bgColor = "bg-green-50";
-                                                    textColor = "text-green-600";
-                                                } else if (desc.includes("英文")) {
-                                                    bgColor = "bg-purple-50";
-                                                    textColor = "text-purple-600";
-                                                } else if (desc.includes("日文")) {
-                                                    bgColor = "bg-red-50";
-                                                    textColor = "text-red-600";
-                                                }
-
-                                                return (
-                                                    <span key={index} className={`text-xs font-medium ${bgColor} ${textColor} px-3 py-1 rounded-full`}>
-                                                        {desc}
-                                                    </span>
-                                                );
-                                            })}
+                                            {voice.gender && (
+                                                <span className={`text-xs font-medium ${voice.gender.includes("男") ? "bg-blue-50 text-blue-600" : "bg-pink-50 text-pink-600"
+                                                    } px-3 py-1 rounded-full`}>
+                                                    {voice.gender}
+                                                </span>
+                                            )}
+                                            {voice.language && (
+                                                <span className={`text-xs font-medium ${voice.language.includes("中文") ? "bg-green-50 text-green-600" :
+                                                        voice.language.includes("英文") ? "bg-purple-50 text-purple-600" :
+                                                            voice.language.includes("日文") ? "bg-red-50 text-red-600" :
+                                                                "bg-gray-50 text-gray-600"
+                                                    } px-3 py-1 rounded-full`}>
+                                                    {voice.language}
+                                                </span>
+                                            )}
                                         </div>
-                                        <div className="mt-4 flex justify-end">
+                                        <div className="mt-4 flex justify-between items-center">
                                             <div className="text-sm text-gray-500">系统声音</div>
+                                            {voice.audio_url && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="rounded-full group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-200 transition-colors"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation(); // 防止事件冒泡
+                                                        handlePlaySystemAudio(voice);
+                                                    }}
+                                                >
+                                                    {playingVoiceId === voice.voice_id ? (
+                                                        <>
+                                                            <Pause className="h-4 w-4 mr-1" /> 暂停
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Play className="h-4 w-4 mr-1" /> 试听
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -379,7 +420,7 @@ export default function VideoLabPage() {
                     </>
                 )}
             </Tabs>
-            
+
             {/* 删除确认对话框 */}
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <AlertDialogContent>

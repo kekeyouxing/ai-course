@@ -50,25 +50,39 @@ export const useCopyElementOperation = (
       data: any;
     };
     const currentScenes = [...scenes];
+    
+    // 确保当前场景存在
+    if (!currentScenes[activeScene]) return;
 
     if (selectedElement.type === "text" && selectedElement.index !== undefined) {
-      // 复制文本元素
-      newClipboardItem.data = { ...currentScenes[activeScene].texts[selectedElement.index] };
+      // 确保文本数组存在且索引有效
+      if (Array.isArray(currentScenes[activeScene].texts) && 
+          selectedElement.index >= 0 && 
+          selectedElement.index < currentScenes[activeScene].texts.length) {
+        // 复制文本元素
+        newClipboardItem.data = { ...currentScenes[activeScene].texts[selectedElement.index] };
+      }
     } else if (selectedElement.type === "image" && selectedElement.mediaId) {
-      // 复制图片元素
-      const mediaItem = currentScenes[activeScene].media.find(
-        item => item.id === selectedElement.mediaId && item.type === "image"
-      );
-      if (mediaItem) {
-        newClipboardItem.data = { ...mediaItem.element };
+      // 确保媒体数组存在
+      if (Array.isArray(currentScenes[activeScene].media)) {
+        // 复制图片元素
+        const mediaItem = currentScenes[activeScene].media.find(
+          item => item.id === selectedElement.mediaId && item.type === "image"
+        );
+        if (mediaItem) {
+          newClipboardItem.data = { ...mediaItem.element };
+        }
       }
     } else if (selectedElement.type === "video" && selectedElement.mediaId) {
-      // 复制视频元素
-      const mediaItem = currentScenes[activeScene].media.find(
-        item => item.id === selectedElement.mediaId && item.type === "video"
-      );
-      if (mediaItem) {
-        newClipboardItem.data = { ...mediaItem.element };
+      // 确保媒体数组存在
+      if (Array.isArray(currentScenes[activeScene].media)) {
+        // 复制视频元素
+        const mediaItem = currentScenes[activeScene].media.find(
+          item => item.id === selectedElement.mediaId && item.type === "video"
+        );
+        if (mediaItem) {
+          newClipboardItem.data = { ...mediaItem.element };
+        }
       }
     } else if (selectedElement.type === "avatar") {
       // 复制头像元素
@@ -93,11 +107,19 @@ export const usePasteElementOperation = (
 ) => {
   return () => {
     if (!clipboardItem || !clipboardItem.data) return;
+    
+    // 确保场景数组和当前场景存在
+    if (!scenes || !scenes[activeScene]) return;
 
     const newScenes = [...scenes];
     const OFFSET = 20; // 粘贴后的位置偏移量
 
     if (clipboardItem.type === "text") {
+      // 确保文本数组存在
+      if (!Array.isArray(newScenes[activeScene].texts)) {
+        newScenes[activeScene].texts = [];
+      }
+      
       // 粘贴文本元素
       const newText = { 
         ...clipboardItem.data,
@@ -113,6 +135,11 @@ export const usePasteElementOperation = (
         index: newScenes[activeScene].texts.length - 1
       });
     } else if (clipboardItem.type === "image") {
+      // 确保媒体数组存在
+      if (!Array.isArray(newScenes[activeScene].media)) {
+        newScenes[activeScene].media = [];
+      }
+      
       // 粘贴图片元素
       const newMediaId = uuidv4();
       newScenes[activeScene].media.push({
@@ -132,6 +159,11 @@ export const usePasteElementOperation = (
         mediaId: newMediaId
       });
     } else if (clipboardItem.type === "video") {
+      // 确保媒体数组存在
+      if (!Array.isArray(newScenes[activeScene].media)) {
+        newScenes[activeScene].media = [];
+      }
+      
       // 粘贴视频元素
       const newMediaId = uuidv4();
       newScenes[activeScene].media.push({
@@ -179,17 +211,28 @@ export const useDeleteElementOperation = (
 ) => {
   return () => {
     if (!selectedElement) return;
+    
+    // 确保场景数组和当前场景存在
+    if (!scenes || !scenes[activeScene]) return;
 
     const newScenes = [...scenes];
 
     if (selectedElement.type === "text" && selectedElement.index !== undefined) {
-      // 删除指定索引的文本元素
-      newScenes[activeScene].texts.splice(selectedElement.index, 1);
+      // 确保文本数组存在且索引有效
+      if (Array.isArray(newScenes[activeScene].texts) && 
+          selectedElement.index >= 0 && 
+          selectedElement.index < newScenes[activeScene].texts.length) {
+        // 删除指定索引的文本元素
+        newScenes[activeScene].texts.splice(selectedElement.index, 1);
+      }
     } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
-      // 删除指定ID的媒体元素
-      newScenes[activeScene].media = newScenes[activeScene].media.filter(
-        item => item.id !== selectedElement.mediaId
-      );
+      // 确保媒体数组存在
+      if (Array.isArray(newScenes[activeScene].media)) {
+        // 删除指定ID的媒体元素
+        newScenes[activeScene].media = newScenes[activeScene].media.filter(
+          item => item.id !== selectedElement.mediaId
+        );
+      }
     } else if (selectedElement.type === "avatar") {
       // 将选中的元素设置为 null
       newScenes[activeScene].avatar = null;

@@ -5,7 +5,7 @@ import { Rnd } from "react-rnd"
 import { DraggableData, DraggableEvent } from "react-draggable";
 import { checkForSnapping, ElementPosition, AlignmentGuide } from "@/utils/alignment-utils"
 import { AlignmentGuides } from "./alignment-guides"
-
+import { getAnimationClassName } from "@/utils/animation-utils";
 // Import animations
 import "./text-animations.css"
 
@@ -91,7 +91,11 @@ export function ResizableText({
     const displayWidth = width * scaleX;
     const displayHeight = height * scaleY;
     const displayFontSize = fontSize * scale; // 字体大小按比例缩放
-    
+    const animationClassName = getAnimationClassName(
+        animationType,
+        animationBehavior,
+        animationDirection
+    );
     // 确保组件在接收新的 content 时更新本地状态
     useEffect(() => {
         setLocalContent(content);
@@ -199,24 +203,7 @@ export function ResizableText({
                 }}
             >
                 <div
-                    className={`w-full h-full flex items-center ${isSelected ? "outline outline-1 outline-blue-500" : ""} ${
-                        animationType === "fade" && animationBehavior === "enter" ? "animate-fade-in" :
-                        animationType === "fade" && animationBehavior === "exit" ? "animate-fade-out" :
-                        animationType === "fade" && animationBehavior === "both" ? "animate-fade-in" :
-                        animationType === "slide" && animationBehavior === "enter" && animationDirection === "right" ? "animate-slide-in-left" :
-                        animationType === "slide" && animationBehavior === "exit" && animationDirection === "right" ? "animate-slide-out-right" :
-                        animationType === "slide" && animationBehavior === "both" && animationDirection === "right" ? "animate-slide-in-right" :
-                        animationType === "slide" && animationBehavior === "enter" && animationDirection === "left" ? "animate-slide-in-right" :
-                        animationType === "slide" && animationBehavior === "exit" && animationDirection === "left" ? "animate-slide-out-left" :
-                        animationType === "slide" && animationBehavior === "both" && animationDirection === "left" ? "animate-slide-in-left" :
-                        animationType === "slide" && animationBehavior === "enter" && animationDirection === "down" ? "animate-slide-in-down" :
-                        animationType === "slide" && animationBehavior === "exit" && animationDirection === "down" ? "animate-slide-out-down" :
-                        animationType === "slide" && animationBehavior === "both" && animationDirection === "down" ? "animate-slide-in-down" :
-                        animationType === "slide" && animationBehavior === "enter" && animationDirection === "up" ? "animate-slide-in-up" :
-                        animationType === "slide" && animationBehavior === "exit" && animationDirection === "up" ? "animate-slide-out-up" :
-                        animationType === "slide" && animationBehavior === "both" && animationDirection === "up" ? "animate-slide-in-up" :
-                        ""
-                    }`}
+                    className={`w-full h-full flex items-center ${isSelected ? "outline outline-1 outline-blue-500" : ""} ${animationClassName}`}
                     style={{
                         ...textStyle,
                         transform: `rotate(${rotation}deg)`,

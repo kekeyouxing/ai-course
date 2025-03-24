@@ -27,7 +27,7 @@ export const routes: RouteObject[] = [
             },
             {
                 path: "videolab",
-                element: <VideoLabPage/>,
+                element: <AuthRoute key={Date.now()}><VideoLabPage/></AuthRoute>,
                 handle: {
                     breadcrumb: "我的数字人",
                     pathSegments: ["videolab"] // 明确层级关系
@@ -57,7 +57,7 @@ export const routes: RouteObject[] = [
     },
     {
         path: "projects/:id", // 独立路径
-        element: <AnimationMarkersProvider><VideoEditor/></AnimationMarkersProvider>, // 独立页面
+        element: <AuthRoute key={Date.now()}><AnimationMarkersProvider><VideoEditor/></AnimationMarkersProvider></AuthRoute>, // 独立页面
     },
     {
         path: "clone", // 独立路径

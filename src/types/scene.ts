@@ -22,8 +22,8 @@ export interface TextElement {
     animationType?: "none" | "fade" | "slide";
     animationBehavior?: "enter" | "exit" | "both";
     animationDirection?: "right" | "left" | "down" | "up";
-    startMarkerId?: string; // 开始动画的标记ID
-    endMarkerId?: string;   // 结束动画的标记ID
+    startTime?: number; // 开始动画的标记ID
+    endTime?: number;   // 结束动画的标记ID
 }
 
 // 图片元素接口
@@ -39,8 +39,8 @@ export interface ImageElement {
     animationType?: "none" | "fade" | "slide";
     animationBehavior?: "enter" | "exit" | "both";
     animationDirection?: "right" | "left" | "down" | "up";
-    startMarkerId?: string; // 开始动画的标记ID
-    endMarkerId?: string;   // 结束动画的标记ID
+    startTime?: number; // 开始动画的标记ID
+    endTime?: number;   // 结束动画的标记ID
 }
 
 // 视频元素接口
@@ -62,8 +62,8 @@ export interface VideoElement {
     animationType?: "none" | "fade" | "slide";
     animationBehavior?: "enter" | "exit" | "both";
     animationDirection?: "right" | "left" | "down" | "up";
-    startMarkerId?: string; // 开始动画的标记ID
-    endMarkerId?: string;   // 结束动画的标记ID
+    startTime?: number; // 开始动画的标记ID
+    endTime?: number;   // 结束动画的标记ID
 }
 
 // 媒体类型基础接口
@@ -116,14 +116,12 @@ export interface ColorBackground extends BackgroundBase {
 export interface ImageBackground extends BackgroundBase {
     type: "image";
     src: string;
-    title: string;
 }
 
 // 视频背景
 export interface VideoBackground extends BackgroundBase {
     type: "video";
     src: string;
-    title: string;
     duration: string;
     thumbnail?: string; // 添加缩略图字段
     volume?: number; // 音量，0-1之间
@@ -137,12 +135,13 @@ export type Background = ColorBackground | ImageBackground | VideoBackground;
 export interface Scene {
     id: string      // 添加唯一标识符
     title: string
-    media: Media
-    texts: TextElement[]
-    avatar: AvatarElement | null
+    media?: Media
+    texts?: TextElement[]
+    avatar?: AvatarElement | null
     background: Background
     script?: string  // 添加脚本字段
     audioSrc?: string
+    duration?: number
     aspectRatio?: AspectRatioType  // 添加宽高比例字段
 }
 
@@ -151,4 +150,19 @@ export interface SelectedElementType {
     type: "text" | "image" | "video" | "avatar"
     index?: number
     mediaId?: string // 添加媒体ID用于标识特定媒体元素
+}
+// 项目状态
+export type ProjectStatus = "draft" | "published";
+
+// 项目接口
+export interface Project {
+    id: string                  // 项目唯一标识符
+    name: string                // 项目名称
+    scenes: Scene[]             // 项目包含的场景
+    createdAt: Date             // 创建时间
+    updatedAt: Date             // 最后更新时间
+    status: ProjectStatus       // 项目状态
+    thumbnail?: string          // 项目缩略图
+    originalPptUrl?: string     // 原始PPT文件URL（如果是从PPT导入）
+    createdBy?: string          // 创建者ID
 }

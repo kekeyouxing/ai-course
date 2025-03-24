@@ -11,7 +11,6 @@ import {
     Maximize2,
     SkipBack,
     SkipForward,
-    Download
 } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
 import { Scene, ImageMedia, VideoMedia, AspectRatioType } from "@/types/scene"
@@ -37,7 +36,7 @@ export default function PreviewModal({
     const [currentTime, setCurrentTime] = useState(0)
     const [volume, setVolume] = useState(50)
     const [isMuted, setIsMuted] = useState(false)
-    const [duration, setDuration] = useState(60) // 默认60秒
+    const [duration, setDuration] = useState(60) // 默认60秒，但会被场景的duration覆盖
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [isFullscreen, setIsFullscreen] = useState(false)
@@ -147,7 +146,6 @@ export default function PreviewModal({
         // 如果 ResizeObserver 没有立即触发，使用定时器作为备选方案
         const timer = setTimeout(() => {
             if (!containerReady) {
-                console.log("使用定时器强制设置容器就绪");
                 setContainerReady(true);
                 setSceneDataLoaded(true);
                 // 强制重新渲染
@@ -723,4 +721,40 @@ export default function PreviewModal({
             </DialogContent>
         </Dialog>
     );
+
+    // 更新场景时设置时长
+    useEffect(() => {
+        if (!open) return;
+        
+        const scene = scenes[currentSceneIndex] || currentScene;
+        if (!scene) return;
+        
+        // 如果场景有自定义时长，使用该时长
+        if (scene.duration) {
+            setDuration(scene.duration);
+        } else if (scene.audioSrc && audioRef.current) {
+            // 如果场景有音频，尝试使用音频时长
+            const handleLoadedMetadata = () => {
+                if (audioRef.current && audioRef.current.duration) {
+                    setDuration(audioRef.current.duration);
+                }
+            };
+            
+            audioRef.current.addEventListener('loadedmetadata', handleLoadedMetadata);
+            
+            // 如果音频已经加载完成，直接设置时长
+            if (audioRef.current.readyState >= 2 && audioRef.current.duration) {
+                setDuration(audioRef.current.duration);
+            }
+            
+            return () => {
+                if (audioRef.current) {
+                    audioRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
+                }
+            };
+        } else {
+            // 否则使用默认时长
+            setDuration(60);
+        }
+    }, [open, currentSceneIndex, scenes, currentScene]);
 }

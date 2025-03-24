@@ -42,7 +42,7 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
   // 根据当前场景ID过滤标记
   const currentSceneMarkers = currentSceneId ? getMarkersBySceneId(currentSceneId) : [];
   // 按时间排序标记
-  const sortedMarkers = [...currentSceneMarkers].sort((a, b) => a.timePercent - b.timePercent);
+  const sortedMarkers = [...currentSceneMarkers].sort((a, b) => a.time - b.time);
 
   // 当选中的视频元素变化时，更新状态
   useEffect(() => {
@@ -118,18 +118,24 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
   // 修改开始时间和结束时间的下拉选择器
   const renderStartAtSelect = () => (
     <Select
-      value={videoElement?.startMarkerId || "default"}
+      value={videoElement?.startTime?.toString() || "default"}
       onValueChange={(value) => {
-        const markerId = value === "default" ? undefined : value;
-        onUpdate({ startMarkerId: markerId });
+        if (value === "default") {
+          onUpdate({ startTime: undefined });
+        } else {
+          // 将选中的时间值转换为数字并更新
+          const timeValue = parseFloat(value);
+          onUpdate({ startTime: timeValue });
+        }
       }}
     >
       <SelectTrigger className="w-36">
         <SelectValue placeholder="选择时间" />
       </SelectTrigger>
       <SelectContent>
+        <SelectItem value="default">无</SelectItem>
         {sortedMarkers.map(marker => (
-          <SelectItem key={marker.id} value={marker.id}>
+          <SelectItem key={marker.id} value={marker.time.toString()}>
             <div className="flex items-center space-x-2">
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
                 动画
@@ -144,18 +150,24 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
 
   const renderEndAtSelect = () => (
     <Select
-      value={videoElement?.endMarkerId || "default"}
+      value={videoElement?.endTime?.toString() || "default"}
       onValueChange={(value) => {
-        const markerId = value === "default" ? undefined : value;
-        onUpdate({ endMarkerId: markerId });
+        if (value === "default") {
+          onUpdate({ endTime: undefined });
+        } else {
+          // 将选中的时间值转换为数字并更新
+          const timeValue = parseFloat(value);
+          onUpdate({ endTime: timeValue });
+        }
       }}
     >
       <SelectTrigger className="w-36">
         <SelectValue placeholder="选择时间" />
       </SelectTrigger>
       <SelectContent>
+        <SelectItem value="default">无</SelectItem>
         {sortedMarkers.map(marker => (
-          <SelectItem key={marker.id} value={marker.id}>
+          <SelectItem key={marker.id} value={marker.time.toString()}>
             <div className="flex items-center space-x-2">
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
                 动画

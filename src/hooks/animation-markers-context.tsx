@@ -6,7 +6,7 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 export interface AnimationMarker {
   id: string;
   name: string;
-  timePercent: number;
+  time: number;
   description?: string;
   sceneId?: string; // 添加场景ID关联
 }
