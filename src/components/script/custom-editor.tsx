@@ -225,29 +225,13 @@ function EditorContainer({
         addMarker({
           id: markerId,
           name: "未命名动画",
-          timePercent: 0,
+          time: 0,
           description: contextText
         });
       }
     });
   }, [editor, addMarker]);
 
-  // todo 删除动画标记
-  // Handle keyboard events
-  // const handleKeyDown = useCallback(
-  //   (event: React.KeyboardEvent<HTMLDivElement>) => {
-  //     if (event.key === 'Delete' || event.key === 'Backspace') {
-  //       // Try to delete tag
-  //       const deleted = deleteTag();
-
-  //       // If tag was deleted, prevent default behavior
-  //       if (deleted) {
-  //         event.preventDefault();
-  //       }
-  //     }
-  //   },
-  //   [deleteTag]
-  // );
 
   // Expose methods to parent component
   useImperativeHandle(
@@ -291,7 +275,7 @@ const CustomEditor = React.forwardRef<
   const {
     value,
     onChange,
-    placeholder = "在此输入您的脚本...",
+    placeholder = "",
     className = ""
   } = props;
 
