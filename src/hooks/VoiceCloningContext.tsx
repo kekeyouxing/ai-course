@@ -1,7 +1,8 @@
 // src/context/VoiceCloningContext.tsx
 import instance from '@/api/axios';
 import React, {createContext, Dispatch, SetStateAction, useContext, useState} from 'react';
-interface AliyunImageProcessResponse {
+
+export interface AliyunImageProcessResponse {
     checkPass: boolean;
     faceBBox: number[];
     extBBox: number[];
@@ -12,10 +13,12 @@ interface VoiceCloningContextProps {
     setVoiceName: (name: string) => void;
     voiceId: string;
     setVoiceId: (id: string) => void;
-    language: "chinese" | "english";
-    setLanguage: Dispatch<SetStateAction<"chinese" | "english">>;
-    gender: "male" | "female";
-    setGender: Dispatch<SetStateAction<"male" | "female">>;
+    // 修改 language 类型
+    language: "中文" | "英语";
+    setLanguage: Dispatch<SetStateAction<"中文" | "英语">>;
+    // 修改 gender 类型
+    gender: "男" | "女";
+    setGender: Dispatch<SetStateAction<"男" | "女">>;
     audioUrl: string | null;
     setAudioUrl: (url: string | null) => void;
     avatarUrl: string | null;
@@ -32,15 +35,30 @@ const VoiceCloningContext = createContext<VoiceCloningContextProps | undefined>(
 
 export const VoiceCloningProvider: React.FC<{ children: React.ReactNode }> = ({children}) => {
     const [voiceName, setVoiceName] = useState("")
-    const [gender, setGender] = useState<"male" | "female">("male");
+    // 修改 gender 默认值
+    const [gender, setGender] = useState<"男" | "女">("男");
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-    const [language, setLanguage] = useState<"chinese" | "english">("chinese");
+    // 修改 language 默认值
+    const [language, setLanguage] = useState<"中文" | "英语">("中文");
     const [detectionResult, setDetectionResult] = useState<AliyunImageProcessResponse | null>(null);
     const [voiceId, setVoiceId] = useState("");
     const [fileId, setFileId] = useState(0);
     const submitData = async () => {
-        const data = {voiceName, gender, avatarUrl, detectionResult, audioUrl, voiceId, language, fileId};
+        // 在提交数据时进行映射转换，保持API兼容性
+        const apiGender = gender === "男" ? "male" : "female";
+        const apiLanguage = language === "中文" ? "chinese" : "english";
+        
+        const data = {
+            voiceName, 
+            gender: apiGender, 
+            avatarUrl, 
+            detectionResult, 
+            audioUrl, 
+            voiceId, 
+            language: apiLanguage, 
+            fileId
+        };
         try {
             const response = await instance.post('/characters/create', data);
             if (response.status !== 200) {
@@ -57,9 +75,10 @@ export const VoiceCloningProvider: React.FC<{ children: React.ReactNode }> = ({c
 
     // discard data
     const discardData = async () => {
-        setLanguage("chinese");
+        // 修改默认值
+        setLanguage("中文");
         setVoiceName("");
-        setGender("male")
+        setGender("男")
         setAudioUrl(null);
         setAvatarUrl(null);
     }

@@ -59,7 +59,7 @@ import { useAnimationMarkers } from "@/hooks/animation-markers-context";
 import MediaContent from "@/components/media/media-content";
 import { getScenesByProjectId } from "@/api/scene";
 import { toast } from "sonner";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useElementOperations } from "@/hooks/use-element-operations";
 
 export default function VideoEditor() {
@@ -103,19 +103,25 @@ export default function VideoEditor() {
     const editorRef = useRef<HTMLDivElement>(null);
     // 添加预览容器尺寸状态，初始化为当前比例对应的尺寸
     const { previewDimensions, setPreviewDimensions } = usePreviewDimensions(editorRef, currentAspectRatio);
+    const navigate = useNavigate();
     useEffect(() => {
         const fetchScenes = async () => {
             setIsLoading(true); // 开始加载
             try {
                 const scenesWithDates = projectId ? await getScenesByProjectId(projectId) : [];
+                // 如果有 projectId 但没有找到场景数据，重定向到 404 页面
+                if (projectId && (!scenesWithDates || scenesWithDates.length === 0)) {
+                    navigate("/404"); // 使用 navigate 进行重定向
+                    return;
+                }
                 setScenes(scenesWithDates);
-                
+
                 // 设置宽高比
                 const initialAspectRatio = scenesWithDates[0]?.aspectRatio || "16:9";
-                
+
                 setAspectRatio(initialAspectRatio);
                 setHistory([scenesWithDates]);
-                
+
                 // 等待DOM更新后计算预览尺寸
                 setTimeout(() => {
                     // 获取容器元素
@@ -123,15 +129,15 @@ export default function VideoEditor() {
                     if (mainContainer) {
                         // 获取容器尺寸
                         const { width, height } = mainContainer.getBoundingClientRect();
-                        
+
                         // 获取画布尺寸
                         const canvasDimensions = CANVAS_DIMENSIONS[initialAspectRatio];
                         const canvasRatio = canvasDimensions.width / canvasDimensions.height;
-                        
+
                         // 计算预览尺寸
                         let previewWidth, previewHeight;
                         const containerRatio = width / height;
-                        
+
                         if (containerRatio > canvasRatio) {
                             // 容器更宽，以高度为基准
                             previewHeight = height * 0.9; // 留一些边距
@@ -141,7 +147,7 @@ export default function VideoEditor() {
                             previewWidth = width * 0.9; // 留一些边距
                             previewHeight = previewWidth / canvasRatio;
                         }
-                        
+
                         // 更新预览尺寸
                         setPreviewDimensions({
                             width: previewWidth,
@@ -156,7 +162,7 @@ export default function VideoEditor() {
                 setIsLoading(false); // 结束加载
             }
         };
-    
+
         if (projectId) {
             fetchScenes();
         }
@@ -385,185 +391,188 @@ export default function VideoEditor() {
 
     return (
         <div className="flex flex-col h-screen bg-white">
-                        {isLoading ? (
+            {isLoading ? (
                 // 加载中的界面
                 <div>
                 </div>
             ) : (
-            <>
-                {/* Top Navigation */}
-                <VideoHeader
-                    videoTitle={videoTitle}
-                    setVideoTitle={setVideoTitle}
-                    handleUndo={handleUndo}
-                    handleRedo={handleRedo}
-                    historyIndex={historyIndex}
-                    historyLength={history.length}
-                    currentScene={scenes[activeScene]}
-                    scenes={scenes}
-                    activeSceneIndex={activeScene}
-                    aspectRatio={aspectRatio}
-                    onAspectRatioChange={handleAspectRatioChange}
-                />
+                <>
+                    {/* Top Navigation */}
+                    <VideoHeader
+                        videoTitle={videoTitle}
+                        setVideoTitle={setVideoTitle}
+                        handleUndo={handleUndo}
+                        handleRedo={handleRedo}
+                        historyIndex={historyIndex}
+                        historyLength={history.length}
+                        currentScene={scenes[activeScene]}
+                        scenes={scenes}
+                        activeSceneIndex={activeScene}
+                        aspectRatio={aspectRatio}
+                        onAspectRatioChange={handleAspectRatioChange}
+                    />
 
-                <VideoTabs
-                    tabs={tabs}
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                    onSelectTextType={handleAddTextElement} // 更新引用
-                />
+                    <VideoTabs
+                        tabs={tabs}
+                        activeTab={activeTab}
+                        setActiveTab={setActiveTab}
+                        onSelectTextType={handleAddTextElement} // 更新引用
+                    />
 
-                {/* Main Content */}
-                <ResizablePanelGroup direction="horizontal" className="flex-1">
-                    {/* Left Sidebar - Tools */}
-                    <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
-                        <div className="flex-1 overflow-y-auto">{renderTabContent()}</div>
-                    </ResizablePanel>
-                    {/* 添加调整手柄 */}
-                    <ResizableHandle />
-                    {/* Main Editor Area */}
-                    <ResizablePanel defaultSize={75}>
-                        <div className="h-full flex flex-col bg-gray-100">
-                            {/* 直接集成 VideoPreview 的内容 */}
-                            <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
-                                <div
-                                    style={{
-                                        width: previewDimensions.width,
-                                        height: previewDimensions.height,
-                                        position: 'relative',
-                                        transition: 'width 0.3s, height 0.3s'
-                                    }}
-                                    className="shadow-md"
-                                >
-                                    <BackgroundRenderer
-                                        background={scenes[activeScene].background}
-                                        onClick={(e: React.MouseEvent) => {
-                                            if (e.target === e.currentTarget) {
-                                                setSelectedElement(null)
-                                            }
-                                        }}
-                                        editorRef={editorRef}
+                    {/* Main Content */}
+                    <ResizablePanelGroup direction="horizontal" className="flex-1">
+                        {/* Left Sidebar - Tools */}
+                        <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
+                            <div className="flex-1 overflow-y-auto">{renderTabContent()}</div>
+                        </ResizablePanel>
+                        {/* 添加调整手柄 */}
+                        <ResizableHandle />
+                        {/* Main Editor Area */}
+                        <ResizablePanel defaultSize={75}>
+                            <div className="h-full flex flex-col bg-gray-100">
+                                {/* 直接集成 VideoPreview 的内容 */}
+                                <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
+                                    <div
                                         style={{
-                                            width: '100%',
-                                            height: '100%',
-                                            position: 'absolute',
-                                            top: 0,
-                                            left: 0,
-                                            overflow: 'hidden' // 确保内容不溢出
+                                            width: previewDimensions.width,
+                                            height: previewDimensions.height,
+                                            position: 'relative',
+                                            transition: 'width 0.3s, height 0.3s'
                                         }}
+                                        className="shadow-md"
                                     >
-                                        {scenes[activeScene].texts?.map((text, index) => (
-                                            <ElementContextMenu
-                                                key={index}
-                                                onBringToFront={handleBringToFront}
-                                                onSendToBack={handleSendToBack}
-                                                onBringForward={handleBringForward}
-                                                onSendBackward={handleSendBackward}
-                                                disabled={!(selectedElement?.type === "text" && selectedElement.index === index)}
-                                            >
-                                                <ResizableText
-                                                    {...text}
-                                                    canvasWidth={currentCanvasDimensions.width}
-                                                    canvasHeight={currentCanvasDimensions.height}
-                                                    containerWidth={previewDimensions.width}
-                                                    containerHeight={previewDimensions.height}
-                                                    onTextChange={handleTextChange}
-                                                    onResize={handleTextUpdate}
-                                                    onSelect={() => handleElementSelect({ type: "text", index })}
-                                                    isSelected={selectedElement?.type === "text" && selectedElement.index === index}
-                                                    otherElements={getAllElementsForAlignment(scenes[activeScene], undefined, "text", index)}
-                                                />
-                                            </ElementContextMenu>
-                                        ))}
-                                        {/* 渲染媒体元素 */}
-                                        {scenes[activeScene].media?.map((mediaItem) => {
-                                            if (mediaItem.type === "image") {
-                                                return (
-                                                    <ElementContextMenu
-                                                        key={mediaItem.id}
-                                                        onBringToFront={handleBringToFront}
-                                                        onSendToBack={handleSendToBack}
-                                                        onBringForward={handleBringForward}
-                                                        onSendBackward={handleSendBackward}
-                                                        disabled={!(selectedElement?.type === "image" && selectedElement.mediaId === mediaItem.id)}
-                                                    >
-                                                        <ResizableImage
-                                                            {...(mediaItem as ImageMedia).element}
-                                                            onResize={(newSize) => handleImageResize(newSize, mediaItem.id!)}
-                                                            onSelect={() => handleElementSelect({ type: "image", mediaId: mediaItem.id })}
-                                                            isSelected={selectedElement?.type === "image" && selectedElement.mediaId === mediaItem.id}
-                                                            canvasWidth={currentCanvasDimensions.width}
-                                                            canvasHeight={currentCanvasDimensions.height}
-                                                            containerWidth={previewDimensions.width}
-                                                            containerHeight={previewDimensions.height}
-                                                            otherElements={getAllElementsForAlignment(scenes[activeScene], mediaItem.id, "image")}
-                                                        />
-                                                    </ElementContextMenu>
-                                                );
-                                            } else if (mediaItem.type === "video") {
-                                                return (
-                                                    <ElementContextMenu
-                                                        key={mediaItem.id}
-                                                        onBringToFront={handleBringToFront}
-                                                        onSendToBack={handleSendToBack}
-                                                        onBringForward={handleBringForward}
-                                                        onSendBackward={handleSendBackward}
-                                                        disabled={!(selectedElement?.type === "video" && selectedElement.mediaId === mediaItem.id)}
-                                                    >
-                                                        <ResizableVideo
-                                                            {...(mediaItem as VideoMedia).element}
-                                                            onResize={(newSize) => handleVideoResize(newSize, mediaItem.id!)}
-                                                            onSelect={() => handleElementSelect({ type: "video", mediaId: mediaItem.id })}
-                                                            isSelected={selectedElement?.type === "video" && selectedElement.mediaId === mediaItem.id}
-                                                            canvasWidth={currentCanvasDimensions.width}
-                                                            canvasHeight={currentCanvasDimensions.height}
-                                                            containerWidth={previewDimensions.width}
-                                                            containerHeight={previewDimensions.height}
-                                                            otherElements={getAllElementsForAlignment(scenes[activeScene], mediaItem.id, "video")}
-                                                        />
-                                                    </ElementContextMenu>
-                                                );
-                                            }
-                                            return null;
-                                        })}
+                                        <BackgroundRenderer
+                                            background={scenes[activeScene].background || {
+                                                type: "color",
+                                                color: "#FFFFFF"
+                                            }}
+                                            onClick={(e: React.MouseEvent) => {
+                                                if (e.target === e.currentTarget) {
+                                                    setSelectedElement(null)
+                                                }
+                                            }}
+                                            editorRef={editorRef}
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                overflow: 'hidden' // 确保内容不溢出
+                                            }}
+                                        >
+                                            {scenes[activeScene].texts?.map((text, index) => (
+                                                <ElementContextMenu
+                                                    key={index}
+                                                    onBringToFront={handleBringToFront}
+                                                    onSendToBack={handleSendToBack}
+                                                    onBringForward={handleBringForward}
+                                                    onSendBackward={handleSendBackward}
+                                                    disabled={!(selectedElement?.type === "text" && selectedElement.index === index)}
+                                                >
+                                                    <ResizableText
+                                                        {...text}
+                                                        canvasWidth={currentCanvasDimensions.width}
+                                                        canvasHeight={currentCanvasDimensions.height}
+                                                        containerWidth={previewDimensions.width}
+                                                        containerHeight={previewDimensions.height}
+                                                        onTextChange={handleTextChange}
+                                                        onResize={handleTextUpdate}
+                                                        onSelect={() => handleElementSelect({ type: "text", index })}
+                                                        isSelected={selectedElement?.type === "text" && selectedElement.index === index}
+                                                        otherElements={getAllElementsForAlignment(scenes[activeScene], undefined, "text", index)}
+                                                    />
+                                                </ElementContextMenu>
+                                            ))}
+                                            {/* 渲染媒体元素 */}
+                                            {scenes[activeScene].media?.map((mediaItem) => {
+                                                if (mediaItem.type === "image") {
+                                                    return (
+                                                        <ElementContextMenu
+                                                            key={mediaItem.id}
+                                                            onBringToFront={handleBringToFront}
+                                                            onSendToBack={handleSendToBack}
+                                                            onBringForward={handleBringForward}
+                                                            onSendBackward={handleSendBackward}
+                                                            disabled={!(selectedElement?.type === "image" && selectedElement.mediaId === mediaItem.id)}
+                                                        >
+                                                            <ResizableImage
+                                                                {...(mediaItem as ImageMedia).element}
+                                                                onResize={(newSize) => handleImageResize(newSize, mediaItem.id!)}
+                                                                onSelect={() => handleElementSelect({ type: "image", mediaId: mediaItem.id })}
+                                                                isSelected={selectedElement?.type === "image" && selectedElement.mediaId === mediaItem.id}
+                                                                canvasWidth={currentCanvasDimensions.width}
+                                                                canvasHeight={currentCanvasDimensions.height}
+                                                                containerWidth={previewDimensions.width}
+                                                                containerHeight={previewDimensions.height}
+                                                                otherElements={getAllElementsForAlignment(scenes[activeScene], mediaItem.id, "image")}
+                                                            />
+                                                        </ElementContextMenu>
+                                                    );
+                                                } else if (mediaItem.type === "video") {
+                                                    return (
+                                                        <ElementContextMenu
+                                                            key={mediaItem.id}
+                                                            onBringToFront={handleBringToFront}
+                                                            onSendToBack={handleSendToBack}
+                                                            onBringForward={handleBringForward}
+                                                            onSendBackward={handleSendBackward}
+                                                            disabled={!(selectedElement?.type === "video" && selectedElement.mediaId === mediaItem.id)}
+                                                        >
+                                                            <ResizableVideo
+                                                                {...(mediaItem as VideoMedia).element}
+                                                                onResize={(newSize) => handleVideoResize(newSize, mediaItem.id!)}
+                                                                onSelect={() => handleElementSelect({ type: "video", mediaId: mediaItem.id })}
+                                                                isSelected={selectedElement?.type === "video" && selectedElement.mediaId === mediaItem.id}
+                                                                canvasWidth={currentCanvasDimensions.width}
+                                                                canvasHeight={currentCanvasDimensions.height}
+                                                                containerWidth={previewDimensions.width}
+                                                                containerHeight={previewDimensions.height}
+                                                                otherElements={getAllElementsForAlignment(scenes[activeScene], mediaItem.id, "video")}
+                                                            />
+                                                        </ElementContextMenu>
+                                                    );
+                                                }
+                                                return null;
+                                            })}
 
-                                        {scenes[activeScene].avatar && (
-                                            <ElementContextMenu
-                                                onBringToFront={handleBringToFront}
-                                                onSendToBack={handleSendToBack}
-                                                onBringForward={handleBringForward}
-                                                onSendBackward={handleSendBackward}
-                                                disabled={!(selectedElement?.type === "avatar")}
-                                            >
-                                                <ResizableAvatar
-                                                    {...scenes[activeScene].avatar}
-                                                    onResize={handleAvatarResize}
-                                                    onSelect={() => handleElementSelect({ type: "avatar" })}
-                                                    isSelected={selectedElement?.type === "avatar"}
-                                                    canvasWidth={currentCanvasDimensions.width}
-                                                    canvasHeight={currentCanvasDimensions.height}
-                                                    containerWidth={previewDimensions.width}
-                                                    containerHeight={previewDimensions.height}
-                                                    otherElements={getAllElementsForAlignment(scenes[activeScene], undefined, "avatar")}
-                                                />
-                                            </ElementContextMenu>
-                                        )}
-                                    </BackgroundRenderer>
+                                            {scenes[activeScene].avatar && (
+                                                <ElementContextMenu
+                                                    onBringToFront={handleBringToFront}
+                                                    onSendToBack={handleSendToBack}
+                                                    onBringForward={handleBringForward}
+                                                    onSendBackward={handleSendBackward}
+                                                    disabled={!(selectedElement?.type === "avatar")}
+                                                >
+                                                    <ResizableAvatar
+                                                        {...scenes[activeScene].avatar}
+                                                        onResize={handleAvatarResize}
+                                                        onSelect={() => handleElementSelect({ type: "avatar" })}
+                                                        isSelected={selectedElement?.type === "avatar"}
+                                                        canvasWidth={currentCanvasDimensions.width}
+                                                        canvasHeight={currentCanvasDimensions.height}
+                                                        containerWidth={previewDimensions.width}
+                                                        containerHeight={previewDimensions.height}
+                                                        otherElements={getAllElementsForAlignment(scenes[activeScene], undefined, "avatar")}
+                                                    />
+                                                </ElementContextMenu>
+                                            )}
+                                        </BackgroundRenderer>
+                                    </div>
                                 </div>
+                                {/* Timeline */}
+                                <VideoTimeline
+                                    scenes={scenes}
+                                    activeScene={activeScene}
+                                    handleSceneClick={handleSceneClick}
+                                    addNewScene={addNewScene}
+                                />
                             </div>
-                            {/* Timeline */}
-                            <VideoTimeline
-                                scenes={scenes}
-                                activeScene={activeScene}
-                                handleSceneClick={handleSceneClick}
-                                addNewScene={addNewScene}
-                            />
-                        </div>
-                    </ResizablePanel>
-                </ResizablePanelGroup>
-            </>
+                        </ResizablePanel>
+                    </ResizablePanelGroup>
+                </>
             )}
-            </div>
-        );
-    }
+        </div>
+    );
+}
 

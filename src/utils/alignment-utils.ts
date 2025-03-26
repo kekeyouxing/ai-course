@@ -46,28 +46,32 @@ export function getAllElementsForAlignment(
   });
   
   // Add image elements
-  scene.media
-    .filter((m: any) => m.type === "image" && m.id !== excludeId)
-    .forEach((m: any) => {
-      elements.push({
-        x: m.element.x,
-        y: m.element.y,
-        width: m.element.width,
-        height: m.element.height
+  if (scene.media) {
+    scene.media
+      .filter((m: any) => m && m.type === "image" && m.id !== excludeId && m.element)
+      .forEach((m: any) => {
+        elements.push({
+          x: m.element.x,
+          y: m.element.y,
+          width: m.element.width,
+          height: m.element.height
+        });
       });
-    });
+  }
   
   // Add video elements
-  scene.media
-    .filter((m: any) => m.type === "video" && m.id !== excludeId)
-    .forEach((m: any) => {
-      elements.push({
-        x: m.element.x,
-        y: m.element.y,
-        width: m.element.width,
-        height: m.element.height
+  if (scene.media) {
+    scene.media
+      .filter((m: any) => m && m.type === "video" && m.id !== excludeId && m.element)
+      .forEach((m: any) => {
+        elements.push({
+          x: m.element.x,
+          y: m.element.y,
+          width: m.element.width,
+          height: m.element.height
+        });
       });
-    });
+  }
   
   // Add avatar element if exists
   if (scene.avatar && !(excludeType === 'avatar')) {

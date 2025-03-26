@@ -79,14 +79,14 @@ export default function VoiceCloningUI() {
                             )}
                         </div>
 
-                        {/* Gender Selection */}
+                        {/* Gender Selection - 修改这里的按钮点击事件和条件判断 */}
                         <div className="space-y-3">
                             <h3 className="text-sm font-medium text-gray-700">性别</h3>
 
                             <div className="grid grid-cols-2 gap-3">
                                 <button
-                                    onClick={() => setGender("male")}
-                                    className={`flex items-center justify-center gap-2 py-3 px-4 rounded-full text-sm ${gender === "male" ? "bg-gray-200 text-gray-800" : "bg-white text-gray-500 border border-gray-200"
+                                    onClick={() => setGender("男")}
+                                    className={`flex items-center justify-center gap-2 py-3 px-4 rounded-full text-sm ${gender === "男" ? "bg-gray-200 text-gray-800" : "bg-white text-gray-500 border border-gray-200"
                                         }`}
                                 >
                                     <Male className="w-4 h-4" />
@@ -94,8 +94,8 @@ export default function VoiceCloningUI() {
                                 </button>
 
                                 <button
-                                    onClick={() => setGender("female")}
-                                    className={`flex items-center justify-center gap-2 py-3 px-4 rounded-full text-sm ${gender === "female" ? "bg-gray-200 text-gray-800" : "bg-white text-gray-500 border border-gray-200"
+                                    onClick={() => setGender("女")}
+                                    className={`flex items-center justify-center gap-2 py-3 px-4 rounded-full text-sm ${gender === "女" ? "bg-gray-200 text-gray-800" : "bg-white text-gray-500 border border-gray-200"
                                         }`}
                                 >
                                     <Female className="w-4 h-4" />
@@ -103,14 +103,14 @@ export default function VoiceCloningUI() {
                                 </button>
                             </div>
                         </div>
-                        {/* Language Selection */}
+                        {/* Language Selection - 修改这里的按钮点击事件和条件判断 */}
                         <div className="space-y-3">
                             <h3 className="text-sm font-medium text-gray-700">语言</h3>
 
                             <div className="grid grid-cols-2 gap-3">
                                 <button
-                                    onClick={() => setLanguage("chinese")}
-                                    className={`flex items-center justify-center gap-2 py-3 px-4 rounded-full text-sm ${language === "chinese" ? "bg-gray-200 text-gray-800" : "bg-white text-gray-500 border border-gray-200"
+                                    onClick={() => setLanguage("中文")}
+                                    className={`flex items-center justify-center gap-2 py-3 px-4 rounded-full text-sm ${language === "中文" ? "bg-gray-200 text-gray-800" : "bg-white text-gray-500 border border-gray-200"
                                         }`}
                                 >
                                     <span className="w-4 h-4">🇨🇳</span>
@@ -118,12 +118,12 @@ export default function VoiceCloningUI() {
                                 </button>
 
                                 <button
-                                    onClick={() => setLanguage("english")}
-                                    className={`flex items-center justify-center gap-2 py-3 px-4 rounded-full text-sm ${language === "english" ? "bg-gray-200 text-gray-800" : "bg-white text-gray-500 border border-gray-200"
+                                    onClick={() => setLanguage("英语")}
+                                    className={`flex items-center justify-center gap-2 py-3 px-4 rounded-full text-sm ${language === "英语" ? "bg-gray-200 text-gray-800" : "bg-white text-gray-500 border border-gray-200"
                                         }`}
                                 >
                                     <span className="w-4 h-4">🇬🇧</span>
-                                    英文
+                                    英语
                                 </button>
                             </div>
                         </div>

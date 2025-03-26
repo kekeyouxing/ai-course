@@ -1,5 +1,6 @@
 "use client"
 
+// 导入部分修改
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -12,7 +13,8 @@ import {
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import instance from '@/api/axios'
+// 导入新的API函数和类型
+import { getVoices, deleteClonedVoice, SystemVoice, ClonedVoice } from "@/api/character"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -24,29 +26,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-// 系统声音数据结构
-interface SystemVoice {
-    voice_id: string;
-    voice_name: string;
-    description: string;
-    audio_url: string;
-    gender: string;
-    language: string;
-}
-
-// 自定义声音数据结构
-interface ClonedVoice {
-    character_id: string;
-    voice_id: string;
-    created_time: string;
-    name: string;
-    avatar_url: string;
-    gender: string;
-    language: string;
-    face_bbox: number[];
-    ext_bbox: number[];
-    audio_url: string;
-}
+// 移除重复的类型定义，因为已经从character.ts导入
 
 // 初始化空数组
 const initialDefaultVoices: SystemVoice[] = [];
@@ -94,20 +74,17 @@ export default function VideoLabPage() {
             setPlayingVoiceId(voice.voice_id);
         }
     };
-    // 获取系统声音数据
+    // 修改获取声音数据的函数
     const fetchVoices = async () => {
-        try {
-            const response = await instance.get('/characters/voices');
-            if (response.data && response.data.code == 0) {
-                setDefaultVoices(response.data.data.system_voice || []);
-                setCustomVoices(response.data.data.voice_cloning || [])
-                setFilteredDefaultVoices(response.data.data.system_voice || []);
-                setFilteredCustomVoices(response.data.data.voice_cloning || []);
-            } else {
-                console.error('获取系统声音失败:', response.data?.message);
-            }
-        } catch (error) {
-            console.error('获取系统声音出错:', error);
+        const result = await getVoices();
+        if (result.success) {
+            setDefaultVoices(result.systemVoices);
+            setCustomVoices(result.clonedVoices);
+            setFilteredDefaultVoices(result.systemVoices);
+            setFilteredCustomVoices(result.clonedVoices);
+        } else {
+            console.error('获取声音数据失败:', result.message);
+            // 可以添加错误提示
         }
     };
 
@@ -205,25 +182,20 @@ export default function VideoLabPage() {
     const handleDeleteConfirm = async () => {
         if (!voiceToDelete) return;
 
-        try {
-            const response = await instance.delete(`/characters/voice/delete/${voiceToDelete.character_id}`);
-            if (response.data && response.data.code === 0) {
-                // 删除成功，更新本地数据
-                const updatedVoices = customVoices.filter(voice => voice.character_id !== voiceToDelete.character_id);
-                setCustomVoices(updatedVoices);
-                setFilteredCustomVoices(updatedVoices);
-            } else {
-                console.error('删除声音失败:', response.data?.message);
-                // 可以添加错误提示
-            }
-        } catch (error) {
-            console.error('删除声音出错:', error);
+        const result = await deleteClonedVoice(voiceToDelete.character_id);
+        if (result.success) {
+            // 删除成功，更新本地数据
+            const updatedVoices = customVoices.filter(voice => voice.character_id !== voiceToDelete.character_id);
+            setCustomVoices(updatedVoices);
+            setFilteredCustomVoices(updatedVoices);
+        } else {
+            console.error('删除声音失败:', result.message);
             // 可以添加错误提示
-        } finally {
-            // 关闭对话框并重置状态
-            setDeleteDialogOpen(false);
-            setVoiceToDelete(null);
         }
+        
+        // 关闭对话框并重置状态
+        setDeleteDialogOpen(false);
+        setVoiceToDelete(null);
     };
 
     // 处理删除点击

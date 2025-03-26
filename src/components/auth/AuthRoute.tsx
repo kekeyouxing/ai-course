@@ -24,6 +24,19 @@ export default function AuthRoute({children}: { children: JSX.Element }) {
         }
     }, [token, isTokenExpired, logout, location.key]);
 
+    // 监听 401 未授权事件
+    useEffect(() => {
+        const handleUnauthorized = () => {
+            setShowLoginModal(true);
+        };
+        
+        window.addEventListener('auth:unauthorized', handleUnauthorized);
+        
+        return () => {
+            window.removeEventListener('auth:unauthorized', handleUnauthorized);
+        };
+    }, []);
+
     const handleLoginSuccess = () => {
         setShowLoginModal(false);
     };

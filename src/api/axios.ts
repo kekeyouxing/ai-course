@@ -22,7 +22,9 @@ instance.interceptors.response.use(
         if (error.response?.status === 401) {
             // Token过期处理
             useAuth.getState().logout()
-            window.location.href = '/login'
+            // 可以通过发布一个事件或设置全局状态来触发登录模态框
+            const event = new CustomEvent('auth:unauthorized');
+            window.dispatchEvent(event);
         }
         return Promise.reject(error)
     }

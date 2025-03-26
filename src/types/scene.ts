@@ -138,7 +138,7 @@ export interface Scene {
     media?: Media
     texts?: TextElement[]
     avatar?: AvatarElement | null
-    background: Background
+    background?: Background
     script?: string  // 添加脚本字段
     audioSrc?: string
     duration?: number

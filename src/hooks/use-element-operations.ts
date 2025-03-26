@@ -14,13 +14,13 @@ export const useElementOperations = (
   setSelectedElement: (element: any) => void,
   setActiveTab: (tab: string) => void,
   canvasDimensions: { width: number, height: number },
-  selectedElement: SelectedElementType | null
+  selectedElement :SelectedElementType | null
 ) => {
   const handleTextChange = useCallback(
     (newText: string) => {
       // 从闭包中获取 selectedElement
       if (!selectedElement || selectedElement.type !== "text" || selectedElement.index === undefined) return;
-
+  
       const newScenes = [...scenes];
       // Add safety check
       if (
@@ -37,33 +37,33 @@ export const useElementOperations = (
     },
     [scenes, activeScene, updateHistory, selectedElement]
   );
+  
 
+// 同样修改 handleTextUpdate 函数签名
+const handleTextUpdate = useCallback(
+  (newProps: Partial<TextElement>) => {
+    if (!selectedElement || selectedElement.type !== "text" || selectedElement.index === undefined) return;
 
-  // 同样修改 handleTextUpdate 函数签名
-  const handleTextUpdate = useCallback(
-    (newProps: Partial<TextElement>) => {
-      if (!selectedElement || selectedElement.type !== "text" || selectedElement.index === undefined) return;
+    const newScenes = [...scenes];
 
-      const newScenes = [...scenes];
-
-      // Add safety check
-      if (
-        newScenes[activeScene]?.texts &&
-        newScenes[activeScene].texts.length > selectedElement.index &&
-        selectedElement.index >= 0
-      ) {
-        newScenes[activeScene].texts[selectedElement.index] = {
-          ...newScenes[activeScene].texts[selectedElement.index],
-          ...newProps
-        } as TextElement;
-        updateHistory(newScenes);
-      } else {
-        console.error("Invalid text element index:", selectedElement.index);
-        toast.error("Cannot update non-existent text element");
-      }
-    },
-    [scenes, activeScene, updateHistory, selectedElement]
-  );
+    // Add safety check
+    if (
+      newScenes[activeScene]?.texts &&
+      newScenes[activeScene].texts.length > selectedElement.index &&
+      selectedElement.index >= 0
+    ) {
+      newScenes[activeScene].texts[selectedElement.index] = {
+        ...newScenes[activeScene].texts[selectedElement.index],
+        ...newProps
+      } as TextElement;
+      updateHistory(newScenes);
+    } else {
+      console.error("Invalid text element index:", selectedElement.index);
+      toast.error("Cannot update non-existent text element");
+    }
+  },
+  [scenes, activeScene, updateHistory, selectedElement]
+);
 
   // Add text element
   const handleAddTextElement = useCallback(
@@ -133,19 +133,19 @@ export const useElementOperations = (
 
   const handleImageUpdate = useCallback(
     (mediaId: string, updates: Partial<ImageElement>) => {
-      const newScenes = [...scenes];
-      if (!newScenes[activeScene] || !Array.isArray(newScenes[activeScene].media)) {
-        console.error("当前场景无媒体元素");
-        toast.error("无法更新图片：媒体元素不存在");
-        return;
-      }
-      const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === mediaId);
+        const newScenes = [...scenes];
+        if (!newScenes[activeScene] || !Array.isArray(newScenes[activeScene].media)) {
+            console.error("当前场景无媒体元素");
+            toast.error("无法更新图片：媒体元素不存在");
+            return;
+        }
+        const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === mediaId);
 
-      if (mediaIndex !== -1 && newScenes[activeScene].media[mediaIndex].type === "image") {
-        const imageMedia = newScenes[activeScene].media[mediaIndex] as ImageMedia;
-        imageMedia.element = { ...imageMedia.element, ...updates } as ImageElement;
-        updateHistory(newScenes);
-      }
+        if (mediaIndex !== -1 && newScenes[activeScene].media[mediaIndex].type === "image") {
+            const imageMedia = newScenes[activeScene].media[mediaIndex] as ImageMedia;
+            imageMedia.element = { ...imageMedia.element, ...updates } as ImageElement;
+            updateHistory(newScenes);
+        }
     },
     [scenes, activeScene, updateHistory]
   );
@@ -341,49 +341,49 @@ export const useElementOperations = (
   );
 
   // Helper function to get selected media
-  const getSelectedMedia = useCallback(
-    () => {
-      if (!selectedElement || (selectedElement.type !== "image" && selectedElement.type !== "video")) {
-        return null;
-      }
-      if (!scenes[activeScene] || !Array.isArray(scenes[activeScene].media)) {
-        return null;
-      }
-      const mediaId = selectedElement.mediaId;
-      const mediaItem = scenes[activeScene].media.find(item => item.id === mediaId);
+const getSelectedMedia = useCallback(
+  () => {
+    if (!selectedElement || (selectedElement.type !== "image" && selectedElement.type !== "video")) {
+      return null;
+    }
+    if (!scenes[activeScene] || !Array.isArray(scenes[activeScene].media)) {
+      return null;
+    }
+    const mediaId = selectedElement.mediaId;
+    const mediaItem = scenes[activeScene].media.find(item => item.id === mediaId);
 
-      if (!mediaItem) return null;
+    if (!mediaItem) return null;
 
-      return mediaItem;
-    },
-    [scenes, activeScene, selectedElement]
-  );
+    return mediaItem;
+  },
+  [scenes, activeScene, selectedElement]
+);
 
   return {
     // Text operations
     handleTextChange,
     handleTextUpdate,
     handleAddTextElement,
-
+    
     // Image operations
     handleImageResize,
     handleImageUpdate,
-
+    
     // Video operations
     handleVideoResize,
     handleVideoUpdate,
-
+    
     // Avatar operations
     handleAvatarResize,
     handleSelectAvatar,
-
+    
     // Media operations
     handleAddMedia,
     getSelectedMedia,
-
+    
     // Background operations
     handleBackgroundChange,
-
+    
     // Script operations
     handleScriptUpdate
   };
