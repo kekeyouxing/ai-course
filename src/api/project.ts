@@ -32,14 +32,43 @@ export async function getProjects(): Promise<Project[]> {
     }
 }
 
-// 保留模拟数据（使用时需注释真实请求）
-// return [
-//     ...模拟数据保持原样...
-// ] as Project[];
-
 export async function deleteProject(id: string) {
-    await instance.delete(`/projects/${id}`)
-    // revalidatePath("/projects")
+    try {
+        const response = await instance.delete<{
+            code: number;
+            data: null;
+            msg: string;
+        }>(`/projects/${id}`);
+        
+        if (response.data.code === 0) {
+            return true;
+        }
+        throw new Error(response.data.msg || "删除项目失败");
+    } catch (error) {
+        console.error("删除项目失败:", error);
+        throw error;
+    }
+}
+
+// 添加重命名项目的方法
+export async function renameProject(id: string, newName: string) {
+    try {
+        const response = await instance.post<{
+            code: number;
+            data: null;
+            msg: string;
+        }>(`/projects/${id}/rename`, {
+            name: newName
+        });
+        
+        if (response.data.code === 0) {
+            return true;
+        }
+        throw new Error(response.data.msg || "重命名项目失败");
+    } catch (error) {
+        console.error("重命名项目失败:", error);
+        throw error;
+    }
 }
 
 // 在现有导出下方添加新方法
@@ -50,7 +79,9 @@ export async function createProject(
     try {
         const response = await instance.post<{
             code: number;
-            data: string;
+            data: {
+                projectId: string;
+            };
             msg: string;
         }>("/projects/create", {
             selectType: type,
@@ -58,7 +89,7 @@ export async function createProject(
         });
 
         if (response.data.code === 0) {
-            return response.data.data;
+            return response.data.data.projectId;
         }
         throw new Error(response.data.msg || "项目创建失败");
     } catch (error) {

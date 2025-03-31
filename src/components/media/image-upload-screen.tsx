@@ -18,7 +18,8 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
     const [uploadComplete, setUploadComplete] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [showOption, setShowOption] = useState(false)
-    const {voiceName, setAvatarUrl, setDetectionResult } = useVoiceCloning()
+    // 首先需要从 useVoiceCloning 中获取 isEditMode
+    const {voiceName, setAvatarUrl, setDetectionResult, isEditMode } = useVoiceCloning()
 
     // 新增状态
     const [aspectRatio, setAspectRatio] = useState<"1:1" | "3:4">("1:1")
@@ -239,7 +240,9 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
     return (
         <div className="min-h-screen bg-gray-100">
             <div className="flex justify-between items-center p-6">
-                <h1 className="text-xl font-medium text-gray-800">创建您的虚拟形象</h1>
+                <h1 className="text-xl font-medium text-gray-800">
+                    {isEditMode ? "修改您的虚拟形象" : "创建您的虚拟形象"}
+                </h1>
                 <Button
                     variant="outline"
                     className="rounded-full text-gray-700 border-gray-300 hover:bg-gray-50"

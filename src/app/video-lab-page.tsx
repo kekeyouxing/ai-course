@@ -9,12 +9,18 @@ import {
     Mic,
     Play,
     Pause,
-    X
+    MoreVertical,
+    Trash,
+    Edit2
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 // 导入新的API函数和类型
-import { getVoices, deleteClonedVoice, SystemVoice, ClonedVoice } from "@/api/character"
+import { getVoices, deleteClonedVoice } from "@/api/character"
+import {
+    SystemVoice,
+    ClonedVoice
+} from "@/types/character";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -25,7 +31,13 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useNavigate } from "react-router-dom"
 // 移除重复的类型定义，因为已经从character.ts导入
 
 // 初始化空数组
@@ -35,7 +47,6 @@ const initialCustomVoices: ClonedVoice[] = [];
 export default function VideoLabPage() {
     const [activeTab, setActiveTab] = useState("custom");
     const [searchTerm, setSearchTerm] = useState("");
-
     // 状态管理
     const [defaultVoices, setDefaultVoices] = useState<SystemVoice[]>(initialDefaultVoices);
     const [customVoices, setCustomVoices] = useState<ClonedVoice[]>(initialCustomVoices);
@@ -192,7 +203,7 @@ export default function VideoLabPage() {
             console.error('删除声音失败:', result.message);
             // 可以添加错误提示
         }
-        
+
         // 关闭对话框并重置状态
         setDeleteDialogOpen(false);
         setVoiceToDelete(null);
@@ -204,6 +215,16 @@ export default function VideoLabPage() {
         setVoiceToDelete(voice);
         setDeleteDialogOpen(true);
     };
+    // 添加这行代码
+    const navigate = useNavigate();
+    // 添加编辑处理函数
+    const handleEditClick = (e: React.MouseEvent, voice: ClonedVoice) => {
+        e.stopPropagation(); // 阻止事件冒泡
+        // 使用 navigate 进行导航，并传递状态
+        navigate(`/clone`, {
+            state: { voice }
+        });
+    }
 
     return (
         <div className="container mx-auto py-6 max-w-6xl">
@@ -253,15 +274,39 @@ export default function VideoLabPage() {
                                     {filteredCustomVoices.map((voice) => (
                                         <div
                                             key={voice.voice_id}
-                                            className="bg-white border rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group relative"
+                                            className="bg-white border rounded-xl p-5 hover:shadow-lg transition-all cursor-pointer group relative"
+                                            onClick={(e) => handleEditClick(e, voice)}
                                         >
-                                            {/* 删除按钮 */}
-                                            <button
-                                                className="absolute top-3 right-3 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100"
-                                                onClick={(e) => handleDeleteClick(e, voice)}
-                                            >
-                                                <X className="h-3.5 w-3.5 text-gray-500 hover:text-red-500" />
-                                            </button>
+                                            <div className="absolute top-3 right-3 z-20">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <div className="h-8 w-8 bg-white/80 hover:bg-gray-100 hover:text-gray-700 data-[state=open]:bg-gray-100 data-[state=open]:text-gray-700 rounded-full cursor-pointer transition-colors flex items-center justify-center">
+                                                            <MoreVertical className="h-4 w-4" />
+                                                        </div>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem
+                                                            className="cursor-pointer"
+                                                            onClick={(e) => {
+                                                                handleEditClick(e, voice)
+                                                            }}
+                                                        >
+                                                            <Edit2 className="mr-2 h-4 w-4" />
+                                                            <span>编辑</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            className="text-red-600 cursor-pointer"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                handleDeleteClick(e, voice)
+                                                            }}
+                                                        >
+                                                            <Trash className="mr-2 h-4 w-4" />
+                                                            <span>删除</span>
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
 
                                             <div className="flex items-center gap-4 mb-3">
                                                 <Avatar className="h-14 w-14 ring-2 ring-offset-2 ring-blue-100 flex-shrink-0">
@@ -331,7 +376,7 @@ export default function VideoLabPage() {
                                 {filteredDefaultVoices.map((voice) => (
                                     <div
                                         key={voice.voice_id}
-                                        className="bg-white border rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group relative"
+                                        className="bg-white border rounded-xl p-5 hover:shadow-lg transition-all cursor-pointer group relative"
                                     >
                                         <div className="flex items-center gap-3 mb-3">
                                             <div className="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
@@ -353,9 +398,9 @@ export default function VideoLabPage() {
                                             )}
                                             {voice.language && (
                                                 <span className={`text-xs font-medium ${voice.language.includes("中文") ? "bg-green-50 text-green-600" :
-                                                        voice.language.includes("英文") ? "bg-purple-50 text-purple-600" :
-                                                            voice.language.includes("日文") ? "bg-red-50 text-red-600" :
-                                                                "bg-gray-50 text-gray-600"
+                                                    voice.language.includes("英文") ? "bg-purple-50 text-purple-600" :
+                                                        voice.language.includes("日文") ? "bg-red-50 text-red-600" :
+                                                            "bg-gray-50 text-gray-600"
                                                     } px-3 py-1 rounded-full`}>
                                                     {voice.language}
                                                 </span>

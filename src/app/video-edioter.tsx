@@ -57,9 +57,9 @@ import {
 import { useAnimationMarkers } from "@/hooks/animation-markers-context";
 // 导入 MediaContent 和类型
 import MediaContent from "@/components/media/media-content";
-import { getScenesByProjectId } from "@/api/scene";
+import { getScenesByProjectId, updateSceneTitle, deleteScene } from "@/api/scene";
 import { toast } from "sonner";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useElementOperations } from "@/hooks/use-element-operations";
 
 export default function VideoEditor() {
@@ -74,7 +74,7 @@ export default function VideoEditor() {
     const [activeScene, setActiveScene] = useState<number>(0)
     const [scenes, setScenes] = useState<Scene[]>([])
 
-    const [videoTitle, setVideoTitle] = useState<string>("编辑您的项目名称")
+    const [videoTitle, setVideoTitle] = useState<string>("")
     const tabs: string[] = [
         "Script",
         "Avatar",
@@ -104,6 +104,8 @@ export default function VideoEditor() {
     // 添加预览容器尺寸状态，初始化为当前比例对应的尺寸
     const { previewDimensions, setPreviewDimensions } = usePreviewDimensions(editorRef, currentAspectRatio);
     const navigate = useNavigate();
+    const location = useLocation();
+    const project = location.state?.project;
     useEffect(() => {
         const fetchScenes = async () => {
             setIsLoading(true); // 开始加载
@@ -121,7 +123,11 @@ export default function VideoEditor() {
 
                 setAspectRatio(initialAspectRatio);
                 setHistory([scenesWithDates]);
-
+                if (project) {
+                    // 可以直接使用项目数据
+                    console.log("项目数据:", project);
+                    setVideoTitle(project.name); // 例如设置视频标题
+                }
                 // 等待DOM更新后计算预览尺寸
                 setTimeout(() => {
                     // 获取容器元素
@@ -380,15 +386,65 @@ export default function VideoEditor() {
         setActiveScene(scenes.length)
     }, [scenes, updateHistory, aspectRatio])
 
-
-
     // 在组件挂载时设置初始场景ID
     useEffect(() => {
         if (scenes.length > 0 && activeScene >= 0 && activeScene < scenes.length) {
             setCurrentSceneId(scenes[activeScene].id);
         }
     }, []);
+    // 处理场景标题更新
+    const handleSceneTitleUpdate = useCallback(async (index: number, newTitle: string) => {
+        try {
+            // 调用后端接口更新场景标题
+            await updateSceneTitle(scenes[index].id, newTitle);
 
+            // 更新本地状态
+            const newScenes = [...scenes];
+            newScenes[index].title = newTitle;
+            updateHistory(newScenes);
+        } catch (error) {
+            console.error("更新场景标题失败:", error);
+            toast.error("更新场景标题失败，请重试");
+        }
+    }, [scenes, updateHistory]);
+    // 新增删除场景的处理函数
+    const handleDeleteScene = async () => {
+        if (!scenes[activeScene]) return;
+
+        try {
+            // 调用删除场景的API
+            await deleteScene(scenes[activeScene].id);
+
+            // 更新本地状态
+            const newScenes = [...scenes];
+            newScenes.splice(activeScene, 1);
+
+            // 如果删除的是最后一个场景，则将活动场景索引减1
+            if (activeScene >= newScenes.length) {
+                setActiveScene(Math.max(0, newScenes.length - 1));
+            }
+            // 更新历史记录 - 修复类型错误
+            updateHistory(newScenes);
+
+        } catch (error) {
+            console.error("删除场景失败:", error);
+            toast.error("删除场景失败");
+        }
+    };
+    
+// Handle copying a scene
+const handleCopyScene = useCallback(() => {
+    if (!scenes[activeScene]) return;
+    // Insert the copied scene after the current scene
+    const newScenes = [...scenes];
+    // newScenes.splice(activeScene + 1, 0, sceneCopy);
+    
+    // Update history with new scenes array
+    updateHistory(newScenes);
+    
+    // Set the newly copied scene as active
+    setActiveScene(activeScene + 1);
+}, [scenes, activeScene, updateHistory]);
     return (
         <div className="flex flex-col h-screen bg-white">
             {isLoading ? (
@@ -400,7 +456,6 @@ export default function VideoEditor() {
                     {/* Top Navigation */}
                     <VideoHeader
                         videoTitle={videoTitle}
-                        setVideoTitle={setVideoTitle}
                         handleUndo={handleUndo}
                         handleRedo={handleRedo}
                         historyIndex={historyIndex}
@@ -566,6 +621,10 @@ export default function VideoEditor() {
                                     activeScene={activeScene}
                                     handleSceneClick={handleSceneClick}
                                     addNewScene={addNewScene}
+                                    aspectRatio={currentAspectRatio} // 传递当前的宽高比例
+                                    updateSceneTitle={handleSceneTitleUpdate}
+                                    onDeleteScene={handleDeleteScene}
+                                    onCopyScene={handleCopyScene}
                                 />
                             </div>
                         </ResizablePanel>

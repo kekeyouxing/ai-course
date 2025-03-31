@@ -1,27 +1,4 @@
 import instance from '@/api/axios';
-// 系统声音数据结构
-export interface SystemVoice {
-    voice_id: string;
-    voice_name: string;
-    description: string;
-    audio_url: string;
-    gender: string;
-    language: string;
-}
-
-// 自定义声音数据结构
-export interface ClonedVoice {
-    character_id: string;
-    voice_id: string;
-    created_time: string;
-    name: string;
-    avatar_url: string;
-    gender: string;
-    language: string;
-    face_bbox: number[];
-    ext_bbox: number[];
-    audio_url: string;
-}
 
 // 获取所有声音数据（系统声音和自定义声音）
 export async function getVoices() {

@@ -1,6 +1,6 @@
-// src/context/VoiceCloningContext.tsx
 import instance from '@/api/axios';
-import React, {createContext, Dispatch, SetStateAction, useContext, useState} from 'react';
+import { ClonedVoice } from '@/types/character';
+import React, { createContext, Dispatch, SetStateAction, useContext, useState } from 'react';
 
 export interface AliyunImageProcessResponse {
     checkPass: boolean;
@@ -29,11 +29,19 @@ interface VoiceCloningContextProps {
     setFileId: (id: number) => void;
     submitData: () => void;
     discardData: () => void;
+
+    // 新增编辑模式相关属性
+    isEditMode: boolean;
+    setIsEditMode: Dispatch<SetStateAction<boolean>>;
+    characterId: string | null;
+    setCharacterId: Dispatch<SetStateAction<string | null>>;
+    // 设置当前编辑的声音数据
+    setEditingVoice: (voice: ClonedVoice) => void;
 }
 
 const VoiceCloningContext = createContext<VoiceCloningContextProps | undefined>(undefined);
 
-export const VoiceCloningProvider: React.FC<{ children: React.ReactNode }> = ({children}) => {
+export const VoiceCloningProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [voiceName, setVoiceName] = useState("")
     // 修改 gender 默认值
     const [gender, setGender] = useState<"男" | "女">("男");
@@ -44,28 +52,33 @@ export const VoiceCloningProvider: React.FC<{ children: React.ReactNode }> = ({c
     const [detectionResult, setDetectionResult] = useState<AliyunImageProcessResponse | null>(null);
     const [voiceId, setVoiceId] = useState("");
     const [fileId, setFileId] = useState(0);
+
+    // 新增编辑模式状态
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [characterId, setCharacterId] = useState<string | null>(null);
     const submitData = async () => {
-        // 在提交数据时进行映射转换，保持API兼容性
-        const apiGender = gender === "男" ? "male" : "female";
-        const apiLanguage = language === "中文" ? "chinese" : "english";
-        
+
         const data = {
-            voiceName, 
-            gender: apiGender, 
-            avatarUrl, 
-            detectionResult, 
-            audioUrl, 
-            voiceId, 
-            language: apiLanguage, 
-            fileId
+            voiceName,
+            gender: gender,
+            avatarUrl,
+            detectionResult,
+            audioUrl,
+            voiceId,
+            language: language,
+            fileId,
+            // 编辑模式下传递characterId
+            ...(isEditMode && characterId ? { characterId } : {})
         };
         try {
-            const response = await instance.post('/characters/create', data);
+            const endpoint = isEditMode ? '/characters/update' : '/characters/create';
+            console.log('data', data);
+            const response = await instance.post(endpoint, data);
             if (response.status !== 200) {
-                throw new Error('提交数据失败');
+                throw new Error(isEditMode ? '更新数据失败' : '提交数据失败');
             }
             if (response.data.code !== 0) {
-                throw new Error('创建失败');
+                throw new Error(isEditMode ? '更新失败' : '创建失败');
             }
             console.log('数据提交成功');
         } catch (error) {
@@ -73,6 +86,17 @@ export const VoiceCloningProvider: React.FC<{ children: React.ReactNode }> = ({c
         }
     };
 
+    // 设置当前编辑的声音数据
+    const setEditingVoice = (voice: ClonedVoice) => {
+        setIsEditMode(true);
+        setCharacterId(voice.character_id);
+        setVoiceName(voice.name);
+        setGender(voice.gender as "男" | "女");
+        setLanguage(voice.language as "中文" | "英语");
+        setAvatarUrl(voice.avatar_url);
+        setAudioUrl(voice.audio_url);
+        setVoiceId(voice.voice_id);
+    };
     // discard data
     const discardData = async () => {
         // 修改默认值
@@ -104,6 +128,12 @@ export const VoiceCloningProvider: React.FC<{ children: React.ReactNode }> = ({c
                 setFileId,
                 language,
                 setLanguage,
+                // 新增编辑模式相关属性
+                isEditMode,
+                setIsEditMode,
+                characterId,
+                setCharacterId,
+                setEditingVoice,
             }}>
             {children}
         </VoiceCloningContext.Provider>

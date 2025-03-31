@@ -28,3 +28,37 @@ export async function getScenesByProjectId(projectId: string): Promise<Scene[]> 
         throw error;
     }
 }
+
+export async function updateSceneTitle(sceneId: string, newTitle: string): Promise<void> {
+    try {
+        const response = await instance.post<{
+            code: number;
+            msg: string;
+        }>(`/scenes/${sceneId}/title`, {
+            title: newTitle
+        });
+
+        if (response.data.code !== 0) {
+            throw new Error(response.data.msg || "更新场景标题失败");
+        }
+    } catch (error) {
+        console.error("更新场景标题失败:", error);
+        throw error;
+    }
+}
+
+// 删除场景的API函数
+export async function deleteScene(sceneId: string): Promise<void> {
+    try {
+        const response = await instance.delete<{
+            code: number;
+            msg: string;
+        }>(`/scenes/${sceneId}`);
+        if (response.data.code !== 0) {
+            throw new Error(response.data.msg || "删除场景失败");
+        }
+    } catch (error) {
+        console.error('删除场景API错误:', error);
+        throw error;
+    }
+}

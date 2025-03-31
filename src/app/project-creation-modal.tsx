@@ -8,6 +8,7 @@ import instance_oss from "@/api/axios-oss";
 import instance from '@/api/axios';
 import { v4 as uuidv4 } from 'uuid';
 import { createProject } from "@/api/project";
+import { useAuth } from "@/hooks/use-auth"; // 导入 useAuth hook
 
 interface ProjectCreationModalProps {
     isOpen: boolean;
@@ -97,8 +98,12 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
             return;
         }
         try {
-            // 上传PPT文件
-            const objectKey = `ppt-${uuidv4()}`; // 生成唯一的objectKey
+            // 获取当前用户ID
+            const { user } = useAuth.getState();
+            const userId = user?.userID || 'anonymous';
+            
+            // 上传PPT文件，加入用户ID作为前缀
+            const objectKey = `/project/ppt/${userId}/ppt-${uuidv4()}`; // 生成带用户ID的唯一objectKey
             const presignedURL = await generatePresignedURL(objectKey);
 
             await uploadToTencentCloud(uploadFile, presignedURL.data);
@@ -120,6 +125,16 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
             toast.error('请选择创建方式');
             return;
         }
+        
+        // 检查用户是否已登录
+        const { user, token } = useAuth.getState();
+        if (!user || !token) {
+            // 触发登录事件，显示登录框
+            const event = new CustomEvent('auth:unauthorized');
+            window.dispatchEvent(event);
+            return;
+        }
+        
         setIsProcessing(true);
         
         try {

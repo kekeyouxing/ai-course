@@ -1,16 +1,26 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { UserIcon as Male, UserIcon as Female } from "lucide-react"
 import ImageUploadScreen from "@/components/media/image-upload-screen"
 import { useVoiceCloning } from '@/hooks/VoiceCloningContext';
+import { useLocation } from "react-router-dom"
 
 export default function VoiceCloningUI() {
-    const { voiceName, setVoiceName, gender, setGender, language, setLanguage, discardData } = useVoiceCloning();
+    const { voiceName, setVoiceName, gender, setGender, language, setLanguage, discardData, setEditingVoice, isEditMode } = useVoiceCloning();
     const [nameError, setNameError] = useState<string>("");
     const [currentScreen, setCurrentScreen] = useState<"naming" | "upload">("naming")
+    const location = useLocation();
+    const voice = location.state?.voice;
+
+    // 只在组件首次加载时设置编辑数据，避免重复设置导致的问题
+    useEffect(() => {
+        if (voice) {
+            setEditingVoice(voice);
+        }
+    }, []);
 
     // 验证名称长度
     const validateName = (name: string) => {
@@ -53,7 +63,9 @@ export default function VoiceCloningUI() {
         <div className="min-h-screen bg-gray-100">
             {/* Header */}
             <div className="flex justify-between items-center p-6">
-                <h1 className="text-xl font-medium text-gray-800">创建您的虚拟形象</h1>
+                <h1 className="text-xl font-medium text-gray-800">
+                    {isEditMode ? "修改您的虚拟形象" : "创建您的虚拟形象"}
+                </h1>
                 <Button onClick={discardVoideCloing} variant="outline"
                     className="rounded-full text-gray-700 border-gray-300 hover:bg-gray-50">
                     回到主页

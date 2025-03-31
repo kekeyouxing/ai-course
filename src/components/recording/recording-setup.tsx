@@ -24,7 +24,7 @@ export default function RecordingSetup({onBack}: { onBack: () => void }) {
     const [selectedMicrophone, setSelectedMicrophone] = useState<string>("")
     const [availableMicrophones, setAvailableMicrophones] = useState<MediaDeviceInfo[]>([])
     const [showRecording, setShowRecording] = useState(false)
-    const {discardData} = useVoiceCloning();
+    const {discardData, isEditMode} = useVoiceCloning();
 
     const requestMicrophonePermission = async () => {
         try {
@@ -101,7 +101,9 @@ export default function RecordingSetup({onBack}: { onBack: () => void }) {
         <div className="min-h-screen bg-gray-100">
             {/* Header */}
             <div className="flex justify-between items-center p-6">
-                <h1 className="text-xl font-medium text-gray-800">创建您的虚拟形象</h1>
+            <h1 className="text-xl font-medium text-gray-800">
+                    {isEditMode ? "修改您的虚拟形象" : "创建您的虚拟形象"}
+                </h1>
                 <Button onClick={discardVoideCloing} variant="outline" className="rounded-full text-gray-700 border-gray-300 hover:bg-gray-50">
                     回到主页
                 </Button>

@@ -43,7 +43,7 @@ export const routes: RouteObject[] = [
             },
             {
                 path: "projects",
-                element: <ProjectCollectionPage/>,
+                element: <AuthRoute key={Date.now()}><ProjectCollectionPage/></AuthRoute>,
                 handle: {
                     breadcrumb: "项目",
                     pathSegments: ["projects"] // 明确层级关系
