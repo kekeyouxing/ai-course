@@ -5,7 +5,6 @@ import { RotateCcw, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Input } from "@/components/ui/input"
-import { useAnimationMarkers } from '@/hooks/animation-markers-context';
 import { VideoElement } from "@/types/scene"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -23,8 +22,8 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
   const [layout, setLayout] = useState({
     x: videoElement?.x || 0,
     y: videoElement?.y || 0,
-    width: videoElement?.width || 400,
-    height: videoElement?.height || 300,
+    width: videoElement?.width || 0,
+    height: videoElement?.height || 0,
   })
 
   // 视频特有属性
@@ -37,13 +36,6 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
   const [animationBehavior, setAnimationBehavior] = useState(videoElement?.animationBehavior || "enter")
   const [animationDirection, setAnimationDirection] = useState(videoElement?.animationDirection || "right")
 
-  // 获取动画标记上下文
-  const { getMarkersBySceneId } = useAnimationMarkers();
-  // 根据当前场景ID过滤标记
-  const currentSceneMarkers = currentSceneId ? getMarkersBySceneId(currentSceneId) : [];
-  // 按时间排序标记
-  const sortedMarkers = [...currentSceneMarkers].sort((a, b) => a.time - b.time);
-
   // 当选中的视频元素变化时，更新状态
   useEffect(() => {
     if (videoElement) {
@@ -51,8 +43,8 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
       setLayout({
         x: videoElement.x || 0,
         y: videoElement.y || 0,
-        width: videoElement.width || 400,
-        height: videoElement.height || 300,
+        width: videoElement.width || 0,
+        height: videoElement.height || 0,
       })
       setVolume(videoElement.volume || 0.5)
       // 更新显示模式
@@ -134,7 +126,7 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="default">无</SelectItem>
-        {sortedMarkers.map(marker => (
+        {/* {sortedMarkers.map(marker => (
           <SelectItem key={marker.id} value={marker.time.toString()}>
             <div className="flex items-center space-x-2">
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
@@ -143,7 +135,7 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
               <span className="truncate">{marker.description}</span>
             </div>
           </SelectItem>
-        ))}
+        ))} */}
       </SelectContent>
     </Select>
   );
@@ -166,7 +158,7 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="default">无</SelectItem>
-        {sortedMarkers.map(marker => (
+        {/* {sortedMarkers.map(marker => (
           <SelectItem key={marker.id} value={marker.time.toString()}>
             <div className="flex items-center space-x-2">
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
@@ -175,7 +167,7 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
               <span className="truncate">{marker.description}</span>
             </div>
           </SelectItem>
-        ))}
+        ))} */}
       </SelectContent>
     </Select>
   );

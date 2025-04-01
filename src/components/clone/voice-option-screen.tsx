@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { CloudIcon as CloudMusic, Mic, InfoIcon } from "lucide-react"
 import UploadScreen from "@/components/media/upload-screen"
-import RecordingSetup from "@/components/recording/recording-setup"
+import RecordingSetup from "@/components/clone/recording-setup"
 import { useVoiceCloning } from '@/hooks/VoiceCloningContext';
 import { Alert, AlertDescription } from "@/components/ui/alert"
 

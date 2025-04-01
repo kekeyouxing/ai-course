@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Slider } from "@/components/ui/slider"
 import { Input } from "@/components/ui/input"
-import { useAnimationMarkers } from '@/hooks/animation-markers-context';
 import "./color-picker.css" // 导入自定义样式
 import { TextElement, TextAlignment } from "@/types/scene"
 
@@ -16,10 +15,9 @@ import { TextElement, TextAlignment } from "@/types/scene"
 interface TextContentProps {
   textElement?: TextElement;
   onUpdate: (updates: Partial<TextElement>) => void;
-  currentSceneId?: string; // 添加当前场景ID属性
 }
 
-export default function TextContent({ textElement, onUpdate, currentSceneId = '' }: TextContentProps) {
+export default function TextContent({ textElement, onUpdate }: TextContentProps) {
   const [activeTab, setActiveTab] = useState("format")
   const [textAlignment, setTextAlignment] = useState<TextAlignment>(textElement?.alignment || "left")
   const [fontColor, setFontColor] = useState(textElement?.fontColor || "#000000")
@@ -30,8 +28,8 @@ export default function TextContent({ textElement, onUpdate, currentSceneId = ''
   const [layout, setLayout] = useState({
     x: textElement?.x || 0,
     y: textElement?.y || 0,
-    width: textElement?.width || 100,
-    height: textElement?.height || 100,
+    width: textElement?.width || 0,
+    height: textElement?.height || 0,
   })
   const [fontFamily, setFontFamily] = useState(textElement?.fontFamily || "lora")
   const [fontSize, setFontSize] = useState(textElement?.fontSize?.toString() || "24")
@@ -80,12 +78,6 @@ export default function TextContent({ textElement, onUpdate, currentSceneId = ''
     "#C8E1FF",
     "#79B8FF",
   ]
-  // Get animation markers context
-  const { getMarkersBySceneId } = useAnimationMarkers();
-  // Filter markers by current scene ID
-  const currentSceneMarkers = currentSceneId ? getMarkersBySceneId(currentSceneId) : [];
-  // Sort markers by time
-  const sortedMarkers = [...currentSceneMarkers].sort((a, b) => a.time - b.time);
 
   // 修改开始时间和结束时间的下拉选择器
   const renderStartAtSelect = () => (
@@ -106,7 +98,7 @@ export default function TextContent({ textElement, onUpdate, currentSceneId = ''
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="default">无</SelectItem>
-        {sortedMarkers.map(marker => (
+        {/* {sortedMarkers.map(marker => (
           <SelectItem key={marker.id} value={marker.time.toString()}>
             <div className="flex items-center space-x-2">
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
@@ -115,7 +107,7 @@ export default function TextContent({ textElement, onUpdate, currentSceneId = ''
               <span className="truncate">{marker.description}</span>
             </div>
           </SelectItem>
-        ))}
+        ))} */}
       </SelectContent>
     </Select>
   );
@@ -138,7 +130,7 @@ export default function TextContent({ textElement, onUpdate, currentSceneId = ''
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="default">无</SelectItem>
-        {sortedMarkers.map(marker => (
+        {/* {sortedMarkers.map(marker => (
           <SelectItem key={marker.id} value={marker.time.toString()}>
             <div className="flex items-center space-x-2">
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
@@ -147,7 +139,7 @@ export default function TextContent({ textElement, onUpdate, currentSceneId = ''
               <span className="truncate">{marker.description}</span>
             </div>
           </SelectItem>
-        ))}
+        ))} */}
       </SelectContent>
     </Select>
   );
@@ -271,8 +263,8 @@ export default function TextContent({ textElement, onUpdate, currentSceneId = ''
       setLayout({
         x: textElement.x || 0,
         y: textElement.y || 0,
-        width: textElement.width || 100,
-        height: textElement.height || 100,
+        width: textElement.width || 0,
+        height: textElement.height || 0,
       });
       setFontFamily(textElement.fontFamily || "lora");
       setFontSize(textElement.fontSize?.toString() || "24");

@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button"
 import { Upload, X, Image as ImageIcon, CheckCircle, Crop } from "lucide-react"
 import { useVoiceCloning } from '@/hooks/VoiceCloningContext'
 import { toast } from "sonner"
-import VoiceOptionScreen from "@/components/voice/voice-option-screen"
+import VoiceOptionScreen from "@/components/clone/voice-option-screen"
 import Cropper from 'react-easy-crop'
 import { Area } from 'react-easy-crop'
 // 在文件顶部导入新函数
-import { addAvatar as apiAddAvatar } from '@/api/avatar'
+import { addAvatar as apiAddAvatar, updateAvatar as apiUpdateAvatar } from '@/api/avatar'
 export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
     const [isDragging, setIsDragging] = useState(false)
     const [selectedImage, setSelectedImage] = useState<string | null>(null)
@@ -19,7 +19,7 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [showOption, setShowOption] = useState(false)
     // 首先需要从 useVoiceCloning 中获取 isEditMode
-    const {voiceName, setAvatarUrl, setDetectionResult, isEditMode } = useVoiceCloning()
+    const { voiceName, avatarUrl, setAvatarUrl, setDetectionResult, isEditMode } = useVoiceCloning()
 
     // 新增状态
     const [aspectRatio, setAspectRatio] = useState<"1:1" | "3:4">("1:1")
@@ -179,47 +179,64 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
             // 将 base64 转换回文件
             const base64Response = await fetch(imageData);
             const blob = await base64Response.blob();
-            
+
             // 创建 canvas 将图片转换为 PNG
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const img = new Image();
-            
+
             img.src = URL.createObjectURL(blob);
             await new Promise((resolve) => {
                 img.onload = resolve;
             });
-            
+
             canvas.width = img.width;
             canvas.height = img.height;
             ctx?.drawImage(img, 0, 0);
-            
+
             // 将 canvas 转换为 PNG 文件
             const pngBlob = await new Promise<Blob | null>((resolve) => {
                 canvas.toBlob((blob) => resolve(blob), 'image/png', 0.9);
             });
-            
+
             if (!pngBlob) {
                 throw new Error('图片转换失败');
             }
-            
+
             const file = new File([pngBlob], 'avatar.png', { type: 'image/png' });
-            
-            // 调用后端API添加头像
-            const result = await apiAddAvatar(file, aspectRatio === "1:1" ? "1:1" : "3:4", voiceName);
-            
+
+            let result;
+
+            // 根据 isEditMode 调用不同的 API
+            if (isEditMode) {
+                // 编辑模式：调用更新头像 API
+                // 假设我们可以从 context 中获取当前头像的 URL
+                const currentAvatarUrl = avatarUrl || '';
+                result = await apiUpdateAvatar(currentAvatarUrl, voiceName, file, aspectRatio === "1:1" ? "1:1" : "3:4");
+            } else {
+                // 创建模式：调用添加头像 API
+                result = await apiAddAvatar(file, aspectRatio === "1:1" ? "1:1" : "3:4", voiceName);
+            }
+
             if (result.code === 0 && result.data) {
-                setAvatarUrl(result.data.avatarUrl);
-                setDetectionResult(result.data.detectionResult);
+                // 无论是添加还是更新，都设置返回的头像 URL
+                if (result.data.avatarUrl) {
+                    setAvatarUrl(result.data.avatarUrl);
+                }
+                // 如果有检测结果，也设置它
+                if (result.data.detectionResult) {
+                    setDetectionResult(result.data.detectionResult);
+                }
                 setUploadComplete(true);
                 return true;
             } else {
-                toast.error(result.msg || '添加头像失败');
+                const operation = isEditMode ? '更新' : '添加';
+                toast.error(result.msg || `${operation}头像失败`);
                 return false;
             }
         } catch (error) {
-            console.error('添加头像失败:', error);
-            toast.error('添加头像失败，请重试');
+            console.error(isEditMode ? '更新头像失败:' : '添加头像失败:', error);
+            toast.error(isEditMode ? '更新头像失败，请重试' : '添加头像失败，请重试');
             return false;
         } finally {
             setIsDetecting(false);
@@ -264,8 +281,8 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
                             <button
                                 onClick={() => setAspectRatio("1:1")}
                                 className={`flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm ${aspectRatio === "1:1"
-                                        ? "bg-gray-200 text-gray-800 font-medium"
-                                        : "bg-white text-gray-500 border border-gray-200"
+                                    ? "bg-gray-200 text-gray-800 font-medium"
+                                    : "bg-white text-gray-500 border border-gray-200"
                                     }`}
                             >
                                 <Crop className="w-4 h-4" />
@@ -274,8 +291,8 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
                             <button
                                 onClick={() => setAspectRatio("3:4")}
                                 className={`flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm ${aspectRatio === "3:4"
-                                        ? "bg-gray-200 text-gray-800 font-medium"
-                                        : "bg-white text-gray-500 border border-gray-200"
+                                    ? "bg-gray-200 text-gray-800 font-medium"
+                                    : "bg-white text-gray-500 border border-gray-200"
                                     }`}
                             >
                                 <Crop className="w-4 h-4" />

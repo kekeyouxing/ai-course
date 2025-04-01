@@ -39,7 +39,6 @@ export default function MediaContent({
     selectedMedia,
     onUpdateImage,
     onUpdateVideo,
-    currentSceneId = '',
     onDelete
 }: MediaContentProps) {
     const [activeTab, setActiveTab] = useState("library")
@@ -217,7 +216,6 @@ export default function MediaContent({
                 <ImageContent
                     imageElement={selectedMedia.element as ImageElement}
                     onUpdate={(updates) => onUpdateImage && onUpdateImage(selectedMedia.id, updates)}
-                    currentSceneId={currentSceneId}
                     onDelete={onDelete}
                 />
             );
@@ -226,7 +224,6 @@ export default function MediaContent({
                 <VideoContent
                     videoElement={selectedMedia.element as VideoElement}
                     onUpdate={(updates) => onUpdateVideo && onUpdateVideo(selectedMedia.id, updates)}
-                    currentSceneId={currentSceneId}
                     onDelete={onDelete}
                 />
             );

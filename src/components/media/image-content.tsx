@@ -5,7 +5,6 @@ import { RotateCcw, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Input } from "@/components/ui/input"
-import { useAnimationMarkers } from '@/hooks/animation-markers-context';
 import { ImageElement } from "@/types/scene"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -14,30 +13,22 @@ interface ImageContentProps {
   imageElement?: ImageElement;
   onUpdate: (updates: Partial<ImageElement>) => void;
   onDelete: () => void; // 添加删除函数属性
-  currentSceneId?: string; // 当前场景ID属性
 }
 
-export default function ImageContent({ imageElement, onUpdate, currentSceneId = '', onDelete }: ImageContentProps) {
+export default function ImageContent({ imageElement, onUpdate, onDelete }: ImageContentProps) {
   const [activeTab, setActiveTab] = useState("format")
   const [rotation, setRotation] = useState(imageElement?.rotation || 0)
   const [layout, setLayout] = useState({
     x: imageElement?.x || 0,
     y: imageElement?.y || 0,
-    width: imageElement?.width || 400,
-    height: imageElement?.height || 300,
+    width: imageElement?.width || 0,
+    height: imageElement?.height || 0,
   })
 
   // 动画状态
   const [animationType, setAnimationType] = useState(imageElement?.animationType || "none")
   const [animationBehavior, setAnimationBehavior] = useState(imageElement?.animationBehavior || "enter")
   const [animationDirection, setAnimationDirection] = useState(imageElement?.animationDirection || "right")
-
-  // 获取动画标记上下文
-  const { getMarkersBySceneId } = useAnimationMarkers();
-  // 根据当前场景ID过滤标记
-  const currentSceneMarkers = currentSceneId ? getMarkersBySceneId(currentSceneId) : [];
-  // 按时间排序标记
-  const sortedMarkers = [...currentSceneMarkers].sort((a, b) => a.time - b.time);
 
   // 当选中的图片元素变化时，更新状态
   useEffect(() => {
@@ -46,8 +37,8 @@ export default function ImageContent({ imageElement, onUpdate, currentSceneId = 
       setLayout({
         x: imageElement.x || 0,
         y: imageElement.y || 0,
-        width: imageElement.width || 400,
-        height: imageElement.height || 300,
+        width: imageElement.width || 0,
+        height: imageElement.height || 0,
       })
       setAnimationType(imageElement.animationType || "none")
       setAnimationBehavior(imageElement.animationBehavior || "enter")
@@ -113,7 +104,7 @@ export default function ImageContent({ imageElement, onUpdate, currentSceneId = 
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="default">无</SelectItem>
-        {sortedMarkers.map(marker => (
+        {/* {sortedMarkers.map(marker => (
           <SelectItem key={marker.id} value={marker.time.toString()}>
             <div className="flex items-center space-x-2">
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
@@ -122,7 +113,7 @@ export default function ImageContent({ imageElement, onUpdate, currentSceneId = 
               <span className="truncate">{marker.description}</span>
             </div>
           </SelectItem>
-        ))}
+        ))} */}
       </SelectContent>
     </Select>
   );
@@ -145,7 +136,7 @@ export default function ImageContent({ imageElement, onUpdate, currentSceneId = 
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="default">无</SelectItem>
-        {sortedMarkers.map(marker => (
+        {/* {sortedMarkers.map(marker => (
           <SelectItem key={marker.id} value={marker.time.toString()}>
             <div className="flex items-center space-x-2">
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
@@ -154,7 +145,7 @@ export default function ImageContent({ imageElement, onUpdate, currentSceneId = 
               <span className="truncate">{marker.description}</span>
             </div>
           </SelectItem>
-        ))}
+        ))} */}
       </SelectContent>
     </Select>
   );
@@ -286,7 +277,9 @@ export default function ImageContent({ imageElement, onUpdate, currentSceneId = 
                       type="text"
                       value={layout.width}
                       onChange={(e) => {
-                        const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value) || 0;
+                        // 使用 parseFloat 代替 Number.parseInt
+                        const value = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
+                        console.log("解析后的值:", value);
                         handleLayoutChange("width", value);
                       }}
                       className="h-8 text-sm"

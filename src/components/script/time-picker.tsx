@@ -39,10 +39,25 @@ export default function TimePicker({
     const newInputValue = e.target.value;
     setInputValue(newInputValue);
     
-    // 只有当输入不为空且是有效数字时才更新父组件的值
+    // 解析输入值
     const newValue = parseInt(newInputValue);
-    if (!isNaN(newValue) && newValue >= 1 && newValue <= 99) {
-      onChange(newValue);
+    
+    // 处理有效数字的情况
+    if (!isNaN(newValue)) {
+      // 如果超过99，设置为99
+      if (newValue > 99) {
+        onChange(99);
+        setInputValue("99");
+      } 
+      // 如果小于1，设置为1
+      else if (newValue < 1) {
+        onChange(1);
+        setInputValue("1");
+      } 
+      // 在有效范围内
+      else {
+        onChange(newValue);
+      }
     }
   }
   

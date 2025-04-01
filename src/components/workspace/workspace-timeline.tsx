@@ -11,7 +11,6 @@ import {
     DropdownMenuItem, 
     DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
-import { Button } from "@/components/ui/button"
 
 // 更新组件属性，添加复制场景的回调函数
 interface VideoTimelineProps {
@@ -186,11 +185,25 @@ export function VideoTimeline({
                         );
                     })}
 
+                    {/* 添加新场景按钮 */}
                     <div
-                        className="border rounded-md overflow-hidden w-[80px] flex items-center justify-center cursor-pointer"
-                        onClick={addNewScene}
+                        className="flex flex-col items-center"
+                        style={{ width: `200px` }}
                     >
-                        <Plus className="h-6 w-6 text-gray-400" />
+                        <div 
+                            className="cursor-pointer transition-all duration-200 relative group hover:scale-105 border rounded-md overflow-hidden"
+                            onClick={addNewScene}
+                            style={{ 
+                                width: '200px', 
+                                height: calculatePreviewDimensions({ aspectRatio: aspectRatio || "16:9" } as Scene, 200).height,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transformOrigin: 'center bottom'
+                            }}
+                        >
+                            <Plus className="h-8 w-8 text-gray-400" />
+                        </div>
                     </div>
                 </div>
             </div>

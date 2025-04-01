@@ -1,5 +1,5 @@
 "use client"
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 
 import { Rnd } from "react-rnd"
 import { DraggableData, DraggableEvent } from "react-draggable";
@@ -39,8 +39,6 @@ interface ResizableTextProps {
     animationType?: "none" | "fade" | "slide"
     animationBehavior?: "enter" | "exit" | "both"
     animationDirection?: "right" | "left" | "down" | "up"
-    startMarkerId?: string; // 开始动画的标记ID
-    endMarkerId?: string;   // 结束动画的标记ID
 }
 
 export function ResizableText({
@@ -72,8 +70,6 @@ export function ResizableText({
     animationType = "none",
     animationBehavior = "enter",
     animationDirection = "right",
-    startMarkerId = "",
-    endMarkerId = ""
 }: ResizableTextProps) {
     const [isEditing, setIsEditing] = useState(false)
     const [localContent, setLocalContent] = useState(content)
@@ -89,13 +85,31 @@ export function ResizableText({
     const displayX = x * scaleX;
     const displayY = y * scaleY;
     const displayWidth = width * scaleX;
-    const displayHeight = height * scaleY;
+    // 高度将根据内容自动调整，但仍保留一个最小高度
+    const displayHeight = "auto";
     const displayFontSize = fontSize * scale; // 字体大小按比例缩放
     const animationClassName = getAnimationClassName(
         animationType,
         animationBehavior,
         animationDirection
     );
+
+    // 使用ref来获取实际内容高度
+    const contentRef = useRef<HTMLDivElement>(null);
+    
+    // 当内容变化时，更新实际高度到父组件
+    useEffect(() => {
+        if (contentRef.current) {
+            const actualHeight = contentRef.current.offsetHeight;
+            // 将实际高度转换回标准尺寸
+            const standardHeight = Math.round(actualHeight / scaleY);
+            // 只有当高度有明显变化时才更新
+            if (Math.abs(standardHeight - height) > 2) {
+                onResize({ height: standardHeight });
+            }
+        }
+    }, [content, fontSize, fontFamily, bold, italic, width, scaleY]);
+
     // 确保组件在接收新的 content 时更新本地状态
     useEffect(() => {
         setLocalContent(content);
@@ -109,10 +123,9 @@ export function ResizableText({
             delta: { width: number; height: number },
             position: { x: number; y: number },
         ) => {
-            // 将实际显示尺寸转换回标准尺寸，并确保为整数
+            // 只更新宽度和位置，高度将自动调整
             onResize({
                 width: Math.round(Number.parseInt(ref.style.width) / scaleX),
-                height: Math.round(Number.parseInt(ref.style.height) / scaleY),
                 x: Math.round(position.x / scaleX),
                 y: Math.round(position.y / scaleY),
             })
@@ -188,12 +201,22 @@ export function ResizableText({
             )}
             
             <Rnd
-                size={{ width: displayWidth, height: displayHeight }} // 使用缩放后的尺寸
-                position={{ x: displayX, y: displayY }} // 使用缩放后的位置
+                size={{ width: displayWidth, height: displayHeight }} // 高度设为auto
+                position={{ x: displayX, y: displayY }}
                 onDragStart={handleDragStart}
                 onDrag={handleDrag}
                 onDragStop={handleDragStop}
                 onResizeStop={handleResizeStop}
+                enableResizing={{
+                    top: false,
+                    right: true,
+                    bottom: false,
+                    left: true,
+                    topRight: false,
+                    bottomRight: false,
+                    bottomLeft: false,
+                    topLeft: false
+                }}
                 onMouseDown={(e: MouseEvent) => {
                     e.stopPropagation()
                     onSelect(e)
@@ -203,11 +226,17 @@ export function ResizableText({
                 }}
             >
                 <div
-                    className={`w-full h-full flex items-center ${isSelected ? "outline outline-1 outline-blue-500" : ""} ${animationClassName}`}
+                    ref={contentRef}
+                    className={`w-full flex items-center ${isSelected ? "outline outline-1 outline-blue-500" : ""} ${animationClassName}`}
                     style={{
                         ...textStyle,
                         transform: `rotate(${rotation}deg)`,
-                        animationDuration: "1s"
+                        animationDuration: "1s",
+                        minHeight: "1em", // 设置最小高度
+                        height: "auto", // 确保高度自动适应内容
+                        padding: "0", // 移除内边距
+                        lineHeight: "1.2", // 设置更紧凑的行高
+                        display: "inline-block" // 使元素宽度适应内容
                     }}
                     onDoubleClick={() => setIsEditing(true)}                
                 >
@@ -221,29 +250,27 @@ export function ResizableText({
                             onTextChange(localContent)
                         }}
                         onMouseDown={(e) => e.stopPropagation()} // 阻止事件冒泡
-                        className="w-full h-full bg-transparent outline-none"
-                        style={{ fontSize: "inherit", fontFamily: "inherit", color: "inherit", fontWeight: "inherit", fontStyle: "inherit", textAlign: alignment }}
+                        className="w-full bg-transparent outline-none p-0 m-0"
+                        style={{ 
+                            fontSize: "inherit", 
+                            fontFamily: "inherit", 
+                            color: "inherit", 
+                            fontWeight: "inherit", 
+                            fontStyle: "inherit", 
+                            textAlign: alignment,
+                            lineHeight: "1.2" // 保持与外层一致的行高
+                        }}
                     />
                 ) : (
-                    <div className="w-full" style={{ textAlign: alignment }}>
+                    <div className="w-full p-0 m-0" style={{ textAlign: alignment }}>
                         {localContent}
                     </div>
                 )}
-                {/* 保持原有的控制点代码 */}
+                {/* 只保留左右两侧的控制点，移除上下控制点 */}
                 {isSelected && (
                     <>
                         <div
-                            className="absolute top-0 left-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-ns-resize">
-                            <div
-                                className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                        </div>
-                        <div
                             className="absolute right-0 top-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full translate-x-1/2 -translate-y-1/2 cursor-ew-resize">
-                            <div
-                                className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                        </div>
-                        <div
-                            className="absolute bottom-0 left-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 translate-y-1/2 cursor-ns-resize">
                             <div
                                 className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                         </div>

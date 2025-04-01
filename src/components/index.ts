@@ -9,13 +9,13 @@ export { NavUser } from './layout/nav-user';
 // Editor components
 export { default as CustomEditor } from './script/custom-editor';
 export { default as ScriptContent } from './script/script-content';
-export { ScriptReader } from './recording/script-reader';
+export { ScriptReader } from './clone/script-reader';
 export { default as TimePicker } from './script/time-picker';
 
 // Video components
 export { BackgroundContent } from './background/background-content';
 export { VideoHeader } from './workspace/workspace-header';
-export { VideoRecorder } from './recording/video-recorder';
+export { VideoRecorder } from './clone/video-recorder';
 export { VideoTabs } from './workspace/workspace-tabs';
 export { VideoTimeline } from './workspace/workspace-timeline';
 
@@ -24,8 +24,8 @@ export { default as AvatarContent } from './avatar/avatar-content';
 export { ResizableAvatar } from './workspace/resizable-avatar';
 
 // Voice components
-export { default as VoiceCloningUI } from './voice/voice-cloning-ui';
-export { default as VoiceOptionScreen } from './voice/voice-option-screen';
+export { default as VoiceCloningUI } from './clone/voice-cloning-ui';
+export { default as VoiceOptionScreen } from './clone/voice-option-screen';
 
 // Media components
 export { default as ImageUploadScreen } from './media/image-upload-screen';
@@ -40,8 +40,8 @@ export { default as AuthRoute } from './auth/AuthRoute';
 export { default as ProjectCard } from './project/project-card';
 
 // Recording components
-export { default as RecordingScreen } from './recording/RecordingScreen';
-export { default as RecordingSetup } from './recording/recording-setup';
+export { default as RecordingScreen } from './clone/RecordingScreen';
+export { default as RecordingSetup } from './clone/recording-setup';
 
 // Common components
 export { default as FeatureCards } from './common/feature-cards';

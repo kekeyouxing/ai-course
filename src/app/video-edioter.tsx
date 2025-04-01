@@ -54,7 +54,6 @@ import {
     usePasteElementOperation,
     useDeleteElementOperation
 } from "@/utils/editor-operations"
-import { useAnimationMarkers } from "@/hooks/animation-markers-context";
 // 导入 MediaContent 和类型
 import MediaContent from "@/components/media/media-content";
 import { getScenesByProjectId, updateSceneTitle, deleteScene } from "@/api/scene";
@@ -187,8 +186,6 @@ export default function VideoEditor() {
         }
     }, [])
 
-    // 在组件内部使用 useAnimationMarkers
-    const { setCurrentSceneId } = useAnimationMarkers();
     // 改进的历史记录更新函数
     const updateHistory = useCallback(
         (newScenes: Scene[]) => {
@@ -270,15 +267,12 @@ export default function VideoEditor() {
     // 场景切换
     const handleSceneClick = useCallback((index: number) => {
         setActiveScene(index);
-        setSelectedElement(null);
-        // 设置当前场景ID，用于动画标记关联
-        setCurrentSceneId(scenes[index].id);
 
         // 设置当前场景的宽高比例
         if (scenes[index].aspectRatio) {
             setAspectRatio(scenes[index].aspectRatio);
         }
-    }, [scenes, setCurrentSceneId]);
+    }, [scenes]);
 
     // 使用封装的操作函数
     const handleUndo = useUndoOperation(history, historyIndex, setHistoryIndex, setScenes);
@@ -293,7 +287,6 @@ export default function VideoEditor() {
         handleBringForward,
         handleSendBackward
     } = useZIndexOperations(scenes, activeScene, selectedElement, updateHistory);
-
     // 修改渲染Tab内容的函数
     const renderTabContent = () => {
         switch (activeTab) {
@@ -318,7 +311,6 @@ export default function VideoEditor() {
                         ? scenes[activeScene].texts[selectedElement.index]
                         : undefined}
                     onUpdate={handleTextUpdate}
-                    currentSceneId={scenes[activeScene].id} // 传递当前场景ID
                 />
             case "Media":
                 return <MediaContent
@@ -386,12 +378,6 @@ export default function VideoEditor() {
         setActiveScene(scenes.length)
     }, [scenes, updateHistory, aspectRatio])
 
-    // 在组件挂载时设置初始场景ID
-    useEffect(() => {
-        if (scenes.length > 0 && activeScene >= 0 && activeScene < scenes.length) {
-            setCurrentSceneId(scenes[activeScene].id);
-        }
-    }, []);
     // 处理场景标题更新
     const handleSceneTitleUpdate = useCallback(async (index: number, newTitle: string) => {
         try {
@@ -472,6 +458,8 @@ const handleCopyScene = useCallback(() => {
                         activeTab={activeTab}
                         setActiveTab={setActiveTab}
                         onSelectTextType={handleAddTextElement} // 更新引用
+                        selectedElementType={selectedElement?.type}
+                        onClearSelection={() => setSelectedElement(null)}
                     />
 
                     {/* Main Content */}

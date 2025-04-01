@@ -64,3 +64,42 @@ export async function addAvatar(file: File, ratio: string, name: string): Promis
         };
     }
 }
+
+// 更新头像接口
+export async function updateAvatar(
+  oldImageUrl: string, 
+  name: string, 
+  file: File,
+  ratio: string,
+): Promise<{
+  code: number;
+  msg: string;
+  data?: {
+    avatarUrl?: string;
+    detectionResult?: AliyunImageProcessResponse;
+  };
+}> {
+  const formData = new FormData();
+  formData.append('oldImageUrl', oldImageUrl);
+  formData.append('name', name);
+  formData.append('ratio', ratio);
+  if (file) {
+    formData.append('file', file, file.name);
+  }
+  
+  try {
+    const response = await instance.post('/avatars/updateAvatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('更新头像失败:', error);
+    return {
+      code: -1,
+      msg: error instanceof Error ? error.message : '更新头像失败',
+    };
+  }
+}

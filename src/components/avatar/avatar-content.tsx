@@ -21,7 +21,7 @@ export default function AvatarContent({
   const [customAvatars, setCustomAvatars] = useState<Avatar[]>([])
   const [systemAvatars, setSystemAvatars] = useState<Avatar[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("system") // 默认显示系统头像
+  const [activeTab, setActiveTab] = useState("custom") // 默认显示我的头像
 
   // 获取头像列表
   useEffect(() => {
@@ -115,7 +115,7 @@ export default function AvatarContent({
     <div className="max-w-4xl mx-auto bg-white flex flex-col max-h-[85vh]">
       {/* Tab Headers */}
       <div className="grid grid-cols-2 w-full bg-gray-100">
-        {["system", "custom"].map((tab) => (
+        {["custom", "system"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -125,7 +125,7 @@ export default function AvatarContent({
                 : "hover:bg-gray-200"
             }`}
           >
-            {tab === "system" ? "系统头像" : "我的头像"}
+            {tab === "custom" ? "我的头像" : "系统头像"}
           </button>
         ))}
       </div>

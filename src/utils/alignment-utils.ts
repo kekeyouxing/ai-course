@@ -8,7 +8,7 @@ export interface AlignmentGuide {
 }
 
 // Threshold for snapping in pixels
-export const SNAP_THRESHOLD = 5;
+export const SNAP_THRESHOLD = 3;
 
 // Canvas dimensions (standard video size)
 export const CANVAS_WIDTH = 1920;
@@ -39,11 +39,13 @@ export function getAllElementsForAlignment(
   const elements: ElementPosition[] = [];
   
   // Add text elements
-  scene.texts.forEach((t: any, index: number) => {
-    if (!(excludeType === 'text' && excludeIndex === index)) {
-      elements.push({ x: t.x, y: t.y, width: t.width, height: t.height });
-    }
-  });
+  if (scene.texts) {
+    scene.texts.forEach((t: any, index: number) => {
+      if (!(excludeType === 'text' && excludeIndex === index)) {
+        elements.push({ x: t.x, y: t.y, width: t.width, height: t.height });
+      }
+    });
+  }
   
   // Add image elements
   if (scene.media) {
