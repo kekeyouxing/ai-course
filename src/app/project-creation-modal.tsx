@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, FileIcon, Image, UploadCloud } from "lucide-react";
+import { CheckCircle, FileIcon, Image, UploadCloud,Loader2 } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 import instance_oss from "@/api/axios-oss";
@@ -24,7 +24,8 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
     const [selectedOption, setSelectedOption] = useState<"empty" | "ppt" | null>(null);
     const INVALID_FILE_ERROR = '文件大小或格式无效!';
-
+    // 在组件内部添加一个状态来跟踪处理阶段
+    const [processingStage, setProcessingStage] = useState<string>("");
     const clearData = () => {
         setUploadProgress(0);
         setUploadComplete(false);
@@ -101,7 +102,7 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
             // 获取当前用户ID
             const { user } = useAuth.getState();
             const userId = user?.userID || 'anonymous';
-            
+
             // 上传PPT文件，加入用户ID作为前缀
             const objectKey = `/project/ppt/${userId}/ppt-${uuidv4()}`; // 生成带用户ID的唯一objectKey
             const presignedURL = await generatePresignedURL(objectKey);
@@ -120,12 +121,13 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
     };
 
     // 修改后的 handleCreate 方法
+    // 修改handleCreate方法，添加处理阶段提示
     const handleCreate = async () => {
         if (!selectedOption) {
             toast.error('请选择创建方式');
             return;
         }
-        
+
         // 检查用户是否已登录
         const { user, token } = useAuth.getState();
         if (!user || !token) {
@@ -134,10 +136,17 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
             window.dispatchEvent(event);
             return;
         }
-        
+
         setIsProcessing(true);
-        
+
         try {
+            // 根据选项类型显示不同的提示信息
+            if (selectedOption === "ppt") {
+                setProcessingStage("正在创建项目，这可能需要一点时间...");
+            } else {
+                setProcessingStage("正在创建项目，请稍候...");
+            }
+            
             const projectId = await createProject(selectedOption, fileUrl);
             onCreate(projectId);
             onClose();
@@ -145,10 +154,9 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
             toast.error(error instanceof Error ? error.message : '处理PPT失败，请重试!');
         } finally {
             setIsProcessing(false);
+            setProcessingStage("");
         }
     }
-    
-
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -228,8 +236,14 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
                         <Button
                             onClick={handleCreate}
                             disabled={isProcessing || (selectedOption === "ppt" && (!file || !uploadComplete))}
+                            className="min-w-[100px]"
                         >
-                            {isProcessing ? '处理中...' : '创建'}
+                            {isProcessing ? (
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span>{processingStage || '处理中...'}</span>
+                                </div>
+                            ) : '创建'}
                         </Button>
                     </div>
                 </div>

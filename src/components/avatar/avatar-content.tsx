@@ -145,11 +145,6 @@ export default function AvatarContent({
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          {activeTab === "custom" && (
-            <button className="p-2 border border-gray-200 rounded-md hover:bg-gray-50">
-              <Upload className="h-4 w-4 text-gray-600" />
-            </button>
-          )}
         </div>
       </div>
 

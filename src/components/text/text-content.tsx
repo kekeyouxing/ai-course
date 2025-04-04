@@ -10,15 +10,47 @@ import { Slider } from "@/components/ui/slider"
 import { Input } from "@/components/ui/input"
 import "./color-picker.css" // 导入自定义样式
 import { TextElement, TextAlignment } from "@/types/scene"
+import { AnimationMarker } from "@/types/animation"
+import { getSceneAnimationMarkers } from "@/api/animation"
 
 // 组件属性接口
 interface TextContentProps {
   textElement?: TextElement;
   onUpdate: (updates: Partial<TextElement>) => void;
+  sceneId?: string; // 添加场景ID属性
 }
 
-export default function TextContent({ textElement, onUpdate }: TextContentProps) {
+export default function TextContent({ textElement, onUpdate, sceneId }: TextContentProps) {
   const [activeTab, setActiveTab] = useState("format")
+  // 添加动画标记状态
+  const [animationMarkers, setAnimationMarkers] = useState<AnimationMarker[]>([])
+  const [loadingMarkers, setLoadingMarkers] = useState(false)
+
+  // 创建一个函数用于获取动画标记
+  const fetchAnimationMarkers = async () => {
+    if (!sceneId) return;
+
+    setLoadingMarkers(true);
+    try {
+      const result = await getSceneAnimationMarkers(sceneId);
+      if (result.code === 0 && result.data?.markers) {
+        setAnimationMarkers(result.data.markers);
+      }
+    } catch (error) {
+      console.error("获取动画标记失败:", error);
+    } finally {
+      setLoadingMarkers(false);
+    }
+  };
+
+  // 处理标签切换
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    // 当切换到动画标签时，获取最新的动画标记
+    if (tab === "animate" && sceneId) {
+      fetchAnimationMarkers();
+    }
+  };
   const [textAlignment, setTextAlignment] = useState<TextAlignment>(textElement?.alignment || "left")
   const [fontColor, setFontColor] = useState(textElement?.fontColor || "#000000")
   const [backgroundColor, setBackgroundColor] = useState(textElement?.backgroundColor || "rgba(255, 255, 255, 0)")
@@ -82,14 +114,12 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
   // 修改开始时间和结束时间的下拉选择器
   const renderStartAtSelect = () => (
     <Select
-      value={textElement?.startTime?.toString() || "default"}
+      value={textElement?.startAnimationMarkerId || "default"}
       onValueChange={(value) => {
         if (value === "default") {
-          onUpdate({ startTime: undefined });
+          onUpdate({ startAnimationMarkerId: undefined });
         } else {
-          // 将选中的时间值转换为数字并更新
-          const timeValue = parseFloat(value);
-          onUpdate({ startTime: timeValue });
+          onUpdate({ startAnimationMarkerId: value });
         }
       }}
     >
@@ -98,30 +128,45 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="default">无</SelectItem>
-        {/* {sortedMarkers.map(marker => (
-          <SelectItem key={marker.id} value={marker.time.toString()}>
-            <div className="flex items-center space-x-2">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
-                动画
-              </span>
-              <span className="truncate">{marker.description}</span>
-            </div>
-          </SelectItem>
-        ))} */}
+        {animationMarkers.map(marker => {
+          // 将暂停标记替换为格式化的文本，但保留原始文本结构
+          const parts = marker.description.split(/(<#\d+#>)/g);
+
+          return (
+            <SelectItem key={marker.id} value={marker.id}>
+              <div className="flex items-center space-x-1">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                  动画
+                </span>
+                <span className="truncate">
+                  {parts.map((part, index) => {
+                    const pauseMatch = part.match(/<#(\d+)#>/);
+                    if (pauseMatch) {
+                      return (
+                        <span key={index} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                          暂停{pauseMatch[1]}秒
+                        </span>
+                      );
+                    }
+                    return part;
+                  })}
+                </span>
+              </div>
+            </SelectItem>
+          );
+        })}
       </SelectContent>
     </Select>
   );
 
   const renderEndAtSelect = () => (
     <Select
-      value={textElement?.endTime?.toString() || "default"}
+      value={textElement?.endAnimationMarkerId || "default"}
       onValueChange={(value) => {
         if (value === "default") {
-          onUpdate({ endTime: undefined });
+          onUpdate({ endAnimationMarkerId: undefined });
         } else {
-          // 将选中的时间值转换为数字并更新
-          const timeValue = parseFloat(value);
-          onUpdate({ endTime: timeValue });
+          onUpdate({ endAnimationMarkerId: value });
         }
       }}
     >
@@ -130,19 +175,37 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="default">无</SelectItem>
-        {/* {sortedMarkers.map(marker => (
-          <SelectItem key={marker.id} value={marker.time.toString()}>
-            <div className="flex items-center space-x-2">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
-                动画
-              </span>
-              <span className="truncate">{marker.description}</span>
-            </div>
-          </SelectItem>
-        ))} */}
+        {animationMarkers.map(marker => {
+          // 将暂停标记替换为格式化的文本，但保留原始文本结构
+          const parts = marker.description.split(/(<#\d+#>)/g);
+
+          return (
+            <SelectItem key={marker.id} value={marker.id}>
+              <div className="flex items-center space-x-1">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                  动画
+                </span>
+                <span className="truncate">
+                  {parts.map((part, index) => {
+                    const pauseMatch = part.match(/<#(\d+)#>/);
+                    if (pauseMatch) {
+                      return (
+                        <span key={index} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                          暂停{pauseMatch[1]}秒
+                        </span>
+                      );
+                    }
+                    return part;
+                  })}
+                </span>
+              </div>
+            </SelectItem>
+          );
+        })}
       </SelectContent>
     </Select>
   );
+
   // 处理文本对齐变化
   const handleTextAlignmentChange = (alignment: TextAlignment) => {
     setTextAlignment(alignment)
@@ -176,7 +239,6 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
 
   // 处理颜色变化
   const handleFontColorChange = (color: string) => {
-    console.log(color)
     setFontColor(color)
     onUpdate({ fontColor: color })
   }
@@ -225,7 +287,7 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
   const handleLayoutChange = (property: keyof typeof layout, value: number) => {
     // 确保所有布局属性都是整数
     const roundedValue = Math.round(value);
-    
+
     setLayout(prev => {
       const newLayout = { ...prev, [property]: roundedValue }
       onUpdate({ [property]: roundedValue })
@@ -250,7 +312,25 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
     setAnimationDirection(value as "right" | "left" | "down" | "up")
     onUpdate({ animationDirection: value as "right" | "left" | "down" | "up" })
   }
-
+  // 修改字体列表常量，使用正确的CSS字体名称
+  const fontOptions = [
+    // 中文字体放在前面
+    { value: "'Noto Sans SC', 'Noto Sans CJK SC'", label: "思源黑体" },
+    { value: "'Heiti SC', 'Heiti'", label: "黑体" },
+    { value: "'Songti SC', 'SimSun', 'STSong'", label: "宋体" },
+    { value: "'Yuanti SC', 'STYuanti'", label: "圆体" },
+    { value: "'Kaiti SC', 'STKaiti'", label: "楷体" },
+    { value: "'Source Han Serif SC', 'Source Han Serif CN'", label: "思源宋体" },
+    // 英文字体
+    { value: "'Lora', serif", label: "Lora" },
+    { value: "'Arial', sans-serif", label: "Arial" },
+    { value: "'Roboto', sans-serif", label: "Roboto" },
+    { value: "'Helvetica', 'Helvetica Neue', sans-serif", label: "Helvetica" },
+    { value: "'Times New Roman', Times, serif", label: "Times New Roman" },
+    { value: "'Georgia', serif", label: "Georgia" },
+    { value: "'Verdana', sans-serif", label: "Verdana" },
+    { value: "'Tahoma', sans-serif", label: "Tahoma" },
+  ];
   // 当 textElement 属性变化时更新本地状态
   useEffect(() => {
     if (textElement) {
@@ -298,14 +378,14 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
         {/* Tab Headers */}
         <div className="grid grid-cols-2 w-full bg-gray-100">
           <button
-            onClick={() => setActiveTab("format")}
+            onClick={() => handleTabChange("format")}
             className={`text-base font-normal py-3 focus:outline-none transition-colors ${activeTab === "format" ? "bg-white border-b-2 border-black font-medium" : "hover:bg-gray-200"
               }`}
           >
             格式
           </button>
           <button
-            onClick={() => setActiveTab("animate")}
+            onClick={() => handleTabChange("animate")}
             className={`text-base font-normal py-3 focus:outline-none transition-colors ${activeTab === "animate" ? "bg-white border-b-2 border-black font-medium" : "hover:bg-gray-200"
               }`}
           >
@@ -326,9 +406,11 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
                     <SelectValue placeholder="Select font" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="lora">Lora</SelectItem>
-                    <SelectItem value="arial">Arial</SelectItem>
-                    <SelectItem value="roboto">Roboto</SelectItem>
+                    {fontOptions.map((font) => (
+                      <SelectItem key={font.value} value={font.value}>
+                        <span style={{ fontFamily: font.value }}>{font.label}</span>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -381,8 +463,8 @@ export default function TextContent({ textElement, onUpdate }: TextContentProps)
                         </svg>
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent 
-                    side="bottom"
+                    <PopoverContent
+                      side="bottom"
                       align="start"
                       className="w-28 p-0"
                       sideOffset={1}

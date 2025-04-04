@@ -1,52 +1,97 @@
-import {Suspense, useEffect, useState} from "react"
-import {getProjects, deleteProject, renameProject} from "@/api/project"
-import {ProjectCreationModal} from "@/app/project-creation-modal.tsx";
+import { Suspense, useEffect, useRef, useState } from "react"
+import { getProjects, deleteProject, renameProject } from "@/api/project"
+import { ProjectCreationModal } from "@/app/project-creation-modal.tsx";
 import { Briefcase, MoreVertical, Trash, Edit, Share2, Check, X } from "lucide-react";
-import { Project } from "@/types/scene";
+import { Project, Scene } from "@/types/scene";
 import { toast } from "sonner";
 
 // 在顶部导入区新增
 import { useNavigate } from "react-router-dom";
-import { 
-    DropdownMenu, 
-    DropdownMenuContent, 
-    DropdownMenuItem, 
-    DropdownMenuTrigger 
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ScenePreview } from "@/components/workspace/scene-preview";
 
 export default function ProjectCollectionPage() {
     const navigate = useNavigate();
     const [projects, setProjects] = useState<Project[]>([]); // 添加类型注解
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(true); // 添加加载状态
-    
+    // 在组件内部添加状态和ref
+    // 修改状态初始化
+    const [containerWidth, setContainerWidth] = useState<number>(0);
+    const containerRef = useRef<HTMLDivElement>(null);
     // 新增状态
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [renameDialogOpen, setRenameDialogOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [newProjectName, setNewProjectName] = useState("");
-
+    // 修改useEffect
     useEffect(() => {
+        // 先获取项目数据
         const fetchProjects = async () => {
             try {
-                const data = await getProjects(); 
+                const data = await getProjects();
                 setProjects(data);
             } catch (error) {
                 console.error("获取项目失败:", error);
-                setProjects([]); // 出错时设置为空数组
+                setProjects([]);
             } finally {
                 setLoading(false);
+
+                // 数据加载完成后，设置ResizeObserver
+                setTimeout(() => {
+                    if (containerRef.current) {
+                        const resizeObserver = new ResizeObserver(entries => {
+                            for (let entry of entries) {
+                                const { width } = entry.contentRect;
+                                setContainerWidth(width);
+                            }
+                        });
+
+                        // 立即获取初始宽度
+                        const initialWidth = containerRef.current.getBoundingClientRect().width;
+                        if (initialWidth > 0) {
+                            setContainerWidth(initialWidth);
+                        }
+
+                        resizeObserver.observe(containerRef.current);
+
+                        return () => {
+                            if (containerRef.current) {
+                                resizeObserver.unobserve(containerRef.current);
+                            }
+                        };
+                    }
+                }, 0);
             }
         };
 
         fetchProjects();
     }, []);
 
+    // 计算预览尺寸的函数，根据aspectRatio调整宽高比
+    const calculatePreviewDimensions = (scene: Scene, containerWidth: number) => {
+        // 使用传入的aspectRatio或场景自身的aspectRatio，默认为16:9
+        const sceneAspectRatio = scene.aspectRatio || "16:9";
+
+        // 解析宽高比例
+        const [widthRatio, heightRatio] = sceneAspectRatio.split(":").map(Number);
+        const ratio = widthRatio / heightRatio;
+
+        // 计算预览尺寸，直接使用容器宽度和根据比例计算的高度
+        const previewWidth = containerWidth;
+        const previewHeight = containerWidth / ratio;
+
+        return { width: previewWidth, height: previewHeight };
+    };
     function handleCreateProject(projectId: string): void {
-        console.log("创建项目:", projectId);
         navigate(`/projects/${projectId}`);
     }
 
@@ -58,17 +103,17 @@ export default function ProjectCollectionPage() {
             console.error("Project not found:", projectId);
             return;
         }
-        navigate(`/projects/${projectId}`, {state: {project}});
+        navigate(`/projects/${projectId}`, { state: { project } });
     };
-    
+
     // 新增删除项目函数
     const handleDeleteProject = async () => {
         if (!selectedProject) return;
-        
+
         try {
             // 调用删除项目的API
             await deleteProject(selectedProject.id);
-            
+
             // 更新本地状态
             setProjects(projects.filter(p => p.id !== selectedProject.id));
             toast.success("项目已删除");
@@ -78,19 +123,19 @@ export default function ProjectCollectionPage() {
             toast.error("删除项目失败");
         }
     };
-    
+
     // 新增重命名项目函数
     const handleRenameProject = async () => {
         if (!selectedProject || !newProjectName.trim()) return;
-        
+
         try {
             // 调用重命名项目的API
             await renameProject(selectedProject.id, newProjectName);
-            
+
             // 更新本地状态
-            setProjects(projects.map(p => 
-                p.id === selectedProject.id 
-                    ? {...p, name: newProjectName} 
+            setProjects(projects.map(p =>
+                p.id === selectedProject.id
+                    ? { ...p, name: newProjectName }
                     : p
             ));
             toast.success("项目已重命名");
@@ -100,7 +145,7 @@ export default function ProjectCollectionPage() {
             toast.error("重命名项目失败");
         }
     };
-    
+
     // 新增分享项目函数
     const handleShareProject = (project: Project) => {
         const shareUrl = `${window.location.origin}/projects/${project.id}`;
@@ -108,7 +153,7 @@ export default function ProjectCollectionPage() {
             .then(() => toast.success("项目链接已复制到剪贴板"))
             .catch(() => toast.error("复制链接失败"));
     };
-    
+
     // 阻止事件冒泡
     const stopPropagation = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -121,7 +166,7 @@ export default function ProjectCollectionPage() {
             >
                 <div className="mb-6">
                     <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center">
-                        <Briefcase className="w-6 h-6 text-white"/>
+                        <Briefcase className="w-6 h-6 text-white" />
                     </div>
                 </div>
                 <div className="mt-auto">
@@ -137,14 +182,14 @@ export default function ProjectCollectionPage() {
                 ) : (
                     <Suspense fallback={<div>Loading projects...</div>}>
                         {projects.map((project) => (
-                            <div 
+                            <div
                                 key={project.id}
-                                className="rounded-xl overflow-hidden hover:shadow-lg hover:border-gray-300 active:shadow-lg active:border-gray-300 transition-all duration-300 cursor-pointer relative" 
+                                className="rounded-xl overflow-hidden hover:shadow-lg hover:border-gray-300 active:shadow-lg active:border-gray-300 transition-all duration-300 cursor-pointer relative"
                                 onClick={() => handleProjectClick(project.id)}
                             >
                                 {/* 操作菜单 */}
-                                <div 
-                                    className="absolute top-2 right-2 z-10 border-0 outline-none ring-0 focus:outline-none focus:ring-0" 
+                                <div
+                                    className="absolute top-2 right-2 z-10 border-0 outline-none ring-0 focus:outline-none focus:ring-0"
                                     onClick={stopPropagation}
                                 >
                                     <DropdownMenu>
@@ -167,8 +212,8 @@ export default function ProjectCollectionPage() {
                                                 <Share2 className="mr-2 h-4 w-4" />
                                                 <span>分享链接</span>
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem 
-                                                className="text-red-600 cursor-pointer" 
+                                            <DropdownMenuItem
+                                                className="text-red-600 cursor-pointer"
                                                 onClick={() => {
                                                     setSelectedProject(project);
                                                     setDeleteDialogOpen(true);
@@ -180,23 +225,24 @@ export default function ProjectCollectionPage() {
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </div>
-                                
+
                                 {/* 缩略图区域 */}
-                                {project.thumbnail ? (
-                                    <div className="h-40 overflow-hidden">
-                                        <img 
-                                            src={project.thumbnail} 
-                                            alt={project.name}
-                                            className="w-full h-full object-cover"
-                                        />
+                                {project.scenes[0] ? (
+                                    <div ref={containerRef} className="h-40 overflow-hidden">
+                                        {containerWidth > 0 && (
+                                            <ScenePreview
+                                                scene={project.scenes[0]}
+                                                width={calculatePreviewDimensions(project.scenes[0], containerWidth).width}
+                                                height={calculatePreviewDimensions(project.scenes[0], containerWidth).height}
+                                            />
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="h-40 bg-white flex items-center justify-center border-b">
-                                        <div className="text-center p-4">
-                                        </div>
+                                        {/* 默认背景 */}
                                     </div>
                                 )}
-                                
+
                                 {/* 项目信息区域 */}
                                 <div className="p-4">
                                     <h3 className="font-semibold text-lg mb-2 line-clamp-1">{project.name}</h3>
@@ -204,11 +250,10 @@ export default function ProjectCollectionPage() {
                                         <div className="text-sm text-gray-500">
                                             {new Date(project.updatedAt).toLocaleDateString('zh-CN')}
                                         </div>
-                                        <div className={`text-xs px-2 py-1 rounded-full ${
-                                            project.status === 'published' 
-                                                ? 'bg-green-50 text-green-600' 
-                                                : 'bg-amber-50 text-amber-600'
-                                        }`}>
+                                        <div className={`text-xs px-2 py-1 rounded-full ${project.status === 'published'
+                                            ? 'bg-green-50 text-green-600'
+                                            : 'bg-amber-50 text-amber-600'
+                                            }`}>
                                             {project.status === 'published' ? '已发布' : '草稿'}
                                         </div>
                                     </div>
@@ -218,14 +263,14 @@ export default function ProjectCollectionPage() {
                     </Suspense>
                 )}
             </div>
-            
+
             {/* 项目创建模态框 */}
             <ProjectCreationModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onCreate={handleCreateProject}
             />
-            
+
             {/* 删除确认对话框 */}
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <DialogContent className="sm:max-w-md">

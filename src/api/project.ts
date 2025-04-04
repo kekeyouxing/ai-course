@@ -21,7 +21,6 @@ export async function getProjects(): Promise<Project[]> {
             return response.data.data.projects.map(project => ({
                 ...project,
                 updatedAt: new Date(project.updatedAt),
-                thumbnail: project.thumbnail || undefined
             }));
         }
         console.error("获取项目失败:", response.data.msg);

@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { Scene, TextElement, ImageElement, VideoElement, AvatarElement, ImageMedia, VideoMedia, Background, SelectedElementType } from '@/types/scene';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { ContentMediaItem } from '@/components/media/media-content';
+import { ContentMediaItem } from '@/api/media';
 
 /**
  * Hook for managing element operations (text, image, video, avatar)
@@ -78,7 +78,7 @@ const handleTextUpdate = useCallback(
         width: 800, // Increase width to fit text
         height: 200, // Increase height to fit text
         rotation: 0,
-        fontFamily: "lora",
+        fontFamily: "'Noto Sans SC', 'Noto Sans CJK SC'",
         fontColor: "#000000",
         backgroundColor: "rgba(255, 255, 255, 0)",
         bold: type === "title",
@@ -256,7 +256,7 @@ const handleTextUpdate = useCallback(
       }
 
       // Create media element with proper typing
-      if (mediaItem.type === "image") {
+      if (!mediaItem.thumbnail) {
         // Create image media with correct type
         const newImageMedia: ImageMedia = {
           id: uuidv4(),
@@ -281,7 +281,7 @@ const handleTextUpdate = useCallback(
           type: "image",
           mediaId: newImageMedia.id
         });
-      } else if (mediaItem.type === "video") {
+      } else if (mediaItem.thumbnail) {
         // Create video media with correct type
         const newVideoMedia: VideoMedia = {
           id: uuidv4(),
@@ -298,7 +298,7 @@ const handleTextUpdate = useCallback(
             loop: false,
             autoplay: true,
             displayMode: "freeze",
-            thumbnail: "",
+            thumbnail: mediaItem.thumbnail || "",
             duration: "00:00"
           }
         };

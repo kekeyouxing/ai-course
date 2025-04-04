@@ -35,7 +35,8 @@ function serialize(state: EditorState): string {
       if ($isTimeTagNode(node)) {
         return `<#${node.getSeconds()}#>`;
       } else if ($isAnimationTagNode(node)) {
-        return '<@animation@>';
+        const markerId = node.getMarkerId();
+        return markerId ? `<@animation:${markerId}@>` : '<@animation@>';
       } else {
         // 如果节点有子节点，递归处理
         if ('getChildren' in node && typeof node.getChildren === 'function') {
@@ -53,7 +54,7 @@ function serialize(state: EditorState): string {
 
     // 从根节点开始遍历
     text = traverseNodes(root);
-  
+
     return text;
   });
 }
@@ -66,12 +67,12 @@ function deserialize(text: string, editor: LexicalEditor): void {
     root.clear();
 
     const timeTagRegex = /<#(\d+)#>/g;
-    const animationTagRegex = /<@animation@>/g;
+    const animationTagRegex = /<@animation(?::([a-zA-Z0-9-]+))?@>/g;
     let lastIndex = 0;
     let match: RegExpExecArray | null;
 
     // Process all markers
-    const allMatches: { type: string, index: number, length: number, value?: number }[] = [];
+    const allMatches: { type: string, index: number, length: number, value?: number, markerId?: string }[] = [];
 
     // Find time markers
     while ((match = timeTagRegex.exec(text)) !== null) {
@@ -88,7 +89,8 @@ function deserialize(text: string, editor: LexicalEditor): void {
       allMatches.push({
         type: 'animation-tag',
         index: match.index,
-        length: match[0].length
+        length: match[0].length,
+        markerId: match[1] || ""
       });
     }
 
@@ -98,7 +100,7 @@ function deserialize(text: string, editor: LexicalEditor): void {
     // Process all markers
     let currentParagraph = $createParagraphNode();
     root.append(currentParagraph);
-    
+
     for (const match of allMatches) {
       // Add text before the marker
       if (match.index > lastIndex) {
@@ -106,13 +108,13 @@ function deserialize(text: string, editor: LexicalEditor): void {
         currentParagraph.append($createTextNode(textBefore));
       }
 
-      // Add the marker
+      // 添加标记
       if (match.type === 'time-tag') {
         const timeTagNode = $createTimeTagNode(match.value!);
-        currentParagraph.append(timeTagNode);  // 添加到段落节点
+        currentParagraph.append(timeTagNode);
       } else if (match.type === 'animation-tag') {
-        const animationTagNode = $createAnimationTagNode();
-        currentParagraph.append(animationTagNode);  // 添加到段落节点
+        const animationTagNode = $createAnimationTagNode(match.markerId || "");
+        currentParagraph.append(animationTagNode);
       }
 
       lastIndex = match.index + match.length;
@@ -144,7 +146,6 @@ function EditorContainer({
   editorRef: React.MutableRefObject<{
     insertTimeTag: (seconds: number) => void,
     insertAnimationTag: () => void
-    printContentTree: () => void  // 添加新方法
   } | null>
 }) {
   const [editor] = useLexicalComposerContext();
@@ -188,92 +189,26 @@ function EditorContainer({
   // Insert animation tag
   const insertAnimationTag = useCallback(() => {
     editor.update(() => {
-      // Replace $getRoot().getSelection() with the correct API call
       const selection = $getSelection();
       if (selection && $isRangeSelection(selection)) {
-        // Get context text for the animation marker
-        let contextText = "";
-
-        try {
-          // Get text after cursor (up to 15 chars)
-          const anchor = selection.anchor;
-          const textNode = anchor.getNode();
-          const textContent = textNode.getTextContent();
-          const offset = anchor.offset;
-
-          if (textContent && offset < textContent.length) {
-            contextText = textContent.slice(offset, offset + 15).trim() || "文档末尾";
-          } else {
-            contextText = "文档末尾";
-          }
-        } catch (error) {
-          console.error("获取上下文文本失败:", error);
-          contextText = "未命名动画";
-        }
-
-        // Create a new marker ID
+        // 生成新的UUID作为markerId
         const markerId = uuidv4();
 
-        // Create animation tag node with markerId
+        // 创建动画标记节点
         const animationTagNode = $createAnimationTagNode(markerId);
         selection.insertNodes([animationTagNode]);
       }
     });
   }, [editor]);
 
-  // 添加打印内容树的方法
-  const printContentTree = useCallback(() => {
-    editor.update(() => {
-      const root = $getRoot();
-      
-      console.group('编辑器内容树形结构');
-      
-      const printNode = (node: LexicalNode, depth = 0) => {
-        const indent = ' '.repeat(depth * 2);
-        let nodeInfo = '';
-        
-        if ($isTimeTagNode(node)) {
-          nodeInfo = `TimeTagNode(${node.getSeconds()}秒)`;
-        } else if ($isAnimationTagNode(node)) {
-          nodeInfo = `AnimationTagNode(${node.getMarkerId() || 'unknown'})`;
-        } else {
-          // 更详细地显示节点类型和内容
-          const type = node.getType();
-          const content = node.getTextContent();
-          nodeInfo = `${type}${content ? `("${content}")` : ''}`;
-        }
-        
-        console.log(`${indent}${nodeInfo}`);
-        
-        if ('getChildren' in node && typeof node.getChildren === 'function') {
-          const children = node.getChildren();
-          if (children.length > 0) {
-            console.log(`${indent}└─ 子节点(${children.length}):`);
-            node.getChildren().forEach((child: LexicalNode) => printNode(child, depth + 1));
-          }
-        }
-      };
-      
-      // 打印整体结构信息
-      console.log('文档结构概览:');
-      console.log(`总段落数: ${root.getChildrenSize()}`);
-      
-      // 打印详细结构
-      console.log('\n详细节点树:');
-      printNode(root);
-      
-      console.groupEnd();
-    });
-  }, [editor]);
   // Expose methods to parent component
   useImperativeHandle(
     editorRef,
     () => ({
       insertTimeTag,
       insertAnimationTag,
-      printContentTree
     }),
-    [insertTimeTag, insertAnimationTag, printContentTree]
+    [insertTimeTag, insertAnimationTag]
   );
 
   return (
@@ -282,7 +217,7 @@ function EditorContainer({
         contentEditable={
           <ContentEditable
             className="outline-none min-h-full"
-            // onKeyDown={handleKeyDown}
+          // onKeyDown={handleKeyDown}
           />
         }
         placeholder={<div className="absolute top-2 left-2 text-gray-400 pointer-events-none">{placeholder}</div>}
@@ -302,7 +237,10 @@ function EditorContainer({
 
 // Main component
 const CustomEditor = React.forwardRef<
-  { insertTimeTag: (seconds: number) => void, insertAnimationTag: () => void },
+  { 
+    insertTimeTag: (seconds: number) => void, 
+    insertAnimationTag: (markerId?: string) => { markerId: string, contextText: string } | null 
+  },
   CustomEditorProps
 >((props, ref) => {
   const {
@@ -315,8 +253,7 @@ const CustomEditor = React.forwardRef<
   // Create a ref to expose methods
   const editorRef = React.useRef<{
     insertTimeTag: (seconds: number) => void,
-    insertAnimationTag: () => void,
-    printContentTree: () => void  // 添加新方法
+    insertAnimationTag: (markerId?: string) => { markerId: string, contextText: string } | null,
   } | null>(null);
 
   // Forward ref to internal ref
@@ -326,16 +263,12 @@ const CustomEditor = React.forwardRef<
         editorRef.current.insertTimeTag(seconds);
       }
     },
-    insertAnimationTag: () => {
+    insertAnimationTag: (markerId?: string) => {
       if (editorRef.current) {
-        editorRef.current.insertAnimationTag();
+        return editorRef.current.insertAnimationTag(markerId);
       }
+      return null;
     },
-    printContentTree: () => {  // 添加新方法
-      if (editorRef.current) {
-        editorRef.current.printContentTree();
-      }
-    }
   }), [editorRef]);
 
   // Initial config for Lexical

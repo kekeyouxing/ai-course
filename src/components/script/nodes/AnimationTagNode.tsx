@@ -20,7 +20,7 @@ export class AnimationTagNode extends DecoratorNode<JSX.Element> {
 
   constructor(markerId?: string, key?: NodeKey) {
     super(key);
-    this.__markerId = markerId;
+    this.__markerId = markerId || crypto.randomUUID().substring(0, 8);
   }
 
   createDOM(): HTMLElement {

@@ -294,6 +294,7 @@ export default function VideoEditor() {
                 return <ScriptContent
                     script={scenes[activeScene].script || ""}
                     setScript={handleScriptUpdate}
+                    sceneId={scenes[activeScene].id || ""}
                 />
             case "Avatar":
                 return <AvatarContent
@@ -311,6 +312,7 @@ export default function VideoEditor() {
                         ? scenes[activeScene].texts[selectedElement.index]
                         : undefined}
                     onUpdate={handleTextUpdate}
+                    sceneId={scenes[activeScene].id} // 添加场景ID
                 />
             case "Media":
                 return <MediaContent
@@ -318,8 +320,9 @@ export default function VideoEditor() {
                     onUpdateImage={handleImageUpdate}
                     onUpdateVideo={handleVideoUpdate}
                     selectedMedia={getSelectedMedia()}
-                    currentSceneId={scenes[activeScene].id}
+                    sceneId={scenes[activeScene].id}
                     onDelete={handleDeleteElement}
+
                 />
             // Add more cases for other tabs
             default:

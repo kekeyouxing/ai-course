@@ -13,10 +13,44 @@ interface ImageContentProps {
   imageElement?: ImageElement;
   onUpdate: (updates: Partial<ImageElement>) => void;
   onDelete: () => void; // 添加删除函数属性
+  sceneId?: string; // 添加场景ID属性
 }
 
-export default function ImageContent({ imageElement, onUpdate, onDelete }: ImageContentProps) {
+import { AnimationMarker } from "@/types/animation"
+import { getSceneAnimationMarkers } from "@/api/animation"
+
+export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId }: ImageContentProps) {
   const [activeTab, setActiveTab] = useState("format")
+  // 添加动画标记状态
+  const [animationMarkers, setAnimationMarkers] = useState<AnimationMarker[]>([])
+  const [loadingMarkers, setLoadingMarkers] = useState(false)
+  
+  // 创建一个函数用于获取动画标记
+  const fetchAnimationMarkers = async () => {
+    if (!sceneId) return;
+    
+    setLoadingMarkers(true);
+    try {
+      console.log(sceneId)
+      const result = await getSceneAnimationMarkers(sceneId);
+      if (result.code === 0 && result.data?.markers) {
+        setAnimationMarkers(result.data.markers);
+      }
+    } catch (error) {
+      console.error("获取动画标记失败:", error);
+    } finally {
+      setLoadingMarkers(false);
+    }
+  };
+  
+  // 处理标签切换
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    // 当切换到动画标签时，获取最新的动画标记
+    if (tab === "animate" && sceneId) {
+      fetchAnimationMarkers();
+    }
+  };
   const [rotation, setRotation] = useState(imageElement?.rotation || 0)
   const [layout, setLayout] = useState({
     x: imageElement?.x || 0,
@@ -88,14 +122,12 @@ export default function ImageContent({ imageElement, onUpdate, onDelete }: Image
   // 修改开始时间和结束时间的下拉选择器
   const renderStartAtSelect = () => (
     <Select
-      value={imageElement?.startTime?.toString() || "default"}
+      value={imageElement?.startAnimationMarkerId || "default"}
       onValueChange={(value) => {
         if (value === "default") {
-          onUpdate({ startTime: undefined });
+          onUpdate({ startAnimationMarkerId: undefined });
         } else {
-          // 将选中的时间值转换为数字并更新
-          const timeValue = parseFloat(value);
-          onUpdate({ startTime: timeValue });
+          onUpdate({ startAnimationMarkerId: value });
         }
       }}
     >
@@ -104,30 +136,45 @@ export default function ImageContent({ imageElement, onUpdate, onDelete }: Image
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="default">无</SelectItem>
-        {/* {sortedMarkers.map(marker => (
-          <SelectItem key={marker.id} value={marker.time.toString()}>
-            <div className="flex items-center space-x-2">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
-                动画
-              </span>
-              <span className="truncate">{marker.description}</span>
-            </div>
-          </SelectItem>
-        ))} */}
+        {animationMarkers.map(marker => {
+          // 将暂停标记替换为格式化的文本，但保留原始文本结构
+          const parts = marker.description.split(/(<#\d+#>)/g);
+          
+          return (
+            <SelectItem key={marker.id} value={marker.id}>
+              <div className="flex items-center space-x-1">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                  动画
+                </span>
+                <span className="truncate">
+                  {parts.map((part, index) => {
+                    const pauseMatch = part.match(/<#(\d+)#>/);
+                    if (pauseMatch) {
+                      return (
+                        <span key={index} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                          暂停{pauseMatch[1]}秒
+                        </span>
+                      );
+                    }
+                    return part;
+                  })}
+                </span>
+              </div>
+            </SelectItem>
+          );
+        })}
       </SelectContent>
     </Select>
   );
 
   const renderEndAtSelect = () => (
     <Select
-      value={imageElement?.endTime?.toString() || "default"}
+      value={imageElement?.endAnimationMarkerId || "default"}
       onValueChange={(value) => {
         if (value === "default") {
-          onUpdate({ endTime: undefined });
+          onUpdate({ endAnimationMarkerId: undefined });
         } else {
-          // 将选中的时间值转换为数字并更新
-          const timeValue = parseFloat(value);
-          onUpdate({ endTime: timeValue });
+          onUpdate({ endAnimationMarkerId: value });
         }
       }}
     >
@@ -136,16 +183,33 @@ export default function ImageContent({ imageElement, onUpdate, onDelete }: Image
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="default">无</SelectItem>
-        {/* {sortedMarkers.map(marker => (
-          <SelectItem key={marker.id} value={marker.time.toString()}>
-            <div className="flex items-center space-x-2">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
-                动画
-              </span>
-              <span className="truncate">{marker.description}</span>
-            </div>
-          </SelectItem>
-        ))} */}
+        {animationMarkers.map(marker => {
+          // 将暂停标记替换为格式化的文本，但保留原始文本结构
+          const parts = marker.description.split(/(<#\d+#>)/g);
+          
+          return (
+            <SelectItem key={marker.id} value={marker.id}>
+              <div className="flex items-center space-x-1">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                  动画
+                </span>
+                <span className="truncate">
+                  {parts.map((part, index) => {
+                    const pauseMatch = part.match(/<#(\d+)#>/);
+                    if (pauseMatch) {
+                      return (
+                        <span key={index} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                          暂停{pauseMatch[1]}秒
+                        </span>
+                      );
+                    }
+                    return part;
+                  })}
+                </span>
+              </div>
+            </SelectItem>
+          );
+        })}
       </SelectContent>
     </Select>
   );
@@ -193,7 +257,7 @@ export default function ImageContent({ imageElement, onUpdate, onDelete }: Image
         {/* Tab Headers */}
         <div className="grid grid-cols-2 w-full bg-gray-100">
           <button
-            onClick={() => setActiveTab("format")}
+            onClick={() => handleTabChange("format")}
             className={`text-base font-normal py-3 focus:outline-none transition-colors ${
               activeTab === "format" ? "bg-white border-b-2 border-black font-medium" : "hover:bg-gray-200"
             }`}
@@ -201,7 +265,7 @@ export default function ImageContent({ imageElement, onUpdate, onDelete }: Image
             格式
           </button>
           <button
-            onClick={() => setActiveTab("animate")}
+            onClick={() => handleTabChange("animate")}
             className={`text-base font-normal py-3 focus:outline-none transition-colors ${
               activeTab === "animate" ? "bg-white border-b-2 border-black font-medium" : "hover:bg-gray-200"
             }`}

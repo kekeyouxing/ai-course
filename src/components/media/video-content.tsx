@@ -7,16 +7,18 @@ import { Slider } from "@/components/ui/slider"
 import { Input } from "@/components/ui/input"
 import { VideoElement } from "@/types/scene"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { AnimationMarker } from "@/types/animation"
+import { getSceneAnimationMarkers } from "@/api/animation"
 
 // 组件属性接口
 interface VideoContentProps {
   videoElement: VideoElement;
   onUpdate: (updates: Partial<VideoElement>) => void;
   onDelete: () => void; // 添加删除函数属性
-  currentSceneId?: string; // 当前场景ID属性
+  sceneId?: string
 }
 
-export default function VideoContent({ videoElement, onUpdate, currentSceneId = '', onDelete }: VideoContentProps) {
+export default function VideoContent({ videoElement, onUpdate, onDelete, sceneId }: VideoContentProps) {
   const [activeTab, setActiveTab] = useState("format")
   const [rotation, setRotation] = useState(videoElement?.rotation || 0)
   const [layout, setLayout] = useState({
@@ -35,7 +37,35 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
   const [animationType, setAnimationType] = useState(videoElement?.animationType || "none")
   const [animationBehavior, setAnimationBehavior] = useState(videoElement?.animationBehavior || "enter")
   const [animationDirection, setAnimationDirection] = useState(videoElement?.animationDirection || "right")
+  // 在组件顶部添加状态
+  const [animationMarkers, setAnimationMarkers] = useState<AnimationMarker[]>([])
+  const [loadingMarkers, setLoadingMarkers] = useState(false)
 
+  // 添加获取动画标记的函数
+  const fetchAnimationMarkers = async () => {
+    if (!sceneId) return;
+
+    setLoadingMarkers(true);
+    try {
+      const result = await getSceneAnimationMarkers(sceneId);
+      if (result.code === 0 && result.data?.markers) {
+        setAnimationMarkers(result.data.markers);
+      }
+    } catch (error) {
+      console.error("获取动画标记失败:", error);
+    } finally {
+      setLoadingMarkers(false);
+    }
+  };
+
+  // 修改handleTabChange函数
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    // 当切换到动画标签时，获取最新的动画标记
+    if (tab === "animate" && sceneId) {
+      fetchAnimationMarkers();
+    }
+  };
   // 当选中的视频元素变化时，更新状态
   useEffect(() => {
     if (videoElement) {
@@ -65,7 +95,7 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
   const handleLayoutChange = (property: keyof typeof layout, value: number) => {
     // 确保所有布局属性都是整数
     const roundedValue = Math.round(value);
-    
+
     setLayout(prev => {
       const newLayout = { ...prev, [property]: roundedValue }
       onUpdate({ [property]: roundedValue })
@@ -107,17 +137,15 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
     return <div className="p-4">请先选择一个视频元素</div>
   }
 
-  // 修改开始时间和结束时间的下拉选择器
+  // 添加renderStartAtSelect函数
   const renderStartAtSelect = () => (
     <Select
-      value={videoElement?.startTime?.toString() || "default"}
+      value={videoElement?.startAnimationMarkerId || "default"}
       onValueChange={(value) => {
         if (value === "default") {
-          onUpdate({ startTime: undefined });
+          onUpdate({ startAnimationMarkerId: undefined });
         } else {
-          // 将选中的时间值转换为数字并更新
-          const timeValue = parseFloat(value);
-          onUpdate({ startTime: timeValue });
+          onUpdate({ startAnimationMarkerId: value });
         }
       }}
     >
@@ -126,30 +154,44 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="default">无</SelectItem>
-        {/* {sortedMarkers.map(marker => (
-          <SelectItem key={marker.id} value={marker.time.toString()}>
-            <div className="flex items-center space-x-2">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
-                动画
-              </span>
-              <span className="truncate">{marker.description}</span>
-            </div>
-          </SelectItem>
-        ))} */}
+        {animationMarkers.map(marker => {
+          const parts = marker.description.split(/(<#\d+#>)/g);
+          return (
+            <SelectItem key={marker.id} value={marker.id}>
+              <div className="flex items-center space-x-1">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                  动画
+                </span>
+                <span className="truncate">
+                  {parts.map((part, index) => {
+                    const pauseMatch = part.match(/<#(\d+)#>/);
+                    if (pauseMatch) {
+                      return (
+                        <span key={index} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                          暂停{pauseMatch[1]}秒
+                        </span>
+                      );
+                    }
+                    return part;
+                  })}
+                </span>
+              </div>
+            </SelectItem>
+          );
+        })}
       </SelectContent>
     </Select>
   );
 
+  // 添加renderEndAtSelect函数
   const renderEndAtSelect = () => (
     <Select
-      value={videoElement?.endTime?.toString() || "default"}
+      value={videoElement?.endAnimationMarkerId || "default"}
       onValueChange={(value) => {
         if (value === "default") {
-          onUpdate({ endTime: undefined });
+          onUpdate({ endAnimationMarkerId: undefined });
         } else {
-          // 将选中的时间值转换为数字并更新
-          const timeValue = parseFloat(value);
-          onUpdate({ endTime: timeValue });
+          onUpdate({ endAnimationMarkerId: value });
         }
       }}
     >
@@ -158,19 +200,35 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="default">无</SelectItem>
-        {/* {sortedMarkers.map(marker => (
-          <SelectItem key={marker.id} value={marker.time.toString()}>
-            <div className="flex items-center space-x-2">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
-                动画
-              </span>
-              <span className="truncate">{marker.description}</span>
-            </div>
-          </SelectItem>
-        ))} */}
+        {animationMarkers.map(marker => {
+          const parts = marker.description.split(/(<#\d+#>)/g);
+          return (
+            <SelectItem key={marker.id} value={marker.id}>
+              <div className="flex items-center space-x-1">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                  动画
+                </span>
+                <span className="truncate">
+                  {parts.map((part, index) => {
+                    const pauseMatch = part.match(/<#(\d+)#>/);
+                    if (pauseMatch) {
+                      return (
+                        <span key={index} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                          暂停{pauseMatch[1]}秒
+                        </span>
+                      );
+                    }
+                    return part;
+                  })}
+                </span>
+              </div>
+            </SelectItem>
+          );
+        })}
       </SelectContent>
     </Select>
   );
+
 
   return (
     <div className="w-full max-w-4xl mx-auto overflow-hidden bg-white">
@@ -185,7 +243,7 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
                 className="w-full h-full object-cover"
               />
             </div>
-            
+
             {/* 预览文本部分 */}
             <div className="flex-1">
               <div className="flex justify-between items-center">
@@ -220,18 +278,16 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
         {/* Tab Headers */}
         <div className="grid grid-cols-2 w-full bg-gray-100">
           <button
-            onClick={() => setActiveTab("format")}
-            className={`text-base font-normal py-3 focus:outline-none transition-colors ${
-              activeTab === "format" ? "bg-white border-b-2 border-black font-medium" : "hover:bg-gray-200"
-            }`}
+            onClick={() => handleTabChange("format")}
+            className={`text-base font-normal py-3 focus:outline-none transition-colors ${activeTab === "format" ? "bg-white border-b-2 border-black font-medium" : "hover:bg-gray-200"
+              }`}
           >
             格式
           </button>
           <button
-            onClick={() => setActiveTab("animate")}
-            className={`text-base font-normal py-3 focus:outline-none transition-colors ${
-              activeTab === "animate" ? "bg-white border-b-2 border-black font-medium" : "hover:bg-gray-200"
-            }`}
+            onClick={() => handleTabChange("animate")}
+            className={`text-base font-normal py-3 focus:outline-none transition-colors ${activeTab === "animate" ? "bg-white border-b-2 border-black font-medium" : "hover:bg-gray-200"
+              }`}
           >
             动画
           </button>
@@ -242,50 +298,47 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
           {/* Format Tab Content */}
           {activeTab === "format" && (
             <div className="space-y-6">
-                {/* 结束后显示 */}
-                <div className="space-y-2">
-                  <div>
-                    <label className="text-base font-normal text-gray-800">结束后显示</label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={`h-8 px-3 ${
-                        displayMode === "freeze" 
-                          ? "bg-gray-100 border-gray-400 text-gray-900" 
-                          : "hover:bg-gray-50"
-                      }`}
-                      onClick={() => handleDisplayModeChange("freeze")}
-                    >
-                      固定最后一帧
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={`h-8 px-3 ${
-                        displayMode === "hide" 
-                          ? "bg-gray-100 border-gray-400 text-gray-900" 
-                          : "hover:bg-gray-50"
-                      }`}
-                      onClick={() => handleDisplayModeChange("hide")}
-                    >
-                      结束后消失
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={`h-8 px-3 ${
-                        displayMode === "loop" 
-                          ? "bg-gray-100 border-gray-400 text-gray-900" 
-                          : "hover:bg-gray-50"
-                      }`}
-                      onClick={() => handleDisplayModeChange("loop")}
-                    >
-                      循环播放
-                    </Button>
-                  </div>
+              {/* 结束后显示 */}
+              <div className="space-y-2">
+                <div>
+                  <label className="text-base font-normal text-gray-800">结束后显示</label>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 px-3 ${displayMode === "freeze"
+                        ? "bg-gray-100 border-gray-400 text-gray-900"
+                        : "hover:bg-gray-50"
+                      }`}
+                    onClick={() => handleDisplayModeChange("freeze")}
+                  >
+                    固定最后一帧
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 px-3 ${displayMode === "hide"
+                        ? "bg-gray-100 border-gray-400 text-gray-900"
+                        : "hover:bg-gray-50"
+                      }`}
+                    onClick={() => handleDisplayModeChange("hide")}
+                  >
+                    结束后消失
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 px-3 ${displayMode === "loop"
+                        ? "bg-gray-100 border-gray-400 text-gray-900"
+                        : "hover:bg-gray-50"
+                      }`}
+                    onClick={() => handleDisplayModeChange("loop")}
+                  >
+                    循环播放
+                  </Button>
+                </div>
+              </div>
               {/* Rotation */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -313,7 +366,7 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
                   />
                 </div>
               </div>
-              
+
               {/* Layout */}
               <div>
                 <label className="text-base font-normal text-gray-800 block mb-2">位置和尺寸</label>
@@ -391,7 +444,7 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
               </div>
             </div>
           )}
-          
+
           {/* Animate Tab Content */}
           {activeTab === "animate" && (
             <div className="space-y-6">
@@ -496,7 +549,6 @@ export default function VideoContent({ videoElement, onUpdate, currentSceneId = 
                       </Button>
                     </div>
                   </div>
-                  
                   {(animationBehavior === "enter" || animationBehavior === "both") && (
                     <div>
                       <div className="flex items-center justify-between mb-2">

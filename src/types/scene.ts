@@ -22,8 +22,8 @@ export interface TextElement {
     animationType?: "none" | "fade" | "slide";
     animationBehavior?: "enter" | "exit" | "both";
     animationDirection?: "right" | "left" | "down" | "up";
-    startTime?: number; // 开始动画的标记ID
-    endTime?: number;   // 结束动画的标记ID
+    startAnimationMarkerId?: string; // 开始动画的标记ID
+    endAnimationMarkerId?: string;   // 结束动画的标记ID
 }
 
 // 图片元素接口
@@ -39,8 +39,8 @@ export interface ImageElement {
     animationType?: "none" | "fade" | "slide";
     animationBehavior?: "enter" | "exit" | "both";
     animationDirection?: "right" | "left" | "down" | "up";
-    startTime?: number; // 开始动画的标记ID
-    endTime?: number;   // 结束动画的标记ID
+    startAnimationMarkerId?: string; // 开始动画的标记ID
+    endAnimationMarkerId?: string;   // 结束动画的标记ID
 }
 
 // 视频元素接口
@@ -62,8 +62,8 @@ export interface VideoElement {
     animationType?: "none" | "fade" | "slide";
     animationBehavior?: "enter" | "exit" | "both";
     animationDirection?: "right" | "left" | "down" | "up";
-    startTime?: number; // 开始动画的标记ID
-    endTime?: number;   // 结束动画的标记ID
+    startAnimationMarkerId?: string; // 开始动画的标记ID
+    endAnimationMarkerId?: string;   // 结束动画的标记ID
 }
 
 // 媒体类型基础接口
@@ -162,7 +162,6 @@ export interface Project {
     createdAt: Date             // 创建时间
     updatedAt: Date             // 最后更新时间
     status: ProjectStatus       // 项目状态
-    thumbnail?: string          // 项目缩略图
     originalPptUrl?: string     // 原始PPT文件URL（如果是从PPT导入）
     createdBy?: string          // 创建者ID
 }
