@@ -254,7 +254,6 @@ export default function VideoEditor() {
         handleAddMedia,
         getSelectedMedia,
         handleBackgroundChange,
-        handleScriptUpdate
     } = useElementOperations(
         scenes,
         activeScene,
@@ -292,9 +291,15 @@ export default function VideoEditor() {
         switch (activeTab) {
             case "Script":
                 return <ScriptContent
-                    script={scenes[activeScene].script || ""}
-                    setScript={handleScriptUpdate}
-                    sceneId={scenes[activeScene].id || ""}
+                    scene={scenes[activeScene]}
+                    updateScene={(updates) => {
+                        const newScenes = [...scenes];
+                        newScenes[activeScene] = {
+                            ...newScenes[activeScene],
+                            ...updates
+                        };
+                        updateHistory(newScenes);
+                    }}
                 />
             case "Avatar":
                 return <AvatarContent

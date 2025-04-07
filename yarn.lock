@@ -337,6 +337,17 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
+"@lexical/clipboard@^0.29.0", "@lexical/clipboard@0.29.0":
+  version "0.29.0"
+  resolved "https://registry.npmmirror.com/@lexical/clipboard/-/clipboard-0.29.0.tgz"
+  integrity sha512-llxZosYCwH13p2GfPfhAinukdvAZYxWuwf5md107X80hsE8TQJj25unjqTwRKQ+w/wD+hpmBMziU8+K/WTitWQ==
+  dependencies:
+    "@lexical/html" "0.29.0"
+    "@lexical/list" "0.29.0"
+    "@lexical/selection" "0.29.0"
+    "@lexical/utils" "0.29.0"
+    lexical "0.29.0"
+
 "@lexical/clipboard@0.28.0":
   version "0.28.0"
   resolved "https://registry.npmmirror.com/@lexical/clipboard/-/clipboard-0.28.0.tgz"
@@ -401,6 +412,15 @@
     "@lexical/utils" "0.28.0"
     lexical "0.28.0"
 
+"@lexical/html@0.29.0":
+  version "0.29.0"
+  resolved "https://registry.npmmirror.com/@lexical/html/-/html-0.29.0.tgz"
+  integrity sha512-+jV6ijppOpxpUGeXkGssXJbsAmFALfeLrgbM0xuZbxZ7RgYZ+5Atn00WjSno7+JV5EOuRkYmCNtS1tiHtXMY1g==
+  dependencies:
+    "@lexical/selection" "0.29.0"
+    "@lexical/utils" "0.29.0"
+    lexical "0.29.0"
+
 "@lexical/link@0.28.0":
   version "0.28.0"
   resolved "https://registry.npmmirror.com/@lexical/link/-/link-0.28.0.tgz"
@@ -417,6 +437,15 @@
     "@lexical/selection" "0.28.0"
     "@lexical/utils" "0.28.0"
     lexical "0.28.0"
+
+"@lexical/list@0.29.0":
+  version "0.29.0"
+  resolved "https://registry.npmmirror.com/@lexical/list/-/list-0.29.0.tgz"
+  integrity sha512-sWiof+i2ff8rL7KxJ3dxHLwyJfX423e1EVLmAdQEOPhyZJiNbeLTSNhNGsZ8FjFoBwvTTEDwuQZm3iT3hliKOg==
+  dependencies:
+    "@lexical/selection" "0.29.0"
+    "@lexical/utils" "0.29.0"
+    lexical "0.29.0"
 
 "@lexical/mark@0.28.0":
   version "0.28.0"
@@ -503,6 +532,13 @@
   dependencies:
     lexical "0.28.0"
 
+"@lexical/selection@0.29.0":
+  version "0.29.0"
+  resolved "https://registry.npmmirror.com/@lexical/selection/-/selection-0.29.0.tgz"
+  integrity sha512-lX9CRrXgKte65cozTHFXwUJ2fvZD92OEtos+YU+U40GJjf3NdheGeKDxDfOpF4AXrYRSszY7E0CzmIvuEs0p4A==
+  dependencies:
+    lexical "0.29.0"
+
 "@lexical/table@0.28.0":
   version "0.28.0"
   resolved "https://registry.npmmirror.com/@lexical/table/-/table-0.28.0.tgz"
@@ -511,6 +547,15 @@
     "@lexical/clipboard" "0.28.0"
     "@lexical/utils" "0.28.0"
     lexical "0.28.0"
+
+"@lexical/table@0.29.0":
+  version "0.29.0"
+  resolved "https://registry.npmmirror.com/@lexical/table/-/table-0.29.0.tgz"
+  integrity sha512-Jdj32kBDeJh/0dGaZB14JggnEIS956/cN7grnLr7cmhhVzDicvLMBENSXQVEJAQVcSIU4G9EvxC7GJZ9VgqDnA==
+  dependencies:
+    "@lexical/clipboard" "0.29.0"
+    "@lexical/utils" "0.29.0"
+    lexical "0.29.0"
 
 "@lexical/text@0.28.0":
   version "0.28.0"
@@ -528,6 +573,16 @@
     "@lexical/selection" "0.28.0"
     "@lexical/table" "0.28.0"
     lexical "0.28.0"
+
+"@lexical/utils@0.29.0":
+  version "0.29.0"
+  resolved "https://registry.npmmirror.com/@lexical/utils/-/utils-0.29.0.tgz"
+  integrity sha512-y2hhWQDjcXdplsAaQMuZx6ht9u1I4BV5NynA+WKoQ3h8vKxzeDnpCxVOK/zxU1R5dhM/nilnFu7uhvrSeEn+TQ==
+  dependencies:
+    "@lexical/list" "0.29.0"
+    "@lexical/selection" "0.29.0"
+    "@lexical/table" "0.29.0"
+    lexical "0.29.0"
 
 "@lexical/yjs@0.28.0":
   version "0.28.0"
@@ -2072,6 +2127,11 @@ lexical@^0.28.0, lexical@0.28.0:
   version "0.28.0"
   resolved "https://registry.npmmirror.com/lexical/-/lexical-0.28.0.tgz"
   integrity sha512-dLE3O1PZg0TlZxRQo9YDpjCjDUj8zluGyBO9MHdjo21qZmMUNrxQPeCRt8fn2s5l4HKYFQ1YNgl7k1pOJB/vZQ==
+
+lexical@0.29.0:
+  version "0.29.0"
+  resolved "https://registry.npmmirror.com/lexical/-/lexical-0.29.0.tgz"
+  integrity sha512-eoBHUEn0LmExKeK6x2cFKU0FPaMk2Bc5HgiCzTiv5ymKtwWw7LeKcxaNPmLxRRdQpcWV1IMKjayAbw7Lt/Gu7w==
 
 lib0@^0.2.99:
   version "0.2.99"

@@ -308,8 +308,8 @@ export default function VideoContent({ videoElement, onUpdate, onDelete, sceneId
                     variant="outline"
                     size="sm"
                     className={`h-8 px-3 ${displayMode === "freeze"
-                        ? "bg-gray-100 border-gray-400 text-gray-900"
-                        : "hover:bg-gray-50"
+                      ? "bg-gray-100 border-gray-400 text-gray-900"
+                      : "hover:bg-gray-50"
                       }`}
                     onClick={() => handleDisplayModeChange("freeze")}
                   >
@@ -319,8 +319,8 @@ export default function VideoContent({ videoElement, onUpdate, onDelete, sceneId
                     variant="outline"
                     size="sm"
                     className={`h-8 px-3 ${displayMode === "hide"
-                        ? "bg-gray-100 border-gray-400 text-gray-900"
-                        : "hover:bg-gray-50"
+                      ? "bg-gray-100 border-gray-400 text-gray-900"
+                      : "hover:bg-gray-50"
                       }`}
                     onClick={() => handleDisplayModeChange("hide")}
                   >
@@ -330,8 +330,8 @@ export default function VideoContent({ videoElement, onUpdate, onDelete, sceneId
                     variant="outline"
                     size="sm"
                     className={`h-8 px-3 ${displayMode === "loop"
-                        ? "bg-gray-100 border-gray-400 text-gray-900"
-                        : "hover:bg-gray-50"
+                      ? "bg-gray-100 border-gray-400 text-gray-900"
+                      : "hover:bg-gray-50"
                       }`}
                     onClick={() => handleDisplayModeChange("loop")}
                   >

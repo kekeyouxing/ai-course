@@ -20,6 +20,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { ClonedVoice, SystemVoice } from "@/types/character"
 
 interface VoiceSelectorProps {
@@ -137,14 +143,23 @@ export default function VoiceSelector({
 
   return (
     <Dialog open={isVoiceModalOpen} onOpenChange={setIsVoiceModalOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2 rounded-full border-2 h-10 px-4">
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10">
-            <Mic className="w-3 h-3 text-primary" />
-          </div>
-          <span className="truncate max-w-[140px] font-normal">{getSelectedVoiceName()}</span>
-        </Button>
-      </DialogTrigger>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2 rounded-full border-2 h-10 px-4">
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10">
+                  <Mic className="w-3 h-3 text-primary" />
+                </div>
+                <span className="truncate max-w-[140px] font-normal">{getSelectedVoiceName()}</span>
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>选择配音声音</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <DialogContent className="sm:max-w-[600px] h-[80vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>选择声音</DialogTitle>

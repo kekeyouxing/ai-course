@@ -55,7 +55,7 @@ export interface VideoElement {
     zIndex: number; // 添加 zIndex 属性
     autoplay: boolean;
     thumbnail: string; // 添加缩略图字段
-    duration: string; // 添加时长字段
+    duration: number; // 添加时长字段（秒）
     loop?: boolean
     displayMode: "freeze" | "hide" | "loop"; // 显示模式
     // 动画相关字段
@@ -122,7 +122,7 @@ export interface ImageBackground extends BackgroundBase {
 export interface VideoBackground extends BackgroundBase {
     type: "video";
     src: string;
-    duration: string;
+    duration: number;
     thumbnail?: string; // 添加缩略图字段
     volume?: number; // 音量，0-1之间
     displayMode?: "freeze" | "hide" | "loop"; // 显示模式

@@ -4,6 +4,12 @@ import { useState, useEffect } from "react"
 import { Clock, ChevronUp, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface TimePickerProps {
   value: number
@@ -76,14 +82,23 @@ export default function TimePicker({
 
   return (
     <div className="relative">
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="rounded-full hover:bg-primary/10 h-8 w-8 p-0"
-        onClick={onToggle}
-      >
-        <Clock className="h-4 w-4" />
-      </Button>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="rounded-full hover:bg-primary/10 h-8 w-8 p-0"
+              onClick={onToggle}
+            >
+              <Clock className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>插入暂停时间标记</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       
       {isOpen && (
         <div className="absolute bottom-full mb-2 bg-white border rounded-lg shadow-lg p-3 w-36">

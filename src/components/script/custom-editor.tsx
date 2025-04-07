@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useCallback, useImperativeHandle, useEffect } from "react"
-import { $getRoot, $createParagraphNode, $createTextNode, $isRangeSelection, LexicalEditor, EditorState, TextNode, $getSelection, LexicalNode } from "lexical"
+import React, { useCallback, useImperativeHandle, useEffect, useRef } from "react"
+import { $getRoot, $createParagraphNode, $createTextNode, $isRangeSelection, LexicalEditor, EditorState, TextNode, $getSelection, LexicalNode, UNDO_COMMAND, REDO_COMMAND, CUT_COMMAND, COPY_COMMAND, PASTE_COMMAND, PasteCommandType } from "lexical"
 import { LexicalComposer } from "@lexical/react/LexicalComposer"
 import { PlainTextPlugin } from "@lexical/react/LexicalPlainTextPlugin"
 import { ContentEditable } from "@lexical/react/LexicalContentEditable"
@@ -149,6 +149,33 @@ function EditorContainer({
   } | null>
 }) {
   const [editor] = useLexicalComposerContext();
+  // 跟踪上一次编辑位置的ref
+  const lastSelectionRef = useRef<{anchor: number, focus: number, nodeKey: string} | null>(null);
+
+  // 监听选择变化以记录位置
+  useEffect(() => {
+    const unregister = editor.registerUpdateListener(({editorState, dirtyElements, dirtyLeaves}) => {
+      // 只在有实际编辑时记录位置
+      if (dirtyElements.size > 0 || dirtyLeaves.size > 0) {
+        editorState.read(() => {
+          const selection = $getSelection();
+          if ($isRangeSelection(selection)) {
+            const anchor = selection.anchor;
+            const focus = selection.focus;
+            
+            // 记录当前选择信息
+            lastSelectionRef.current = {
+              anchor: anchor.offset,
+              focus: focus.offset,
+              nodeKey: anchor.key
+            };
+          }
+        });
+      }
+    });
+    
+    return unregister;
+  }, [editor]);
 
   // Initialize editor with value
   useEffect(() => {
@@ -173,6 +200,66 @@ function EditorContainer({
       }
     }
   }, [value, editor]);
+
+  // // 处理键盘快捷键
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
+    // 只处理带有修饰键的事件
+    if (!(event.ctrlKey || event.metaKey)) return;
+    
+    // 根据按键执行不同操作
+    switch (event.key.toLowerCase()) {
+      case 'c': // 复制
+        // 使用document.execCommand简单实现复制
+        event.preventDefault();
+        document.execCommand('copy');
+        break;
+        
+      case 'x': // 剪切
+        // 使用document.execCommand简单实现剪切
+        event.preventDefault();
+        document.execCommand('cut');
+        break;
+        
+      case 'v': // 粘贴
+        // document.execCommand无法实现粘贴，改用navigator.clipboard
+        event.preventDefault();
+        
+        // 使用剪贴板API获取文本并插入
+        navigator.clipboard.readText()
+          .then(clipText => {
+            if (clipText) {
+              editor.update(() => {
+                const selection = $getSelection();
+                if ($isRangeSelection(selection)) {
+                  selection.insertText(clipText);
+                }
+              });
+            }
+          })
+          .catch(err => {
+            console.error('粘贴失败:', err);
+            // 如果API失败，让用户知道需要手动粘贴
+            alert('自动粘贴失败，请尝试右键粘贴或使用键盘快捷键');
+          });
+        break;
+      case 'z': // 撤销
+        event.preventDefault();
+        // 直接调用撤销命令，让Lexical内部处理光标位置
+        editor.dispatchCommand(UNDO_COMMAND, undefined);
+        break;
+        
+      case 'y': // 重做
+        if (event.shiftKey || event.metaKey) {
+          event.preventDefault();
+          editor.dispatchCommand(REDO_COMMAND, undefined);
+        }
+        break;
+        
+      default:
+        // 其他快捷键不处理
+        break;
+    }
+  }, [editor, lastSelectionRef]);
 
   // Insert time tag
   const insertTimeTag = useCallback((seconds: number) => {
@@ -217,7 +304,7 @@ function EditorContainer({
         contentEditable={
           <ContentEditable
             className="outline-none min-h-full"
-          // onKeyDown={handleKeyDown}
+            onKeyDown={handleKeyDown}
           />
         }
         placeholder={<div className="absolute top-2 left-2 text-gray-400 pointer-events-none">{placeholder}</div>}

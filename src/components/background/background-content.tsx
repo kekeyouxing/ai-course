@@ -1,26 +1,29 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { Play, Trash2, Upload } from "lucide-react"
+import { useState, useEffect, useRef, useCallback } from "react"
+import { Play, Trash2, Upload, Search, MoreHorizontal, Edit, X, Check } from "lucide-react"
 import { HexColorPicker } from "react-colorful"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
-import avatarImage from "@/assets/avatar.png"
+import { Progress } from "@/components/ui/progress"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import "./color-picker.css" // 导入自定义样式
 import { v4 as uuidv4 } from 'uuid'
 import { toast } from "sonner"
 import instance_oss from "@/api/axios-oss"
 import instance from '@/api/axios'
 import type { Background, ColorBackground, ImageBackground, VideoBackground } from "@/types/scene"
-// 定义ContentBackground类型，用于展示背景列表
-interface ContentBackground {
-  id: string;
-  type: "color" | "image" | "video";
-  title: string;
-  thumbnail?: string;
-  value: string; // 颜色值或资源URL
-  duration?: string; // 视频时长
-}
+import { getBackgroundList, createBackground, renameBackground, deleteBackground, ContentBackgroundItem } from "@/api/background"
 
 // 修改组件接口定义
 interface BackgroundContentProps {
@@ -43,51 +46,23 @@ const colorPresets = [
   "#D1ECF1", // 青色
   "#E2E3E5", // 灰色
 ]
-// 将颜色预设转换为ContentBackground格式
-const colorBackgrounds: ContentBackground[] = colorPresets.map((color, index) => ({
-  id: `color-${index}`,
-  type: "color",
-  title: `颜色 ${index + 1}`,
-  value: color
-}));
 
-// 定义图片背景列表
-const imageBackgrounds: ContentBackground[] = [
-  {
-    id: "image-1",
-    type: "image",
-    title: "森林航拍",
-    thumbnail: avatarImage,
-    value: avatarImage
-  },
-  {
-    id: "image-2",
-    type: "image",
-    title: "海滩风光",
-    thumbnail: avatarImage,
-    value: avatarImage
-  },
-  {
-    id: "image-3",
-    type: "image",
-    title: "城市夜景",
-    thumbnail: avatarImage,
-    value: avatarImage
-  }
-];
-// 定义视频背景列表
-const videoBackgrounds: ContentBackground[] = [
-  {
-    id: "video-1",
-    type: "video",
-    title: "日落视频",
-    thumbnail: avatarImage,
-    value: "https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/liu.mov",
-    duration: "00:22"
-  }
-];
 export function BackgroundContent({ currentBackground, onBackgroundChange }: BackgroundContentProps) {
-  const [activeTab, setActiveTab] = useState("Color")
+  const [mainTab, setMainTab] = useState("color") // 主标签：my（我的素材）、system（系统素材）或 color（颜色背景）
+  const [subTab, setSubTab] = useState("all") // 子标签：all（全部）、image（图片）或 video（视频）
+  const [backgroundItems, setBackgroundItems] = useState<ContentBackgroundItem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(10)
+  const [total, setTotal] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  const [itemToDelete, setItemToDelete] = useState<string | undefined>(undefined)
+  const [itemToRename, setItemToRename] = useState<string | undefined>(undefined)
+  const [newName, setNewName] = useState("")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [selectedColor, setSelectedColor] = useState(() => {
     // 初始化颜色为当前背景颜色（如果是颜色类型）
     return currentBackground?.type === "color"
@@ -96,36 +71,118 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
   })
   // 添加视频编辑器状态
   const [showVideoEditor, setShowVideoEditor] = useState(false);
-  // 添加文件上传相关状态
-  const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  // 处理拖拽事件
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
+  
+  const inputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // 当currentBackground变化时更新selectedColor
+  useEffect(() => {
+    if (currentBackground?.type === "color") {
+      setSelectedColor((currentBackground as ColorBackground).color);
+    }
+  }, [currentBackground]);
+
+  // 添加格式化时间函数
+  const formatDuration = (seconds: number): string => {
+    if (!seconds) return "00:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
+  // 处理颜色选择
+  const handleColorSelect = (color: string) => {
+    setSelectedColor(color)
+    if (onBackgroundChange) {
+      onBackgroundChange({
+        type: "color",
+        color: color
+      });
+    }
+  }
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileUpload(e.dataTransfer.files[0]);
+  // 处理媒体项点击
+  const handleBackgroundItemClick = (item: ContentBackgroundItem) => {
+    if (onBackgroundChange) {
+      if (item.type === "image") {
+        onBackgroundChange({
+          type: "image",
+          src: item.src,
+        });
+      } else if (item.type === "video") {
+        setShowVideoEditor(true);
+        onBackgroundChange({
+          type: "video",
+          src: item.src,
+          thumbnail: item.thumbnail || "",
+          duration: item.duration || 0,
+          volume: 0.5, // 默认音量50%
+          displayMode: "freeze" // 默认固定最后一帧
+        });
+      } else if (item.type === "color") {
+        onBackgroundChange({
+          type: "color",
+          color: item.src
+        });
+      }
     }
   };
 
-  // 处理文件选择
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFileUpload(e.target.files[0]);
+  // 处理删除确认
+  const handleDeleteConfirm = async () => {
+    if (itemToDelete !== undefined) {
+      try {
+        // 调用删除API
+        await deleteBackground(itemToDelete);
+        
+        // 从列表中移除被删除的项
+        setBackgroundItems(backgroundItems.filter((item) => item.id !== itemToDelete));
+        toast.success("背景已删除");
+      } catch (error) {
+        console.error("删除背景失败:", error);
+        toast.error("删除背景失败");
+      } finally {
+        setItemToDelete(undefined);
+      }
     }
   };
+
+  // 重命名开始
+  const handleRenameStart = (item: ContentBackgroundItem) => {
+    setItemToRename(item.id);
+    setNewName(item.name);
+    // 聚焦输入框
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.select();
+      }
+    }, 0);
+  };
+
+  // 完成重命名
+  const handleRenameComplete = async () => {
+    if (itemToRename !== undefined && newName.trim()) {
+      try {
+        // 调用重命名API
+        await renameBackground(itemToRename, newName.trim());
+        
+        // 更新列表中的项名称
+        setBackgroundItems(
+          backgroundItems.map((item) => 
+            item.id === itemToRename ? { ...item, name: newName.trim() } : item
+          )
+        );
+        toast.success("背景已重命名");
+      } catch (error) {
+        console.error("重命名背景失败:", error);
+        toast.error("重命名背景失败");
+      } finally {
+        setItemToRename(undefined);
+      }
+    }
+  };
+
   // 生成预签名URL
   const generatePresignedURL = async (objectKey: string) => {
     try {
@@ -159,10 +216,19 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
       throw error;
     }
   };
+
+  // 处理文件选择
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFileUpload(e.target.files[0]);
+    }
+  };
+
   // 处理文件上传
   const handleFileUpload = async (file: File) => {
     // 检查文件类型
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+    const fileType = file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : null;
+    if (!fileType) {
       toast.error('请上传图片或视频文件');
       return;
     }
@@ -175,11 +241,12 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
 
     setIsUploading(true);
     setUploadProgress(0);
+    setUploadError(null);
 
     try {
       // 生成唯一的文件名
       const fileExtension = file.name.split('.').pop() || '';
-      const objectKey = `background-${uuidv4()}.${fileExtension}`;
+      const objectKey = `/background/background-${uuidv4()}.${fileExtension}`;
 
       // 获取预签名URL
       const presignedURL = await generatePresignedURL(objectKey);
@@ -187,101 +254,392 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
       // 上传到云存储
       await uploadToTencentCloud(file, presignedURL.data, file.type);
 
+      let thumbnailUrl = "";
+      let videoDuration = 0;
+      if (fileType === 'video') {
+        // 创建视频元素
+        const video = document.createElement('video');
+        video.src = URL.createObjectURL(file);
+        video.currentTime = 0.1; // 设置时间点为0.1秒，确保视频已加载
+
+        // 获取视频时长
+        await new Promise<void>((resolve) => {
+          video.onloadedmetadata = () => {
+            videoDuration = video.duration;
+            resolve();
+          };
+        });
+
+        // 创建画布元素
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+
+        // 设置画布尺寸
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // 绘制视频的第一帧到画布
+        context?.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // 将画布内容转换为Blob
+        const blob = await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob(resolve, 'image/jpeg');
+        });
+
+        if (blob) {
+          // Convert Blob to File
+          const thumbnailFile = new File([blob], `thumbnail-${uuidv4()}.jpg`, { type: 'image/jpeg' });
+
+          // 上传缩略图
+          const thumbnailKey = `/background/thumbnail-${uuidv4()}.jpg`;
+          const thumbnailPresignedURL = await generatePresignedURL(thumbnailKey);
+          await uploadToTencentCloud(thumbnailFile, thumbnailPresignedURL.data, 'image/jpeg');
+          thumbnailUrl = `https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/${thumbnailKey}`;
+        }
+      }
+
       // 构建完整URL
       const fileUrl = `https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/${objectKey}`;
 
-      // // 根据文件类型更新背景
-      // if (file.type.startsWith('image/')) {
-      //   if (onBackgroundChange) {
-      //     onBackgroundChange({
-      //       type: "image",
-      //       src: fileUrl,
-      //     });
-      //   }
-      // } else if (file.type.startsWith('video/')) {
-      //   if (onBackgroundChange) {
-      //     onBackgroundChange({
-      //       type: "video",
-      //       src: fileUrl,
-      //       duration: "未知", // 这里可以添加获取视频时长的逻辑
-      //       thumbnail: avatarImage, // 可以添加生成视频缩略图的逻辑
-      //       volume: 0.5,
-      //       displayMode: "freeze" // 默认固定最后一帧
-      //     });
-      //   }
-      //   setShowVideoEditor(true);
-      // }
+      // 创建新背景项
+      const newItem: ContentBackgroundItem = {
+        id: uuidv4(),
+        type: fileType,
+        category: 'my', // 设置为我的背景
+        src: fileUrl,
+        name: file.name,
+        thumbnail: fileType === 'video' ? thumbnailUrl : undefined,
+        duration: fileType === 'video' ? videoDuration : undefined // 使用实际的视频时长（秒）
+      };
 
-      toast.success('文件上传成功!');
+      // 保存到后端
+      await createBackground(newItem);
+      
+      // 添加到列表
+      setBackgroundItems(prev => [newItem, ...prev]);
 
-      // 重置文件输入
+      toast.success('背景上传成功!');
+    } catch (error) {
+      console.error('上传失败:', error);
+      toast.error('背景上传失败!');
+    } finally {
+      setIsUploading(false);
+      // 清除文件选择
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    } catch (error) {
-      console.error('上传失败:', error);
-      toast.error('文件上传失败!');
-    } finally {
-      setIsUploading(false);
     }
   };
 
-
-  // 当currentBackground变化时更新selectedColor
-  useEffect(() => {
-    if (currentBackground?.type === "color") {
-      setSelectedColor((currentBackground as ColorBackground).color);
+  // 定义标签按钮数组
+  const getTabButtons = () => {
+    if (mainTab === 'color') return [];
+    
+    // 仅在"我的背景"中提供子标签选项
+    if (mainTab === 'my') {
+      return [
+        { label: "全部", value: "all" },
+        { label: "图片", value: "image" },
+        { label: "视频", value: "video" }
+      ];
     }
-  }, [currentBackground]);
+    
+    // 系统背景不需要子标签
+    return [];
+  };
 
-  // 处理颜色选择
-  const handleColorSelect = (color: string) => {
-    setSelectedColor(color)
-    if (onBackgroundChange) {
-      onBackgroundChange({
-        type: "color",
-        color: color
+  const tabButtons = getTabButtons();
+
+  // 加载背景列表数据
+  const loadBackgroundList = useCallback(async (isLoadMore = false) => {
+    try {
+      setLoading(true);
+      const currentPage = isLoadMore ? page + 1 : 1;
+      
+      const response = await getBackgroundList({
+        type: subTab === "all" ? undefined : subTab,
+        page: currentPage,
+        pageSize: pageSize,
+        category: mainTab === "system" ? "system" : "my"
       });
-    }
-  }
 
-  // 处理图片选择
-  const handleImageSelect = () => {
-    if (onBackgroundChange) {
-      onBackgroundChange({
-        type: "image",
-        src: avatarImage, // 这里使用实际图片路径
-      });
-    }
-  }
-
-  // 处理视频选择
-  const handleVideoSelect = (title: string) => {
-    setShowVideoEditor(true)
-    if (onBackgroundChange) {
-      // 根据标题选择对应的视频路径和缩略图
-      let videoSrc = "";
-      switch (title) {
-        case "日落视频":
-          videoSrc = "https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/liu.mov";
-          // 如果有专门的缩略图，可以在这里设置
-          break;
-        default:
-          videoSrc = "/videos/default.mp4";
+      if (response.code === 0 && response.data) {
+        // 设置category字段，区分是我的背景还是系统背景
+        const backgrounds = response.data.backgrounds.map(item => ({
+          ...item,
+          category: mainTab // 设置分类为当前标签
+        }));
+        
+        setBackgroundItems(prev => 
+          isLoadMore ? [...prev, ...backgrounds] : backgrounds
+        );
+        setTotal(response.data.total);
+        setPage(currentPage);
+        setHasMore(currentPage * pageSize < response.data.total);
       }
-
-      onBackgroundChange({
-        type: "video",
-        src: videoSrc,
-        duration: "00:22",
-        volume: 0.5, // 默认音量50%
-        displayMode: "freeze" // 默认固定最后一帧
-      });
+    } catch (error) {
+      console.error('加载背景列表失败:', error);
+      toast.error('加载背景列表失败');
+    } finally {
+      setLoading(false);
     }
-  }
+  }, [mainTab, subTab, page, pageSize]);
+
+  // 添加滚动加载功能
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // 节流函数
+  const throttle = (func: Function, limit: number) => {
+    let inThrottle: boolean;
+    return function(...args: any[]) {
+      if (!inThrottle) {
+        func.apply(null, args);
+        inThrottle = true;
+        setTimeout(() => inThrottle = false, limit);
+      }
+    };
+  };
+
+  // 处理滚动事件
+  const handleScroll = useCallback(() => {
+    if (!containerRef.current || loading || !hasMore) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    // 当滚动到距离底部100px时加载更多
+    if (scrollHeight - scrollTop - clientHeight < 100) {
+      loadBackgroundList(true);
+    }
+  }, [loading, hasMore, loadBackgroundList]);
+
+  // 添加滚动事件监听
+  useEffect(() => {
+    const throttledHandleScroll = throttle(handleScroll, 200);
+    const currentContainer = containerRef.current;
+
+    if (currentContainer) {
+      currentContainer.addEventListener('scroll', throttledHandleScroll);
+    }
+
+    return () => {
+      if (currentContainer) {
+        currentContainer.removeEventListener('scroll', throttledHandleScroll);
+      }
+    };
+  }, [handleScroll]);
+
+  // 初始加载和标签切换时加载数据
+  useEffect(() => {
+    if (mainTab !== 'color') {
+      loadBackgroundList();
+    }
+  }, [mainTab, subTab, loadBackgroundList]);
+
+  // 根据搜索词筛选背景项
+  const filteredBackgroundItems = backgroundItems.filter(item => {
+    const matchesSearch = !searchTerm || 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
+  // 渲染背景库内容
+  const renderBackgroundLibrary = () => (
+    <div className="p-4" ref={containerRef}>
+      {/* 搜索和上传 */}
+      <div className="flex gap-3 mb-6">
+        <div className="flex-1 relative">
+          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="搜索背景"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
+          />
+        </div>
+        {mainTab === "my" && (
+          <>
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*,video/*"
+              onChange={handleFileChange}
+            />
+            <button 
+              className="cursor-pointer p-2 border border-gray-200 rounded-md hover:bg-gray-50 active:scale-95 active:bg-gray-100 transition-transform duration-100"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+            >
+              <Upload className="h-4 w-4 text-gray-600" />
+            </button>
+          </>
+        )}
+      </div>
+      
+      {/* 背景项网格 */}
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          {filteredBackgroundItems.map((item) => (
+            <div key={item.id} className="space-y-2">
+              <div
+                className="relative aspect-video rounded-md overflow-hidden border border-gray-200 bg-gray-50 group cursor-pointer"
+                onClick={() => handleBackgroundItemClick(item)}
+              >
+                {/* 视频显示播放图标 */}
+                {item.type === "video" && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
+                      <div className="w-0 h-0 border-y-[6px] border-y-transparent border-l-[10px] border-l-white ml-1"></div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* 缩略图或图片 */}
+                <img
+                  src={item.thumbnail || item.src}
+                  alt={item.name}
+                  className="object-cover w-full h-full"
+                />
+                
+                {/* 视频时长 */}
+                {item.type === "video" && item.duration && (
+                  <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                    {formatDuration(item.duration)}
+                  </div>
+                )}
+                
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                {itemToRename === item.id ? (
+                  <div className="flex items-center space-x-1 flex-1">
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleRenameComplete()}
+                      className="text-xs px-1 py-0.5 border border-gray-300 rounded flex-1 min-w-0"
+                    />
+                    <button onClick={handleRenameComplete} className="p-1 text-green-600 hover:bg-gray-100 rounded-full">
+                      <Check className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => setItemToRename(undefined)}
+                      className="p-1 text-red-600 hover:bg-gray-100 rounded-full"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <span className="text-xs text-gray-600 truncate">{item.name}</span>
+                    {/* 仅在"我的背景"中显示编辑选项 */}
+                    {item.category === "my" && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-1 rounded-full hover:bg-gray-100">
+                            <MoreHorizontal className="h-3 w-3 text-gray-500" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-36">
+                          <DropdownMenuItem onClick={() => handleRenameStart(item)}>
+                            <Edit className="h-3 w-3 mr-2" />
+                            重命名
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setItemToDelete(item.id)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="h-3 w-3 mr-2" />
+                            删除
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {loading && (
+          <div className="flex justify-center py-4">
+            <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // 渲染颜色背景内容
+  const renderColorBackgrounds = () => (
+    <div className="p-4">
+      {/* 自定义颜色选择器 */}
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-lg text-gray-600 font-normal">自定义颜色</h3>
+        </div>
+        <div className="flex items-center gap-3 mb-4">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-12 h-12 p-0 border-2"
+                style={{ backgroundColor: selectedColor }}
+              />
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-3" align="start">
+              <div className="mb-3 custom-color-picker">
+                <HexColorPicker color={selectedColor} onChange={handleColorSelect} />
+              </div>
+              <div className="grid grid-cols-5 gap-2 mb-3">
+                {colorPresets.map((color, index) => (
+                  <div
+                    key={`color-${index}`}
+                    className="aspect-video rounded-lg overflow-hidden cursor-pointer border border-gray-200"
+                    style={{ backgroundColor: color }}
+                    onClick={() => handleColorSelect(color)}
+                  >
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium">Hex</div>
+                <div className="flex h-8 w-24 rounded-md border border-input bg-background px-3 py-1 text-sm items-center">
+                  {selectedColor}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          <div>
+            <p className="text-sm text-gray-600 font-medium">自定义背景色</p>
+            <p className="text-xs text-gray-500">{selectedColor}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 颜色预设网格 */}
+      <div className="grid grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-2">
+        {colorPresets.map((color) => (
+          <div
+            key={color}
+            className="aspect-video rounded-lg overflow-hidden cursor-pointer border border-gray-200"
+            style={{ backgroundColor: color }}
+            onClick={() => handleColorSelect(color)}
+          >
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="max-w-4xl mx-auto bg-gray-50">
+    <div className="max-w-4xl mx-auto bg-gray-50 h-full flex flex-col">
       {/* Preview Section - 显示当前背景 */}
       {currentBackground && (
         <div className="bg-gray-100 p-3 flex flex-col mb-3">
@@ -303,6 +661,7 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
                         <img
                           src={(currentBackground as ImageBackground).src}
                           className="w-full h-full object-cover"
+                          alt="背景图片"
                         />
                       </div>
                     );
@@ -313,6 +672,7 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
                         <img
                           src={(currentBackground as VideoBackground).thumbnail}
                           className="w-full h-full object-cover transition-opacity duration-300"
+                          alt="视频缩略图"
                         />
                       </div>
                     );
@@ -335,7 +695,7 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
                   </h2>
                 </div>
                 {currentBackground.type === "video" && (
-                  <p className="text-sm text-gray-500">{(currentBackground as VideoBackground).duration}</p>
+                  <p className="text-sm text-gray-500">{formatDuration((currentBackground as VideoBackground).duration)}</p>
                 )}
               </div>
             </div>
@@ -464,235 +824,98 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
         </div>
       )}
 
-      {/* Custom Tabs */}
+      {/* Main Tabs */}
       <div className="w-full">
-        {/* Tab Headers */}
-        <div className="grid grid-cols-4 w-full bg-gray-100">
-          {["Color", "Images", "Videos", "Upload"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`text-sm font-normal py-2 focus:outline-none transition-colors ${activeTab === tab ? "bg-white border-b-2 border-black font-medium" : "hover:bg-gray-200"
-                }`}
-            >
-              {tab}
-            </button>
-          ))}
+        {/* Main Tab Headers */}
+        <div className="grid grid-cols-3 w-full bg-gray-100">
+          <button
+            onClick={() => {
+              setMainTab("color");
+              setSubTab("all");
+            }}
+            className={`text-sm font-normal py-2 focus:outline-none transition-colors ${
+              mainTab === "color"
+                ? "bg-white border-b-2 border-black font-medium"
+                : "hover:bg-gray-200"
+            }`}
+          >
+            颜色背景
+          </button>
+          <button
+            onClick={() => {
+              setMainTab("my");
+              setSubTab("all");
+            }}
+            className={`text-sm font-normal py-2 focus:outline-none transition-colors ${
+              mainTab === "my"
+                ? "bg-white border-b-2 border-black font-medium"
+                : "hover:bg-gray-200"
+            }`}
+          >
+            我的背景
+          </button>
+          <button
+            onClick={() => {
+              setMainTab("system");
+              setSubTab("all");
+            }}
+            className={`text-sm font-normal py-2 focus:outline-none transition-colors ${
+              mainTab === "system"
+                ? "bg-white border-b-2 border-black font-medium"
+                : "hover:bg-gray-200"
+            }`}
+          >
+            系统背景
+          </button>
         </div>
       </div>
 
-      {/* Tab Content */}
-      <div className="p-4">
-        {/* Color Tab Content */}
-        {activeTab === "Color" && (
-          <div>
-            {/* Custom Color Picker */}
-            <div className="mb-6">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-lg text-gray-600 font-normal">自定义颜色</h3>
-              </div>
-              <div className="flex items-center gap-3 mb-4">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-12 h-12 p-0 border-2"
-                      style={{ backgroundColor: selectedColor }}
-                    />
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 p-3" align="start">
-                    <div className="mb-3 custom-color-picker">
-                      <HexColorPicker color={selectedColor} onChange={handleColorSelect} />
-                    </div>
-                    <div className="grid grid-cols-5 gap-2 mb-3">
-                      {colorBackgrounds.map((background) => (
-                        <div
-                          key={background.id}
-                          className="aspect-video rounded-lg overflow-hidden cursor-pointer border border-gray-200"
-                          style={{ backgroundColor: background.value }}
-                          onClick={() => handleColorSelect(background.value)}
-                        >
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium">Hex</div>
-                      <div className="flex h-8 w-24 rounded-md border border-input bg-background px-3 py-1 text-sm items-center">
-                        {selectedColor}
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <div>
-                  <p className="text-sm text-gray-600 font-medium">自定义背景色</p>
-                  <p className="text-xs text-gray-500">{selectedColor}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Color Presets Grid */}
-            <div className="grid grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-2">
-              {colorPresets.map((color) => (
-                <div
-                  key={color}
-                  className="aspect-video rounded-lg overflow-hidden cursor-pointer border border-gray-200"
-                  style={{ backgroundColor: color }}
-                  onClick={() => handleColorSelect(color)}
-                >
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Images Tab Content */}
-        {activeTab === "Images" && (
-          <div className="pb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-x text-gray-600">场景</h3>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {imageBackgrounds.map((background) => (
-                <div
-                  key={background.id}
-                  className="rounded-lg overflow-hidden cursor-pointer"
-                  onClick={() => {
-                    if (onBackgroundChange) {
-                      onBackgroundChange({
-                        type: "image",
-                        src: background.value,
-                      });
-                    }
-                  }}
-                >
-                  <img
-                    src={background.thumbnail || background.value}
-                    width={300}
-                    height={200}
-                    alt={background.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Videos Tab Content */}
-        {activeTab === "Videos" && (
-          <div className="pb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-x text-gray-600">视频素材</h3>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {videoBackgrounds.map((background) => (
-                <div
-                  key={background.id}
-                  className="rounded-lg overflow-hidden relative cursor-pointer group"
-                  onClick={() => {
-                    setShowVideoEditor(true);
-                    if (onBackgroundChange) {
-                      onBackgroundChange({
-                        type: "video",
-                        src: background.value,
-                        duration: background.duration || "未知",
-                        thumbnail: background.thumbnail || avatarImage,
-                        volume: 0.5,
-                        displayMode: "freeze"
-                      });
-                    }
-                  }}
-                >
-                  <img
-                    src={background.thumbnail}
-                    width={300}
-                    height={200}
-                    alt={background.title}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                  {/* <div className="absolute bottom-2 right-2">
-                  <div className="w-8 h-8 bg-black bg-opacity-60 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-                    <Play size={16} color="white" fill="white" />
-                  </div>
-                </div> */}
-                  {background.duration && (
-                    <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
-                      {background.duration}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 修改 Upload 选项卡内容 */}
-        {activeTab === "Upload" && (
-          <div className="flex flex-col items-center justify-center py-6">
-            <div
-              className={`w-full max-w-md border-2 border-dashed rounded-lg p-6 text-center ${isDragging ? 'border-gray-400 bg-gray-50' : 'border-gray-300'
-                }`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
+      {/* Sub Tabs 仅在"我的背景"中显示 */}
+      {mainTab === "my" && tabButtons.length > 0 && (
+        <div className="flex gap-2 px-4 py-3 border-b border-gray-200">
+          {tabButtons.map((button) => (
+            <button
+              key={button.value}
+              onClick={() => setSubTab(button.value)}
+              className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                subTab === button.value
+                  ? "bg-primary text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
             >
-              <div className="mb-4">
-                <div className="p-4 bg-gray-100 rounded-full mx-auto w-16 h-16 flex items-center justify-center">
-                  <Upload className="w-8 h-8 text-gray-400" />
-                </div>
-              </div>
-              <h3 className="text-lg font-medium text-gray-800 mb-1">拖放文件到这里</h3>
-              <p className="text-sm text-gray-500 mb-4">
-                或者点击下方按钮选择文件
-              </p>
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*,video/*"
-                onChange={handleFileChange}
-              />
-              <Button
-                variant="outline"
-                className="rounded-md border-gray-300 text-gray-700 hover:bg-gray-50"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-              >
-                {isUploading ? (
-                  <span className="flex items-center">
-                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full"></div>
-                    上传中...
-                  </span>
-                ) : (
-                  <span className="flex items-center">
-                    <Upload className="w-4 h-4 mr-2" />
-                    选择文件
-                  </span>
-                )}
-              </Button>
-              <p className="mt-2 text-xs text-gray-500">
-                支持PNG, JPG, GIF, MP4格式
-              </p>
+              {button.label}
+            </button>
+          ))}
+        </div>
+      )}
 
-              {/* 上传进度条 */}
-              {isUploading && (
-                <div className="mt-4 space-y-2">
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <span>上传进度</span>
-                    <span>{uploadProgress}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-1.5">
-                    <div
-                      className="bg-gray-700 h-1.5 rounded-full"
-                      style={{ width: `${uploadProgress}%` }}
-                    ></div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+      {/* Tab Content */}
+      <div className="flex-1 overflow-y-auto">
+        {/* 根据当前标签渲染内容 */}
+        {mainTab === "color" ? (
+          renderColorBackgrounds()
+        ) : (
+          renderBackgroundLibrary()
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(undefined)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确定要删除吗？</AlertDialogTitle>
+            <AlertDialogDescription>
+              此操作无法撤销，将永久删除所选背景。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700">
+              删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

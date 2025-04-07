@@ -1,6 +1,43 @@
 import instance from "@/api/axios";
 import { Scene } from "@/types/scene";
 
+// 文本转语音请求参数接口
+export interface TextToSpeechRequest {
+    voiceId: string;  // 声音ID
+    sceneId: string;  // 场景ID
+    language?: "zh" | "en";  // 可选的语言参数
+}
+
+// 文本转语音响应接口
+export interface TextToSpeechResponse {
+    code: number;
+    data: {
+        audioLength: number;  // 音频长度（毫秒）
+        audioUrl: string;     // 音频URL
+    };
+    msg: string;
+}
+
+// 图像分析生成脚本请求接口
+export interface ImageAnalysisRequest {
+    sceneId: string;      // 场景ID
+    language: "zh" | "en"; // 脚本语言
+}
+
+// 图像分析生成脚本响应接口
+export interface ImageAnalysisResponse {
+    code: number;
+    data?: {
+        result: string;   // 生成的脚本内容
+        usage?: {
+            input_tokens: number;
+            output_tokens: number;
+            total_tokens: number;
+        }
+    };
+    msg: string;
+}
+
 export async function getScenesByProjectId(projectId: string): Promise<Scene[]> {
     try {
         const response = await instance.get<{
@@ -59,6 +96,51 @@ export async function deleteScene(sceneId: string): Promise<void> {
         }
     } catch (error) {
         console.error('删除场景API错误:', error);
+        throw error;
+    }
+}
+
+// 文本转语音API函数
+export async function textToSpeech(request: TextToSpeechRequest): Promise<TextToSpeechResponse> {
+    try {
+        const response = await instance.post<TextToSpeechResponse>(
+            "/scenes/voice/tts", 
+            {
+                voice_id: request.voiceId,
+                scene_id: request.sceneId,
+                language: request.language || "zh"  // 默认使用中文
+            }
+        );
+        
+        if (response.data.code !== 0) {
+            throw new Error(response.data.msg || "文本转语音失败");
+        }
+        
+        return response.data;
+    } catch (error) {
+        console.error("文本转语音API错误:", error);
+        throw error;
+    }
+}
+
+// 场景图像分析生成脚本API函数
+export async function generateScriptFromImageAnalysis(request: ImageAnalysisRequest): Promise<ImageAnalysisResponse> {
+    try {
+        const response = await instance.post<ImageAnalysisResponse>(
+            "/scenes/image-analysis",
+            {
+                scene_id: request.sceneId,
+                language: request.language
+            }
+        );
+        
+        if (response.data.code !== 0) {
+            throw new Error(response.data.msg || "图像分析生成脚本失败");
+        }
+        
+        return response.data;
+    } catch (error) {
+        console.error("图像分析API错误:", error);
         throw error;
     }
 }

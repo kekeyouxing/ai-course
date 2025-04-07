@@ -16,7 +16,7 @@ import {
 import ImageContent from "@/components/media/image-content"
 import VideoContent from "@/components/media/video-content" // 添加 VideoContent 导入
 import { ImageElement, MediaItem, VideoElement } from "@/types/scene"
-import { getMediaList, createMedia, ContentMediaItem } from "@/api/media"
+import { getMediaList, createMedia, ContentMediaItem, renameMedia, deleteMedia } from "@/api/media"
 import instance_oss from "@/api/axios-oss"
 import instance from '@/api/axios'
 import { toast } from "sonner"
@@ -66,11 +66,53 @@ export default function MediaContent({
         }
     };
 
-    // Handle delete confirmation
-    const handleDeleteConfirm = () => {
+    // Complete rename process
+    const handleRenameComplete = async () => {
+        if (itemToRename !== undefined && newName.trim()) {
+            try {
+                // 调用重命名API
+                const response = await renameMedia(itemToRename, newName.trim());
+                
+                if (response.code === 0) {
+                    // 更新列表中的项名称
+                    setMediaItems(mediaItems.map((item) => 
+                        item.id === itemToRename ? { ...item, name: newName.trim() } : item
+                    ));
+                    toast.success("媒体已重命名");
+                } else {
+                    toast.error(response.msg || "重命名失败");
+                }
+            } catch (error) {
+                console.error("重命名媒体失败:", error);
+                toast.error("重命名失败");
+            } finally {
+                setItemToRename(undefined);
+            }
+        } else {
+            setItemToRename(undefined);
+        }
+    }
+
+    // 处理删除确认
+    const handleDeleteConfirm = async () => {
         if (itemToDelete !== undefined) {
-            setMediaItems(mediaItems.filter((item) => item.id !== itemToDelete))
-            setItemToDelete(undefined)
+            try {
+                // 调用删除API
+                const response = await deleteMedia(itemToDelete);
+                
+                if (response.code === 0) {
+                    // 从列表中移除被删除的项
+                    setMediaItems(mediaItems.filter((item) => item.id !== itemToDelete));
+                    toast.success("媒体已删除");
+                } else {
+                    toast.error(response.msg || "删除失败");
+                }
+            } catch (error) {
+                console.error("删除媒体失败:", error);
+                toast.error("删除失败");
+            } finally {
+                setItemToDelete(undefined);
+            }
         }
     }
 
@@ -98,26 +140,26 @@ export default function MediaContent({
         }
     };
 
-        // 上传到腾讯云
-        const uploadToTencentCloud = async (file: File, presignedURL: string, contentType: string) => {
-            try {
-                const response = await instance_oss.put(presignedURL, file, {
-                    headers: {
-                        'Content-Type': contentType
-                    },
-                    onUploadProgress: (progressEvent) => {
-                        if (progressEvent.total) {
-                            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                            setUploadProgress(progress);
-                        }
+    // 上传到腾讯云
+    const uploadToTencentCloud = async (file: File, presignedURL: string, contentType: string) => {
+        try {
+            const response = await instance_oss.put(presignedURL, file, {
+                headers: {
+                    'Content-Type': contentType
+                },
+                onUploadProgress: (progressEvent) => {
+                    if (progressEvent.total) {
+                        const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        setUploadProgress(progress);
                     }
-                });
-                return response;
-            } catch (error) {
-                console.error('上传到腾讯云失败:', error);
-                throw error;
-            }
-        };
+                }
+            });
+            return response;
+        } catch (error) {
+            console.error('上传到腾讯云失败:', error);
+            throw error;
+        }
+    };
     // 处理文件选择
     const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0]
@@ -141,7 +183,7 @@ export default function MediaContent({
         try {
             // 生成唯一的文件名
             const fileExtension = file.name.split('.').pop() || '';
-            const objectKey = `media-${uuidv4()}.${fileExtension}`;
+            const objectKey = `/media/media-${uuidv4()}.${fileExtension}`;
 
             // 获取预签名URL
             const presignedURL = await generatePresignedURL(objectKey);
@@ -178,15 +220,15 @@ export default function MediaContent({
                 });
 
                 if (blob) {
-                // Convert Blob to File
-                const thumbnailFile = new File([blob], `thumbnail-${uuidv4()}.jpg`, { type: 'image/jpeg' });
+                    // Convert Blob to File
+                    const thumbnailFile = new File([blob], `thumbnail-${uuidv4()}.jpg`, { type: 'image/jpeg' });
 
-                // 上传缩略图
-                const thumbnailKey = `thumbnail-${uuidv4()}.jpg`;
-                const thumbnailPresignedURL = await generatePresignedURL(thumbnailKey);
-                await uploadToTencentCloud(thumbnailFile, thumbnailPresignedURL.data, 'image/jpeg');
-                thumbnailUrl = `https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/${thumbnailKey}`;
-            }
+                    // 上传缩略图
+                    const thumbnailKey = `/media/thumbnail-${uuidv4()}.jpg`;
+                    const thumbnailPresignedURL = await generatePresignedURL(thumbnailKey);
+                    await uploadToTencentCloud(thumbnailFile, thumbnailPresignedURL.data, 'image/jpeg');
+                    thumbnailUrl = `https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/${thumbnailKey}`;
+                }
             }
 
             // 构建完整URL
@@ -195,17 +237,23 @@ export default function MediaContent({
             // 上传成功后添加到媒体列表
             const newItem: ContentMediaItem = {
                 id: uuidv4(),
-                category: type,
+                type: type,
+                category: "my",
                 src: fileUrl,
                 name: file.name,
                 thumbnail: type === 'video' ? thumbnailUrl : ""
             }
-            await createMedia(newItem)
-            setMediaItems(prev => [newItem, ...prev])
-            toast.success('文件上传成功!');
+            const createResponse = await createMedia(newItem)
+            
+            if (createResponse.code === 0) {
+                setMediaItems(prev => [createResponse.data, ...prev])
+                toast.success('文件上传成功!')
+            } else {
+                toast.error(createResponse.msg || '文件上传失败')
+            }
         } catch (error) {
-            console.error('上传失败:', error);
-            toast.error('文件上传失败!');
+            console.error('上传失败:', error)
+            toast.error('文件上传失败!')
         } finally {
             setIsUploading(false)
             // 清除文件选择
@@ -215,14 +263,6 @@ export default function MediaContent({
         }
     }, [])
 
-    // Complete rename process
-    const handleRenameComplete = () => {
-        if (itemToRename !== undefined && newName.trim()) {
-            setMediaItems(mediaItems.map((item) => (item.id === itemToRename ? { ...item, name: newName.trim() } : item)))
-        }
-        setItemToRename(undefined)
-    }
-
     // 加载媒体列表数据
     const loadMediaList = useCallback(async (isLoadMore = false) => {
         try {
@@ -230,15 +270,16 @@ export default function MediaContent({
             const currentPage = isLoadMore ? page + 1 : 1
             
             const response = await getMediaList({
-                category: subTab === "all" ? undefined : subTab,
+                type: subTab === "all" ? undefined : subTab,
                 page: currentPage,
                 pageSize: pageSize,
-                isSystem: mainTab === "system"
+                category: mainTab === "system" ? "system" : "my"
             })
 
             if (response.code === 0 && response.data) {
                 const newItems = response.data.media.map(item => ({
                     id: item.id,
+                    type: item.type,
                     category: item.category,
                     src: item.src,
                     name: item.name,
@@ -249,9 +290,13 @@ export default function MediaContent({
                 setTotal(response.data.total)
                 setPage(currentPage)
                 setHasMore(currentPage * pageSize < response.data.total)
+            } else {
+                // 当code不为0时显示错误信息
+                toast.error(response.msg || '加载媒体列表失败')
             }
         } catch (error) {
             console.error('加载媒体列表失败:', error)
+            toast.error('加载媒体列表失败')
         } finally {
             setLoading(false)
         }
@@ -259,11 +304,11 @@ export default function MediaContent({
 
     // 添加滚动加载功能
     const containerRef = useRef<HTMLDivElement>(null)
-    
+
     // 节流函数
     const throttle = (func: Function, limit: number) => {
         let inThrottle: boolean
-        return function(...args: any[]) {
+        return function (...args: any[]) {
             if (!inThrottle) {
                 func.apply(null, args)
                 inThrottle = true
@@ -320,7 +365,7 @@ export default function MediaContent({
     const systemTabButtons = [
         { label: "全部", value: "all" }
     ];
-        // 根据当前主标签选择按钮数组
+    // 根据当前主标签选择按钮数组
     const tabButtons = mainTab === "my" ? myTabButtons : systemTabButtons;
     // 修改渲染媒体库内容的函数，添加条件判断是否显示上传按钮
     const renderLibraryContent = () => (
@@ -348,7 +393,7 @@ export default function MediaContent({
                             accept="image/*,video/*"
                             onChange={handleFileSelect}
                         />
-                        <button 
+                        <button
                             className="cursor-pointer p-2 border border-gray-200 rounded-md hover:bg-gray-50 active:scale-95 active:bg-gray-100 transition-transform duration-100"
                             onClick={() => fileInputRef.current?.click()}
                             disabled={isUploading}
@@ -379,81 +424,81 @@ export default function MediaContent({
                     </div>
                 )}
             </div>
-    
+
             {/* Media Items Grid */}
             <div className="space-y-4">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     {filteredMediaItems.map((item) => (
-                    <div key={item.id} className="space-y-2">
-                        <div
-                            className="relative aspect-square rounded-md overflow-hidden border border-gray-200 bg-gray-50 group cursor-pointer"
-                            onClick={() => handleMediaItemClick(item)}
-                        >
-                            {item.thumbnail ? (
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
-                                        <div className="w-0 h-0 border-y-[6px] border-y-transparent border-l-[10px] border-l-white ml-1"></div>
+                        <div key={item.id} className="space-y-2">
+                            <div
+                                className="relative aspect-square rounded-md overflow-hidden border border-gray-200 bg-gray-50 group cursor-pointer"
+                                onClick={() => handleMediaItemClick(item)}
+                            >
+                                {item.type === "video" && (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
+                                            <div className="w-0 h-0 border-y-[6px] border-y-transparent border-l-[10px] border-l-white ml-1"></div>
+                                        </div>
                                     </div>
-                                </div>
-                            ) : null}
-                            <img
-                                src={item.src}
-                                alt={item.name}
-                                width={200}
-                                height={200}
-                                className="object-cover w-full h-full"
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                                )}
+                                <img
+                                    src={item.type === "video" && item.thumbnail ? item.thumbnail : item.src}
+                                    alt={item.name}
+                                    width={200}
+                                    height={200}
+                                    className="object-cover w-full h-full"
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                {itemToRename === item.id ? (
+                                    <div className="flex items-center space-x-1 flex-1">
+                                        <input
+                                            ref={inputRef}
+                                            type="text"
+                                            value={newName}
+                                            onChange={(e) => setNewName(e.target.value)}
+                                            onKeyDown={(e) => e.key === "Enter" && handleRenameComplete()}
+                                            className="text-xs px-1 py-0.5 border border-gray-300 rounded flex-1 min-w-0"
+                                        />
+                                        <button onClick={handleRenameComplete} className="p-1 text-green-600 hover:bg-gray-100 rounded-full">
+                                            <Check className="h-3 w-3" />
+                                        </button>
+                                        <button
+                                            onClick={() => setItemToRename(undefined)}
+                                            className="p-1 text-red-600 hover:bg-gray-100 rounded-full"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <span className="text-xs text-gray-600 truncate">{item.name}</span>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <button className="p-1 rounded-full hover:bg-gray-100">
+                                                    <MoreHorizontal className="h-3 w-3 text-gray-500" />
+                                                </button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-36">
+                                                <DropdownMenuItem onClick={() => handleRenameStart(item)}>
+                                                    <Edit className="h-3 w-3 mr-2" />
+                                                    重命名
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() => setItemToDelete(item.id)}
+                                                    className="text-red-600 focus:text-red-600"
+                                                >
+                                                    <Trash className="h-3 w-3 mr-2" />
+                                                    删除
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </>
+                                )}
+                            </div>
                         </div>
-                        <div className="flex items-center justify-between">
-                            {itemToRename === item.id ? (
-                                <div className="flex items-center space-x-1 flex-1">
-                                    <input
-                                        ref={inputRef}
-                                        type="text"
-                                        value={newName}
-                                        onChange={(e) => setNewName(e.target.value)}
-                                        onKeyDown={(e) => e.key === "Enter" && handleRenameComplete()}
-                                        className="text-xs px-1 py-0.5 border border-gray-300 rounded flex-1 min-w-0"
-                                    />
-                                    <button onClick={handleRenameComplete} className="p-1 text-green-600 hover:bg-gray-100 rounded-full">
-                                        <Check className="h-3 w-3" />
-                                    </button>
-                                    <button
-                                        onClick={() => setItemToRename(undefined)}
-                                        className="p-1 text-red-600 hover:bg-gray-100 rounded-full"
-                                    >
-                                        <X className="h-3 w-3" />
-                                    </button>
-                                </div>
-                            ) : (
-                                <>
-                                    <span className="text-xs text-gray-600 truncate">{item.name}</span>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <button className="p-1 rounded-full hover:bg-gray-100">
-                                                <MoreHorizontal className="h-3 w-3 text-gray-500" />
-                                            </button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-36">
-                                            <DropdownMenuItem onClick={() => handleRenameStart(item)}>
-                                                <Edit className="h-3 w-3 mr-2" />
-                                                重命名
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onClick={() => setItemToDelete(item.id)}
-                                                className="text-red-600 focus:text-red-600"
-                                            >
-                                                <Trash className="h-3 w-3 mr-2" />
-                                                删除
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                ))}
+                    ))}
                 </div>
                 {loading && (
                     <div className="flex justify-center py-4">
@@ -482,7 +527,7 @@ export default function MediaContent({
                     videoElement={selectedMedia.element as VideoElement}
                     onUpdate={(updates) => onUpdateVideo && onUpdateVideo(selectedMedia.id, updates)}
                     onDelete={onDelete}
-                    sceneId= {sceneId}
+                    sceneId={sceneId}
                 />
             );
         }
@@ -509,11 +554,10 @@ export default function MediaContent({
                                 setMainTab("my")
                                 setSubTab("all")
                             }}
-                            className={`text-sm font-normal py-2 focus:outline-none transition-colors ${
-                                mainTab === "my"
+                            className={`text-sm font-normal py-2 focus:outline-none transition-colors ${mainTab === "my"
                                     ? "bg-white border-b-2 border-black font-medium"
                                     : "hover:bg-gray-200"
-                            }`}
+                                }`}
                         >
                             我的素材
                         </button>
@@ -522,33 +566,31 @@ export default function MediaContent({
                                 setMainTab("system")
                                 setSubTab("all")
                             }}
-                            className={`text-sm font-normal py-2 focus:outline-none transition-colors ${
-                                mainTab === "system"
+                            className={`text-sm font-normal py-2 focus:outline-none transition-colors ${mainTab === "system"
                                     ? "bg-white border-b-2 border-black font-medium"
                                     : "hover:bg-gray-200"
-                            }`}
+                                }`}
                         >
                             系统素材
                         </button>
                     </div>
 
                     {/* 分类按钮组 */}
-                    
-    <div className="flex gap-2 px-4 py-3 border-b border-gray-200">
-        {tabButtons.map((button) => (
-            <button
-                key={button.value}
-                onClick={() => setSubTab(button.value)}
-                className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                    subTab === button.value
-                        ? "bg-primary text-white"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-            >
-                {button.label}
-            </button>
-        ))}
-    </div>
+
+                    <div className="flex gap-2 px-4 py-3 border-b border-gray-200">
+                        {tabButtons.map((button) => (
+                            <button
+                                key={button.value}
+                                onClick={() => setSubTab(button.value)}
+                                className={`px-3 py-1.5 text-sm rounded-full transition-colors ${subTab === button.value
+                                        ? "bg-primary text-white"
+                                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                    }`}
+                            >
+                                {button.label}
+                            </button>
+                        ))}
+                    </div>
 
                     {/* Tab Content */}
                     <div className="flex-1 overflow-y-auto">

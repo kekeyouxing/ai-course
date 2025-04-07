@@ -299,7 +299,7 @@ const handleTextUpdate = useCallback(
             autoplay: true,
             displayMode: "freeze",
             thumbnail: mediaItem.thumbnail || "",
-            duration: "00:00"
+            duration: mediaItem.duration || 0
           }
         };
 
@@ -325,16 +325,6 @@ const handleTextUpdate = useCallback(
     (background: Background) => {
       const newScenes = [...scenes];
       newScenes[activeScene].background = background;
-      updateHistory(newScenes);
-    },
-    [scenes, activeScene, updateHistory]
-  );
-
-  // Script operations
-  const handleScriptUpdate = useCallback(
-    (newScript: string) => {
-      const newScenes = [...scenes];
-      newScenes[activeScene].script = newScript;
       updateHistory(newScenes);
     },
     [scenes, activeScene, updateHistory]
@@ -383,8 +373,5 @@ const getSelectedMedia = useCallback(
     
     // Background operations
     handleBackgroundChange,
-    
-    // Script operations
-    handleScriptUpdate
   };
 };
