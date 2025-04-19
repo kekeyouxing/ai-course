@@ -15,6 +15,8 @@ export interface ContentMediaItem {
   thumbnail?: string; // 视频缩略图
   name: string;
   duration?: number; // 视频时长（秒）
+  width?: number;    // 媒体实际宽度 
+  height?: number;   // 媒体实际高度
 }
 // 媒体库列表响应
 export interface MediaLibraryListResponse {
@@ -81,7 +83,7 @@ export const renameMedia = async (id: string, name: string) => {
 // 删除媒体
 export const deleteMedia = async (id: string) => {
   try {
-    const response = await instance.delete(`/media/delete/${id}`);
+    const response = await instance.delete(`/media/${id}`);
     return response.data;
   } catch (error) {
     throw new Error(error instanceof Error ? error.message : "删除失败");

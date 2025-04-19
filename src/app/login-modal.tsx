@@ -37,31 +37,32 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
         }
     }
 
-    // 使用 Promise 方式处理登录请求
-    const handleLogin = () => {
+    // 使用 async/await 方式处理登录请求
+    const handleLogin = async () => {
         // 在提交前再次验证手机号
         if (!validatePhone(phone)) {
             setPhoneError("请输入正确的手机号码");
             return;
         }
         
-        instance.post("/login", { phone, code })
-            .then(res => {
-                // 检查返回数据是否包含 token
-                if (res.data && res.data.code === 0 && res.data.data) {
-                    login(res.data.data.token);
-                    onSuccess();
-                    toast.success("登录成功");
-                } else {
-                    // 服务器返回了响应但没有 token
-                    toast.error(res.data.msg);
-                }
-            })
-            .catch(err => {
-                // 处理请求错误
-                toast.error("登录失败，请检查手机号和验证码是否正确");
-                console.log("登录请求错误:", err);
-            });
+        try {
+            const res = await instance.post("/login", { phone, code });
+            
+            // 检查返回数据是否包含 token
+            if (res.data && res.data.code === 0 && res.data.data) {
+                // 使用await等待登录流程完成，包括获取用户信息
+                await login(res.data.data.token);
+                onSuccess();
+                toast.success("登录成功");
+            } else {
+                // 服务器返回了响应但没有 token
+                toast.error(res.data.msg || "登录失败，请重试");
+            }
+        } catch (err) {
+            // 处理请求错误
+            toast.error("登录失败，请检查手机号和验证码是否正确");
+            console.log("登录请求错误:", err);
+        }
     };
     useEffect(() => {
         if (countdown > 0) {
@@ -99,40 +100,24 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-3xl w-full max-w-3xl flex overflow-hidden relative">
+            <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden relative">
                 <button onClick={onClose} className="absolute right-4 top-4 text-gray-500 hover:text-gray-700">
                     <X className="w-6 h-6 cursor-pointer" />
                 </button>
 
-                {/* Left Section */}
-                <div className="flex-1 p-12 flex flex-col items-center justify-center">
-                    <h2 className="text-2xl font-bold mb-2">立即登录</h2>
-                    <p className="text-gray-500 mb-8">即可免费使用全部功能</p>
-                    <div className="bg-white p-4 rounded-lg shadow-sm mb-8">
-                        <img
-                            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/%E6%88%AA%E5%B1%8F2025-02-25%2008.09.59-pVrcvul9RDBcpBJ34paDoLvEHttSpm.png"
-                            alt="WeChat QR Code"
-                            width={180}
-                            height={180}
-                            className="w-[180px] h-[180px]"
-                        />
+                {/* Main Section */}
+                <div className="p-10">
+                    <div className="text-center mb-8">
+                        <h2 className="text-2xl font-bold mb-2">欢迎登录</h2>
+                        
                     </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                        <img src="/placeholder.svg?height=24&width=24" alt="WeChat" width={24} height={24}
-                            className="w-6 h-6" />
-                        <span>微信扫码登录</span>
-                    </div>
-                </div>
-
-                {/* Right Section */}
-                <div className="flex-1 p-12 bg-gray-50">
-                    <h2 className="text-2xl font-bold mb-8">手机号登录</h2>
-                    <div className="space-y-8">
+                    
+                    <div className="space-y-6">
                         <div className="space-y-2">
                             <Input
                                 type="tel"
                                 placeholder="请输入手机号"
-                                className={`h-12 bg-white ${phoneError ? "border-red-500" : ""}`}
+                                className={`h-12 ${phoneError ? "border-red-500" : ""}`}
                                 value={phone}
                                 onChange={handlePhoneChange} />
                             {phoneError && (
@@ -145,7 +130,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
                                 placeholder="请输入验证码"
                                 value={code}
                                 onChange={(e) => setCode(e.target.value)}
-                                className="h-12 bg-white" />
+                                className="h-12" />
                             <Button
                                 variant="outline"
                                 className="whitespace-nowrap h-12 px-2"
@@ -160,6 +145,14 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
                             className="cursor-pointer w-full h-12 text-lg font-medium bg-gradient-to-r from-[#FFE4E1] via-[#E6E6FA] to-[#E0FFFF] hover:opacity-90 text-gray-800">
                             立即登录
                         </Button>
+                    </div>
+                    
+                    <div className="mt-8 text-center">
+                        <p className="text-sm text-gray-500">登录即表示您同意我们的</p>
+                        <p className="text-sm text-gray-500">
+                            <a href="#" className="text-blue-500 hover:underline">服务条款</a> 和 
+                            <a href="#" className="text-blue-500 hover:underline"> 隐私政策</a>
+                        </p>
                     </div>
                 </div>
             </div>

@@ -10,27 +10,16 @@ import {
     Play,
     Pause,
     MoreVertical,
-    Trash,
     Edit2
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 // 导入新的API函数和类型
-import { getVoices, deleteClonedVoice } from "@/api/character"
+import { getVoices } from "@/api/character"
 import {
     SystemVoice,
     ClonedVoice
 } from "@/types/character";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -185,38 +174,6 @@ export default function VideoLabPage() {
         }
     };
 
-    // 添加删除相关状态
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [voiceToDelete, setVoiceToDelete] = useState<ClonedVoice | null>(null);
-
-    // 处理删除确认
-    const handleDeleteConfirm = async () => {
-        if (!voiceToDelete) return;
-
-        const result = await deleteClonedVoice(voiceToDelete.character_id);
-        if (result.success) {
-            // 删除成功，更新本地数据
-            const updatedVoices = customVoices.filter(voice => voice.character_id !== voiceToDelete.character_id);
-            setCustomVoices(updatedVoices);
-            setFilteredCustomVoices(updatedVoices);
-        } else {
-            console.error('删除声音失败:', result.message);
-            // 可以添加错误提示
-        }
-
-        // 关闭对话框并重置状态
-        setDeleteDialogOpen(false);
-        setVoiceToDelete(null);
-    };
-
-    // 处理删除点击
-    const handleDeleteClick = (e: React.MouseEvent, voice: ClonedVoice) => {
-        e.stopPropagation(); // 阻止事件冒泡
-        setVoiceToDelete(voice);
-        setDeleteDialogOpen(true);
-    };
-    // 添加这行代码
-    const navigate = useNavigate();
     // 添加编辑处理函数
     const handleEditClick = (e: React.MouseEvent, voice: ClonedVoice) => {
         e.stopPropagation(); // 阻止事件冒泡
@@ -225,6 +182,9 @@ export default function VideoLabPage() {
             state: { voice }
         });
     }
+
+    // 添加这行代码
+    const navigate = useNavigate();
 
     return (
         <div className="container mx-auto py-6 max-w-6xl">
@@ -293,16 +253,6 @@ export default function VideoLabPage() {
                                                         >
                                                             <Edit2 className="mr-2 h-4 w-4" />
                                                             <span>编辑</span>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem
-                                                            className="text-red-600 cursor-pointer"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation()
-                                                                handleDeleteClick(e, voice)
-                                                            }}
-                                                        >
-                                                            <Trash className="mr-2 h-4 w-4" />
-                                                            <span>删除</span>
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
@@ -437,24 +387,6 @@ export default function VideoLabPage() {
                     </>
                 )}
             </Tabs>
-
-            {/* 删除确认对话框 */}
-            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>确认删除</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            您确定要删除虚拟形象 "{voiceToDelete?.name}" 吗？此操作无法撤销。
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>取消</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-500 hover:bg-red-600">
-                            删除
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </div>
     )
 }

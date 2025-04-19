@@ -192,6 +192,9 @@ export default function MediaContent({
             await uploadToTencentCloud(file, presignedURL.data, file.type);
 
             let thumbnailUrl;
+            let width = 0;
+            let height = 0;
+
             if (type === 'video') {
                 // 创建视频元素
                 const video = document.createElement('video');
@@ -207,6 +210,9 @@ export default function MediaContent({
                     video.onloadedmetadata = () => {
                         canvas.width = video.videoWidth;
                         canvas.height = video.videoHeight;
+                        // 获取视频的宽高
+                        width = video.videoWidth;
+                        height = video.videoHeight;
                         resolve(null);
                     };
                 });
@@ -229,6 +235,17 @@ export default function MediaContent({
                     await uploadToTencentCloud(thumbnailFile, thumbnailPresignedURL.data, 'image/jpeg');
                     thumbnailUrl = `https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/${thumbnailKey}`;
                 }
+            } else if (type === 'image') {
+                // 对于图片，创建一个Image对象来获取其尺寸
+                await new Promise<void>((resolve) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        width = img.width;
+                        height = img.height;
+                        resolve();
+                    };
+                    img.src = URL.createObjectURL(file);
+                });
             }
 
             // 构建完整URL
@@ -241,7 +258,9 @@ export default function MediaContent({
                 category: "my",
                 src: fileUrl,
                 name: file.name,
-                thumbnail: type === 'video' ? thumbnailUrl : ""
+                thumbnail: type === 'video' ? thumbnailUrl : "",
+                width: width,
+                height: height
             }
             const createResponse = await createMedia(newItem)
             

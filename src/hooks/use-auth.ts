@@ -1,6 +1,8 @@
 import {create} from 'zustand'
 import axios from 'axios'
 import {jwtDecode} from 'jwt-decode'
+import { getUserInfo } from '@/api/user'
+import { useUserInfo } from './use-user-info'
 
 interface JwtPayload {
     userID: string;
@@ -12,7 +14,7 @@ interface JwtPayload {
 type AuthState = {
     token: string | null
     user: JwtPayload | null
-    login: (token: string) => void
+    login: (token: string) => Promise<void>
     logout: () => void
     isTokenExpired: () => boolean
 }
@@ -32,10 +34,21 @@ export const useAuth = create<AuthState>((set, get) => ({
     token: localStorage.getItem('token'),
     user: safelyDecodeToken(localStorage.getItem('token')),
 
-    login: (token) => {
+    login: async (token) => {
+        // 保存token到localStorage
         localStorage.setItem('token', token)
+        // 设置axios默认头部
         axios.defaults.headers.common.Authorization = `Bearer ${token}`
+        // 更新state
         set({token, user: safelyDecodeToken(token)})
+        
+        try {
+            // 立即获取用户信息
+            await useUserInfo.getState().fetchUserInfo()
+        } catch (error) {
+            console.error('登录后获取用户信息失败:', error)
+            // 这里不抛出错误，让登录流程继续
+        }
     },
 
     logout: () => {

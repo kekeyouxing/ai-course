@@ -2,6 +2,32 @@ export type TextAlignment = "left" | "center" | "right"
 
 // 定义比例类型
 export type AspectRatioType = "16:9" | "9:16" | "1:1" | "4:3";
+
+// 形状类型定义
+export type ShapeType = 
+  | "rectangle" 
+  | "circle" 
+  | "triangle" 
+  | "star" 
+  | "diamond" 
+  | "pentagon" 
+  | "hexagon" 
+  | "heart" 
+  | "arrow"
+  | "hollowRectangle"  // 空心矩形
+  | "hollowCircle"     // 空心圆形
+  | "hollowTriangle"   // 空心三角形
+  | "hollowStar"       // 空心星形
+  | "pacman"           // Pacman形状
+  | "quarterCircle"    // 四分之一圆
+  | "halfCircle"       // 半圆
+  | "cross"            // 十字形
+  | "trapezoid"        // 梯形
+  | "parallelogram"    // 平行四边形
+  | "rhombus"          // 菱形
+  | "rightArrow"       // 右箭头
+  | "line";             // 直线
+
 // 文本元素接口
 export interface TextElement {
     content: string
@@ -58,6 +84,26 @@ export interface VideoElement {
     duration: number; // 添加时长字段（秒）
     loop?: boolean
     displayMode: "freeze" | "hide" | "loop"; // 显示模式
+    // 动画相关字段
+    animationType?: "none" | "fade" | "slide";
+    animationBehavior?: "enter" | "exit" | "both";
+    animationDirection?: "right" | "left" | "down" | "up";
+    startAnimationMarkerId?: string; // 开始动画的标记ID
+    endAnimationMarkerId?: string;   // 结束动画的标记ID
+}
+
+// 形状元素接口
+export interface ShapeElement {
+    type: ShapeType
+    width: number
+    height: number
+    x: number
+    y: number
+    rotation: number
+    fill: string
+    stroke: string
+    strokeWidth: number
+    zIndex: number
     // 动画相关字段
     animationType?: "none" | "fade" | "slide";
     animationBehavior?: "enter" | "exit" | "both";
@@ -139,15 +185,18 @@ export interface Scene {
     texts?: TextElement[]
     avatar?: AvatarElement | null
     background?: Background
+    shapes?: ShapeElement[] // 添加形状数组
     script?: string  // 添加脚本字段
     audioSrc?: string
     duration?: number
     aspectRatio?: AspectRatioType  // 添加宽高比例字段
+    language?: "zh" | "en"  // 添加语言字段，默认为中文
+    voiceId?: string  // 添加声音ID字段
 }
 
 // 选中元素类型
 export interface SelectedElementType {
-    type: "text" | "image" | "video" | "avatar"
+    type: "text" | "image" | "video" | "avatar" | "shape"
     index?: number
     mediaId?: string // 添加媒体ID用于标识特定媒体元素
 }

@@ -46,11 +46,11 @@ export default function ScriptContent({
   const [loading, setLoading] = useState(true)
   const [ttsLoading, setTtsLoading] = useState(false)
   const [aiGenerating, setAiGenerating] = useState(false) // 添加AI生成脚本的加载状态
-  // 添加语言选择状态
-  const [language, setLanguage] = useState<"zh" | "en">("zh")
+  // 使用scene中的language，如果没有则默认为中文
+  const [language, setLanguage] = useState<"zh" | "en">(scene.language || "zh")
 
-  // 修改选中声音的状态
-  const [selectedVoiceId, setSelectedVoiceId] = useState<string>("")
+  // 使用scene中的voiceId，如果没有则为空字符串
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>(scene.voiceId || "")
   const [showTimePicker, setShowTimePicker] = useState(false)
   const [timeValue, setTimeValue] = useState(3)
 
@@ -80,18 +80,28 @@ export default function ScriptContent({
         setSystemVoices(result.systemVoices)
         setClonedVoices(result.clonedVoices)
 
-        // 如果有自定义声音，默认选择第一个，否则选择第一个系统声音
-        if (result.clonedVoices.length > 0) {
-          setSelectedVoiceId(result.clonedVoices[0].voice_id)
-        } else if (result.systemVoices.length > 0) {
-          setSelectedVoiceId(result.systemVoices[0].voice_id)
+        // 如果场景中已有voiceId，则使用它
+        if (scene.voiceId) {
+          setSelectedVoiceId(scene.voiceId);
+        }
+        // 如果场景中没有voiceId，但是有自定义声音，则选择第一个自定义声音
+        else if (result.clonedVoices.length > 0) {
+          setSelectedVoiceId(result.clonedVoices[0].voice_id);
+          // 更新场景的voiceId
+          updateScene({ voiceId: result.clonedVoices[0].voice_id });
+        }
+        // 如果没有自定义声音，则选择第一个系统声音
+        else if (result.systemVoices.length > 0) {
+          setSelectedVoiceId(result.systemVoices[0].voice_id);
+          // 更新场景的voiceId
+          updateScene({ voiceId: result.systemVoices[0].voice_id });
         }
       }
       setLoading(false)
     }
 
     fetchVoices()
-  }, [])
+  }, [scene.id, scene.voiceId, updateScene])
 
   // 添加获取动画标记的 useEffect
   useEffect(() => {
@@ -243,7 +253,6 @@ export default function ScriptContent({
           audioSrc: result.data.audioUrl,
           duration: result.data.audioLength
         });
-        toast.success("文本转语音成功");
       } else {
         toast.error(result.msg || "文本转语音失败");
       }
@@ -273,7 +282,6 @@ export default function ScriptContent({
       if (result.code === 0 && result.data?.result) {
         // 更新脚本内容
         updateScene({ script: result.data.result });
-        toast.success(`已生成${language === "zh" ? "中文" : "英语"}脚本`);
       } else {
         toast.error(result.msg || "生成脚本失败");
       }
@@ -284,6 +292,34 @@ export default function ScriptContent({
       setAiGenerating(false);
     }
   };
+
+  // 修改语言选择的处理函数，同时更新scene
+  const handleLanguageChange = (value: "zh" | "en") => {
+    setLanguage(value);
+    // 更新场景的language字段
+    updateScene({ language: value });
+  };
+
+  // 修改声音选择的处理函数，同时更新scene
+  const handleVoiceChange = (voiceId: string) => {
+    setSelectedVoiceId(voiceId);
+    // 更新场景的voiceId字段
+    updateScene({ voiceId: voiceId });
+  };
+
+  // 当场景变化时，更新语言状态
+  useEffect(() => {
+    if (scene.language) {
+      setLanguage(scene.language);
+    }
+  }, [scene.id, scene.language]);
+
+  // 当场景变化时，更新声音ID状态
+  useEffect(() => {
+    if (scene.voiceId) {
+      setSelectedVoiceId(scene.voiceId);
+    }
+  }, [scene.id, scene.voiceId]);
 
   return (
     <div className="w-full max-w-3xl mx-auto my-6 px-4">
@@ -298,7 +334,7 @@ export default function ScriptContent({
                     systemVoices={systemVoices}
                     clonedVoices={clonedVoices}
                     selectedVoiceId={selectedVoiceId}
-                    onSelectVoice={setSelectedVoiceId}
+                    onSelectVoice={handleVoiceChange}
                     loading={loading}
                   />
                 </div>
@@ -312,7 +348,7 @@ export default function ScriptContent({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
-                <Select value={language} onValueChange={(value: "zh" | "en") => setLanguage(value)}>
+                <Select value={language} onValueChange={handleLanguageChange}>
                   <SelectTrigger className="w-[80px] h-10 rounded-full">
                     <SelectValue placeholder="语言" />
                   </SelectTrigger>
@@ -370,18 +406,6 @@ export default function ScriptContent({
         {/* Bottom: Control Buttons */}
         <div className="flex justify-center mt-auto">
           <div className="flex items-center gap-3 bg-background border rounded-full px-4 py-1.5">
-            {/* <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <Button variant="ghost" size="sm" className="rounded-full hover:bg-primary/10 h-8 w-8 p-0">
-                    <Sparkles className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>AI助手</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider> */}
             
             <TimePicker
               value={timeValue}

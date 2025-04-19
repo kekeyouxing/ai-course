@@ -119,7 +119,18 @@ export default function TextContent({ textElement, onUpdate, sceneId }: TextCont
         if (value === "default") {
           onUpdate({ startAnimationMarkerId: undefined });
         } else {
-          onUpdate({ startAnimationMarkerId: value });
+          // 当设置开始标记时，需要确保动画行为是正确的
+          const updates: Partial<TextElement> = { startAnimationMarkerId: value };
+          
+          // 如果当前是退出动画，需要改为"both"
+          if (textElement?.animationBehavior === "exit") {
+            updates.animationBehavior = "both";
+          } else if (!textElement?.animationBehavior) {
+            // 如果没有设置动画行为，默认为进入动画
+            updates.animationBehavior = "enter";
+          }
+          
+          onUpdate(updates);
         }
       }}
     >
@@ -166,7 +177,18 @@ export default function TextContent({ textElement, onUpdate, sceneId }: TextCont
         if (value === "default") {
           onUpdate({ endAnimationMarkerId: undefined });
         } else {
-          onUpdate({ endAnimationMarkerId: value });
+          // 当设置结束标记时，需要确保动画行为是正确的
+          const updates: Partial<TextElement> = { endAnimationMarkerId: value };
+          
+          // 如果当前是进入动画，需要改为"both"
+          if (textElement?.animationBehavior === "enter") {
+            updates.animationBehavior = "both";
+          } else if (!textElement?.animationBehavior) {
+            // 如果没有设置动画行为，默认为退出动画
+            updates.animationBehavior = "exit";
+          }
+          
+          onUpdate(updates);
         }
       }}
     >
@@ -298,13 +320,37 @@ export default function TextContent({ textElement, onUpdate, sceneId }: TextCont
   // 处理动画类型变化
   const handleAnimationTypeChange = (value: string) => {
     setAnimationType(value as "none" | "fade" | "slide")
-    onUpdate({ animationType: value as "none" | "fade" | "slide" })
+    
+    const updates: Partial<TextElement> = { 
+      animationType: value as "none" | "fade" | "slide" 
+    };
+    
+    // 如果类型为none，清空开始和结束动画标记ID
+    if (value === "none") {
+      updates.startAnimationMarkerId = undefined;
+      updates.endAnimationMarkerId = undefined;
+    }
+    
+    onUpdate(updates);
   }
 
   // 处理动画行为变化
   const handleAnimationBehaviorChange = (value: string) => {
-    setAnimationBehavior(value as "enter" | "exit" | "both")
-    onUpdate({ animationBehavior: value as "enter" | "exit" | "both" })
+    const updates: Partial<TextElement> = {
+      animationBehavior: value as "enter" | "exit" | "both"
+    };
+    
+    // 根据动画行为类型管理标记ID
+    if (value === "enter") {
+      // 进入动画只保留开始标记，清除结束标记
+      updates.endAnimationMarkerId = undefined;
+    } else if (value === "exit") {
+      // 退出动画只保留结束标记，清除开始标记
+      updates.startAnimationMarkerId = undefined;
+    }
+    // 对于"both"，保留两者
+
+    onUpdate(updates);
   }
 
   // 处理动画方向变化

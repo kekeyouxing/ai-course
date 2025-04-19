@@ -31,7 +31,6 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
     
     setLoadingMarkers(true);
     try {
-      console.log(sceneId)
       const result = await getSceneAnimationMarkers(sceneId);
       if (result.code === 0 && result.data?.markers) {
         setAnimationMarkers(result.data.markers);
@@ -51,74 +50,38 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
       fetchAnimationMarkers();
     }
   };
-  const [rotation, setRotation] = useState(imageElement?.rotation || 0)
-  const [layout, setLayout] = useState({
-    x: imageElement?.x || 0,
-    y: imageElement?.y || 0,
-    width: imageElement?.width || 0,
-    height: imageElement?.height || 0,
-  })
-
-  // 动画状态
-  const [animationType, setAnimationType] = useState(imageElement?.animationType || "none")
-  const [animationBehavior, setAnimationBehavior] = useState(imageElement?.animationBehavior || "enter")
-  const [animationDirection, setAnimationDirection] = useState(imageElement?.animationDirection || "right")
-
-  // 当选中的图片元素变化时，更新状态
-  useEffect(() => {
-    if (imageElement) {
-      setRotation(imageElement.rotation || 0)
-      setLayout({
-        x: imageElement.x || 0,
-        y: imageElement.y || 0,
-        width: imageElement.width || 0,
-        height: imageElement.height || 0,
-      })
-      setAnimationType(imageElement.animationType || "none")
-      setAnimationBehavior(imageElement.animationBehavior || "enter")
-      setAnimationDirection(imageElement.animationDirection || "right")
-    }
-  }, [imageElement])
 
   // 处理旋转变化
   const handleRotationChange = (value: number[]) => {
-    setRotation(value[0])
     onUpdate({ rotation: value[0] })
   }
 
   // 处理布局变化
-  const handleLayoutChange = (property: keyof typeof layout, value: number) => {
+  const handleLayoutChange = (property: keyof ImageElement, value: number) => {
     // 确保所有布局属性都是整数
     const roundedValue = Math.round(value);
-    
-    setLayout(prev => {
-      const newLayout = { ...prev, [property]: roundedValue }
-      onUpdate({ [property]: roundedValue })
-      return newLayout
-    })
+    onUpdate({ [property]: roundedValue })
   }
 
   // 处理动画类型变化
   const handleAnimationTypeChange = (value: string) => {
-    setAnimationType(value as "none" | "fade" | "slide")
-    onUpdate({ animationType: value as "none" | "fade" | "slide" })
-  }
-
-  // 处理动画行为变化
-  const handleAnimationBehaviorChange = (value: string) => {
-    setAnimationBehavior(value as "enter" | "exit" | "both")
-    onUpdate({ animationBehavior: value as "enter" | "exit" | "both" })
-  }
-
-  // 处理动画方向变化
-  const handleAnimationDirectionChange = (value: string) => {
-    setAnimationDirection(value as "right" | "left" | "down" | "up")
-    onUpdate({ animationDirection: value as "right" | "left" | "down" | "up" })
+    const updates: Partial<ImageElement> = { 
+      animationType: value as "none" | "fade" | "slide" 
+    };
+    
+    // 如果类型为none，清空开始和结束动画标记ID
+    if (value === "none") {
+      updates.startAnimationMarkerId = undefined;
+      updates.endAnimationMarkerId = undefined;
+    }
+    
+    onUpdate(updates);
   }
 
   if (!imageElement) {
     return <div className="p-4">请先选择一个图片元素</div>
   }
+
   // 修改开始时间和结束时间的下拉选择器
   const renderStartAtSelect = () => (
     <Select
@@ -127,7 +90,20 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
         if (value === "default") {
           onUpdate({ startAnimationMarkerId: undefined });
         } else {
-          onUpdate({ startAnimationMarkerId: value });
+          // 当设置开始标记时，需要确保动画行为是正确的
+          // 如果当前是"exit"，需要改为"both"，因为现在有了开始标记
+          const updates: Partial<ImageElement> = { 
+            startAnimationMarkerId: value 
+          };
+          
+          if (imageElement.animationBehavior === "exit") {
+            updates.animationBehavior = "both";
+          } else if (!imageElement.animationBehavior) {
+            // 如果没有设置动画行为，则设为"enter"
+            updates.animationBehavior = "enter";
+          }
+          
+          onUpdate(updates);
         }
       }}
     >
@@ -174,7 +150,20 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
         if (value === "default") {
           onUpdate({ endAnimationMarkerId: undefined });
         } else {
-          onUpdate({ endAnimationMarkerId: value });
+          // 当设置结束标记时，需要确保动画行为是正确的
+          // 如果当前是"enter"，需要改为"both"，因为现在有了结束标记
+          const updates: Partial<ImageElement> = { 
+            endAnimationMarkerId: value 
+          };
+          
+          if (imageElement.animationBehavior === "enter") {
+            updates.animationBehavior = "both";
+          } else if (!imageElement.animationBehavior) {
+            // 如果没有设置动画行为，则设为"exit"
+            updates.animationBehavior = "exit";
+          }
+          
+          onUpdate(updates);
         }
       }}
     >
@@ -239,12 +228,7 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
           <div className="flex items-center gap-2">
             <button
               className="w-8 h-8 bg-white rounded-full flex items-center justify-center border border-gray-200 cursor-pointer hover:bg-gray-50"
-              onClick={() => {
-                // 直接调用父组件传入的删除元素函数
-                if (onDelete) {
-                  onDelete();
-                }
-              }}
+              onClick={onDelete}
             >
               <Trash2 size={16} />
             </button>
@@ -292,12 +276,12 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
                     >
                       <RotateCcw className="h-4 w-4" />
                     </Button>
-                    <span className="text-sm font-medium w-8 text-right">{rotation}°</span>
+                    <span className="text-sm font-medium w-8 text-right">{imageElement.rotation || 0}°</span>
                   </div>
                 </div>
                 <div className="px-1 py-2">
                   <Slider
-                    value={[rotation]}
+                    value={[imageElement.rotation || 0]}
                     min={0}
                     max={360}
                     step={1}
@@ -315,7 +299,7 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
                     <div className="text-xs text-gray-500 mb-1">X</div>
                     <Input
                       type="text"
-                      value={layout.x}
+                      value={imageElement.x || 0}
                       onChange={(e) => {
                         const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value) || 0;
                         handleLayoutChange("x", value);
@@ -327,7 +311,7 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
                     <div className="text-xs text-gray-500 mb-1">Y</div>
                     <Input
                       type="text"
-                      value={layout.y}
+                      value={imageElement.y || 0}
                       onChange={(e) => {
                         const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value) || 0;
                         handleLayoutChange("y", value);
@@ -339,11 +323,9 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
                     <div className="text-xs text-gray-500 mb-1">宽</div>
                     <Input
                       type="text"
-                      value={layout.width}
+                      value={imageElement.width || 0}
                       onChange={(e) => {
-                        // 使用 parseFloat 代替 Number.parseInt
                         const value = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
-                        console.log("解析后的值:", value);
                         handleLayoutChange("width", value);
                       }}
                       className="h-8 text-sm"
@@ -353,7 +335,7 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
                     <div className="text-xs text-gray-500 mb-1">高</div>
                     <Input
                       type="text"
-                      value={layout.height}
+                      value={imageElement.height || 0}
                       onChange={(e) => {
                         const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value) || 0;
                         handleLayoutChange("height", value);
@@ -372,7 +354,10 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
               {/* Animation Type */}
               <div className="flex items-center justify-between">
                 <label className="text-base font-normal text-gray-800">动画类型</label>
-                <Select value={animationType} onValueChange={handleAnimationTypeChange}>
+                <Select 
+                  value={imageElement.animationType || "none"} 
+                  onValueChange={handleAnimationTypeChange}
+                >
                   <SelectTrigger className="w-36">
                     <SelectValue placeholder="选择动画" />
                   </SelectTrigger>
@@ -384,19 +369,19 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
                 </Select>
               </div>
 
-              {/* 只有当动画类型不是"无"时才显示以下选项 */}
-              {animationType !== "none" && (
+              {/* 只有当动画类型存在且不是"无"时才显示以下选项 */}
+              {imageElement.animationType && imageElement.animationType !== "none" && (
                 <>
                   {/* Direction - Only for Slide animation */}
-                  {animationType === "slide" && (
+                  {imageElement.animationType === "slide" && (
                     <div>
                       <label className="text-base font-normal text-gray-800 block mb-3">方向</label>
                       <div className="grid grid-cols-4 gap-1 bg-gray-100 rounded-full p-1">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className={`rounded-full py-2 ${animationDirection === "right" ? "bg-white shadow-sm" : ""}`}
-                          onClick={() => handleAnimationDirectionChange("right")}
+                          className={`rounded-full py-2 ${imageElement.animationDirection === "right" ? "bg-white shadow-sm" : ""}`}
+                          onClick={() => onUpdate({ animationDirection: "right" })}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M5 12h14"></path>
@@ -406,8 +391,8 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
                         <Button
                           variant="ghost"
                           size="sm"
-                          className={`rounded-full py-2 ${animationDirection === "left" ? "bg-white shadow-sm" : ""}`}
-                          onClick={() => handleAnimationDirectionChange("left")}
+                          className={`rounded-full py-2 ${imageElement.animationDirection === "left" ? "bg-white shadow-sm" : ""}`}
+                          onClick={() => onUpdate({ animationDirection: "left" })}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M19 12H5"></path>
@@ -417,8 +402,8 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
                         <Button
                           variant="ghost"
                           size="sm"
-                          className={`rounded-full py-2 ${animationDirection === "down" ? "bg-white shadow-sm" : ""}`}
-                          onClick={() => handleAnimationDirectionChange("down")}
+                          className={`rounded-full py-2 ${imageElement.animationDirection === "down" ? "bg-white shadow-sm" : ""}`}
+                          onClick={() => onUpdate({ animationDirection: "down" })}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M12 5v14"></path>
@@ -428,8 +413,8 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
                         <Button
                           variant="ghost"
                           size="sm"
-                          className={`rounded-full py-2 ${animationDirection === "up" ? "bg-white shadow-sm" : ""}`}
-                          onClick={() => handleAnimationDirectionChange("up")}
+                          className={`rounded-full py-2 ${imageElement.animationDirection === "up" ? "bg-white shadow-sm" : ""}`}
+                          onClick={() => onUpdate({ animationDirection: "up" })}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M12 19V5"></path>
@@ -447,31 +432,42 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
                       <Button
                         variant="ghost"
                         size="sm"
-                        className={`rounded-full py-2 ${animationBehavior === "enter" ? "bg-white shadow-sm" : ""}`}
-                        onClick={() => handleAnimationBehaviorChange("enter")}
+                        className={`rounded-full py-2 ${imageElement.animationBehavior === "enter" ? "bg-white shadow-sm" : ""}`}
+                        onClick={() => onUpdate({ 
+                          animationBehavior: "enter",
+                          // 进入动画只需要保留开始标记，清除结束标记
+                          endAnimationMarkerId: undefined 
+                        })}
                       >
                         进入
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className={`rounded-full py-2 ${animationBehavior === "exit" ? "bg-white shadow-sm" : ""}`}
-                        onClick={() => handleAnimationBehaviorChange("exit")}
+                        className={`rounded-full py-2 ${imageElement.animationBehavior === "exit" ? "bg-white shadow-sm" : ""}`}
+                        onClick={() => onUpdate({ 
+                          animationBehavior: "exit",
+                          // 退出动画只需要保留结束标记，清除开始标记
+                          startAnimationMarkerId: undefined 
+                        })}
                       >
                         退出
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className={`rounded-full py-2 ${animationBehavior === "both" ? "bg-white shadow-sm" : ""}`}
-                        onClick={() => handleAnimationBehaviorChange("both")}
+                        className={`rounded-full py-2 ${imageElement.animationBehavior === "both" ? "bg-white shadow-sm" : ""}`}
+                        onClick={() => onUpdate({ 
+                          animationBehavior: "both" 
+                          // 进出动画需要两个标记，不清除任何标记
+                        })}
                       >
                         两者
                       </Button>
                     </div>
                   </div>
                   
-                  {(animationBehavior === "enter" || animationBehavior === "both") && (
+                  {imageElement.animationBehavior && (imageElement.animationBehavior === "enter" || imageElement.animationBehavior === "both") && (
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <label className="text-base font-normal text-gray-800">开始于</label>
@@ -480,7 +476,7 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
                     </div>
                   )}
 
-                  {(animationBehavior === "exit" || animationBehavior === "both") && (
+                  {imageElement.animationBehavior && (imageElement.animationBehavior === "exit" || imageElement.animationBehavior === "both") && (
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <label className="text-base font-normal text-gray-800">结束于</label>

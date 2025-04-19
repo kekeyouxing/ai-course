@@ -17,6 +17,8 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
+import SubscriptionModal from "@/components/subscription/subscription-modal"
+import VideoPackModal from "@/components/videopack/videopack-modal"
 
 
 
@@ -48,6 +50,8 @@ export function VideoHeader({
     // 移除 isEditingTitle 状态
     const [previewOpen, setPreviewOpen] = useState<boolean>(false)
     const [aspectRatioOpen, setAspectRatioOpen] = useState<boolean>(false)
+    const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false)
+    const [videoPackModalOpen, setVideoPackModalOpen] = useState(false)
 
     // 比例选项
     const aspectRatioOptions: AspectRatioType[] = ["16:9", "9:16", "1:1", "4:3"];
@@ -122,9 +126,20 @@ export function VideoHeader({
                         <Button
                             variant="outline"
                             className="h-8 px-3 text-sm bg-blue-50 text-blue-500 border-blue-100 flex items-center gap-1"
+                            onClick={() => setSubscriptionModalOpen(true)}
+                        >
+                            订阅
+                            <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+                                <Zap className="h-3 w-3 text-white" />
+                            </div>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="h-8 px-3 text-sm bg-yellow-50 text-yellow-500 border-yellow-100 flex items-center gap-1"
+                            onClick={() => setVideoPackModalOpen(true)}
                         >
                             充值
-                            <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+                            <div className="w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center">
                                 <Zap className="h-3 w-3 text-white" />
                             </div>
                         </Button>
@@ -156,6 +171,18 @@ export function VideoHeader({
                 currentScene={currentScene}
                 scenes={scenes}
                 activeSceneIndex={activeSceneIndex}
+            />
+            
+            {/* 会员订阅模态框 */}
+            <SubscriptionModal 
+                open={subscriptionModalOpen}
+                onOpenChange={setSubscriptionModalOpen}
+            />
+            
+            {/* 视频包模态框 */}
+            <VideoPackModal 
+                open={videoPackModalOpen}
+                onOpenChange={setVideoPackModalOpen}
             />
         </>
     )

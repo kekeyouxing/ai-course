@@ -129,7 +129,6 @@ export function VideoTimeline({
                                                         className="cursor-pointer" 
                                                         onClick={() => {
                                                             onCopyScene(index);
-                                                            toast.success("场景已复制");
                                                         }}
                                                     >
                                                         <Copy className="mr-2 h-4 w-4" />

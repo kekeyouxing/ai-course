@@ -30,20 +30,3 @@ export async function getVoices() {
     }
 }
 
-// 删除自定义声音
-export async function deleteClonedVoice(characterId: string) {
-    try {
-        const response = await instance.delete(`/characters/voice/delete/${characterId}`);
-        return {
-            success: response.data && response.data.code === 0,
-            message: response.data?.message || '操作完成'
-        };
-    } catch (error) {
-        console.error('删除声音出错:', error);
-        return {
-            success: false,
-            message: '删除声音出错'
-        };
-    }
-}
-

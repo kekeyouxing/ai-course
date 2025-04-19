@@ -56,6 +56,10 @@ export function ResizableImage({
     const displayY = y * scaleY;
     const displayWidth = width * scaleX;
     const displayHeight = height * scaleY;
+    
+    // 计算宽高比
+    const aspectRatio = width / height;
+    
     const handleResizeStop = useCallback(
         (
             e: MouseEvent | TouchEvent,
@@ -64,17 +68,26 @@ export function ResizableImage({
             delta: { width: number; height: number },
             position: { x: number; y: number },
         ) => {
-            // 将实际显示尺寸转换回标准尺寸，并确保为整数
+            // 获取新尺寸，转换为标准尺寸
+            const newWidth = Math.round(Number.parseInt(ref.style.width) / scaleX);
+            const newHeight = Math.round(Number.parseInt(ref.style.height) / scaleY);
+            
+            // 获取新位置
+            const newX = Math.round(position.x / scaleX);
+            const newY = Math.round(position.y / scaleY);
+            
+            // 应用等比例缩放后的尺寸和位置
             onResize({
-                width: Math.round(Number.parseInt(ref.style.width) / scaleX),
-                height: Math.round(Number.parseInt(ref.style.height) / scaleY),
-                x: Math.round(position.x / scaleX),
-                y: Math.round(position.y / scaleY),
-            })
+                width: newWidth,
+                height: newHeight,
+                x: newX,
+                y: newY,
+            });
+            
             // Clear alignment guides after resize
             setAlignmentGuides([]);
         },
-        [onResize, scaleX, scaleY],
+        [onResize, scaleX, scaleY]
     )
 
     // Handle drag start to set dragging state
@@ -143,6 +156,7 @@ export function ResizableImage({
                 onDrag={handleDrag}
                 onDragStop={handleDragStop}
                 onResizeStop={handleResizeStop}
+                lockAspectRatio={aspectRatio} // 锁定宽高比
                 onMouseDown={(e: MouseEvent) => {
                     e.stopPropagation()
                     onSelect()
@@ -161,25 +175,18 @@ export function ResizableImage({
                     <img src={src} alt="Resizable element" draggable="false" className="w-full h-full object-cover" />
                     {isSelected && (
                         <>
-                            <div
-                                className="absolute top-0 left-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-ns-resize">
-                                <div
-                                    className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                            {/* 角落的调整点 - 用于等比例缩放 */}
+                            <div className="absolute top-0 right-0 w-3 h-3 bg-white border border-blue-500 rounded-full translate-x-1/2 -translate-y-1/2 cursor-nwse-resize">
+                                <div className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                             </div>
-                            <div
-                                className="absolute right-0 top-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full translate-x-1/2 -translate-y-1/2 cursor-ew-resize">
-                                <div
-                                    className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                            <div className="absolute top-0 left-0 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-nesw-resize">
+                                <div className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                             </div>
-                            <div
-                                className="absolute bottom-0 left-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 translate-y-1/2 cursor-ns-resize">
-                                <div
-                                    className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-white border border-blue-500 rounded-full translate-x-1/2 translate-y-1/2 cursor-nesw-resize">
+                                <div className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                             </div>
-                            <div
-                                className="absolute left-0 top-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-ew-resize">
-                                <div
-                                    className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                            <div className="absolute bottom-0 left-0 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 translate-y-1/2 cursor-nwse-resize">
+                                <div className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                             </div>
                         </>
                     )}

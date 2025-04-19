@@ -167,24 +167,26 @@ export function ResizableVideo({
             delta: { width: number; height: number },
             position: { x: number; y: number },
         ) => {
-            // 获取新的宽度并转换回标准尺寸
-            const newWidth = Math.round(Number.parseInt(ref.style.width) / scaleX)
-            // 根据宽高比计算新的高度
-            const newHeight = direction.includes('y') 
-                ? Math.round(Number.parseInt(ref.style.height) / scaleY) 
-                : Math.round(newWidth / aspectRatio)
-
+            // 获取新尺寸，转换为标准尺寸
+            const newWidth = Math.round(Number.parseInt(ref.style.width) / scaleX);
+            const newHeight = Math.round(Number.parseInt(ref.style.height) / scaleY);
+            
+            // 获取新位置
+            const newX = Math.round(position.x / scaleX);
+            const newY = Math.round(position.y / scaleY);
+            
+            // 应用等比例缩放后的尺寸和位置
             onResize({
                 width: newWidth,
                 height: newHeight,
-                x: Math.round(position.x / scaleX),
-                y: Math.round(position.y / scaleY),
-            })
+                x: newX,
+                y: newY,
+            });
             
             // 清除对齐参考线
             setAlignmentGuides([])
         },
-        [onResize, aspectRatio, scaleX, scaleY],
+        [onResize, scaleX, scaleY],
     )
 
     // Handle drag start to set dragging state
@@ -315,16 +317,17 @@ export function ResizableVideo({
                 {isSelected && (
                     <>
                         <div className="absolute inset-0 outline outline-1 outline-blue-500 pointer-events-none" />
-                        <div className="absolute top-0 left-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-ns-resize">
+                        {/* 角落的调整点 - 用于等比例缩放 */}
+                        <div className="absolute top-0 right-0 w-3 h-3 bg-white border border-blue-500 rounded-full translate-x-1/2 -translate-y-1/2 cursor-nwse-resize">
                             <div className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                         </div>
-                        <div className="absolute right-0 top-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full translate-x-1/2 -translate-y-1/2 cursor-ew-resize">
+                        <div className="absolute top-0 left-0 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-nesw-resize">
                             <div className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                         </div>
-                        <div className="absolute bottom-0 left-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 translate-y-1/2 cursor-ns-resize">
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-white border border-blue-500 rounded-full translate-x-1/2 translate-y-1/2 cursor-nesw-resize">
                             <div className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                         </div>
-                        <div className="absolute left-0 top-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-ew-resize">
+                        <div className="absolute bottom-0 left-0 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 translate-y-1/2 cursor-nwse-resize">
                             <div className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                         </div>
                     </>

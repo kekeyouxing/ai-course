@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Scene, TextElement, ImageElement, VideoElement, AvatarElement, ImageMedia, VideoMedia, Background, SelectedElementType } from '@/types/scene';
+import { Scene, TextElement, ImageElement, VideoElement, AvatarElement, ImageMedia, VideoMedia, Background, SelectedElementType, ShapeElement } from '@/types/scene';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import { ContentMediaItem } from '@/api/media';
@@ -143,6 +143,7 @@ const handleTextUpdate = useCallback(
 
         if (mediaIndex !== -1 && newScenes[activeScene].media[mediaIndex].type === "image") {
             const imageMedia = newScenes[activeScene].media[mediaIndex] as ImageMedia;
+            console.log("更新图片元素", imageMedia.element)
             imageMedia.element = { ...imageMedia.element, ...updates } as ImageElement;
             updateHistory(newScenes);
         }
@@ -255,6 +256,52 @@ const handleTextUpdate = useCallback(
         newScenes[activeScene].media = [];
       }
 
+      // 计算适合画布的尺寸
+      let width = 400; // 默认宽度
+      let height = 300; // 默认高度
+      
+      // 如果有原始尺寸，计算合适的展示尺寸
+      if (mediaItem.width && mediaItem.height) {
+        const canvasWidth = canvasDimensions.width;
+        const canvasHeight = canvasDimensions.height;
+        
+        // 计算合适的缩放比例，确保媒体在画布中有合适的大小
+        // 限制媒体最大宽度为画布宽度的70%，最大高度为画布高度的70%
+        const maxWidth = canvasWidth * 0.7;
+        const maxHeight = canvasHeight * 0.7;
+        
+        // 保持原始宽高比
+        const aspectRatio = mediaItem.width / mediaItem.height;
+        
+        if (aspectRatio >= 1) { // 宽图/视频
+          width = Math.min(maxWidth, mediaItem.width);
+          height = width / aspectRatio;
+          
+          // 检查高度是否超过最大值
+          if (height > maxHeight) {
+            height = maxHeight;
+            width = height * aspectRatio;
+          }
+        } else { // 高图/视频
+          height = Math.min(maxHeight, mediaItem.height);
+          width = height * aspectRatio;
+          
+          // 检查宽度是否超过最大值
+          if (width > maxWidth) {
+            width = maxWidth;
+            height = width / aspectRatio;
+          }
+        }
+      }
+      
+      // 确保尺寸为整数
+      width = Math.round(width);
+      height = Math.round(height);
+      
+      // 计算居中位置
+      const x = (canvasDimensions.width - width) / 2;
+      const y = (canvasDimensions.height - height) / 2;
+
       // Create media element with proper typing
       if (!mediaItem.thumbnail) {
         // Create image media with correct type
@@ -263,10 +310,10 @@ const handleTextUpdate = useCallback(
           type: "image",
           element: {
             src: mediaItem.src,
-            width: 400,
-            height: 300,
-            x: canvasDimensions.width / 2 - 200,
-            y: canvasDimensions.height / 2 - 150,
+            width: width,
+            height: height,
+            x: x,
+            y: y,
             rotation: 0,
             zIndex: 10
           }
@@ -288,10 +335,10 @@ const handleTextUpdate = useCallback(
           type: "video",
           element: {
             src: mediaItem.src,
-            width: 400,
-            height: 300,
-            x: canvasDimensions.width / 2 - 200,
-            y: canvasDimensions.height / 2 - 150,
+            width: width,
+            height: height,
+            x: x,
+            y: y,
             rotation: 0,
             zIndex: 10,
             volume: 0.5,
@@ -328,6 +375,36 @@ const handleTextUpdate = useCallback(
       updateHistory(newScenes);
     },
     [scenes, activeScene, updateHistory]
+  );
+
+  // Shape operations
+  const handleShapeUpdate = useCallback(
+    (updates: Partial<ShapeElement>) => {
+      if (!selectedElement || selectedElement.type !== "shape" || selectedElement.index === undefined) return;
+
+      const newScenes = [...scenes];
+      // 确保shapes数组存在
+      if (!Array.isArray(newScenes[activeScene].shapes)) {
+        newScenes[activeScene].shapes = [];
+      }
+
+      // 验证形状索引是否有效
+      if (
+        newScenes[activeScene].shapes.length > selectedElement.index &&
+        selectedElement.index >= 0
+      ) {
+        // 更新形状的属性，包括旋转角度
+        newScenes[activeScene].shapes[selectedElement.index] = {
+          ...newScenes[activeScene].shapes[selectedElement.index],
+          ...updates
+        };
+        updateHistory(newScenes);
+      } else {
+        console.error("无效的形状元素索引:", selectedElement.index);
+        toast.error("形状元素不存在");
+      }
+    },
+    [scenes, activeScene, updateHistory, selectedElement]
   );
 
   // Helper function to get selected media
@@ -373,5 +450,8 @@ const getSelectedMedia = useCallback(
     
     // Background operations
     handleBackgroundChange,
+    
+    // Shape operations
+    handleShapeUpdate,
   };
 };

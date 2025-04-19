@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useMemo } from "react"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,6 +15,8 @@ import {
 import { Slider } from "@/components/ui/slider"
 import { Scene, ImageMedia, VideoMedia, AspectRatioType } from "@/types/scene"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { AnimationMarker } from "@/types/animation"
+import { getSceneAnimationMarkers } from "@/api/animation"
 
 // 修改组件接口，添加场景数据
 interface PreviewModalProps {
@@ -53,7 +55,36 @@ export default function PreviewModal({
     const audioRef = useRef<HTMLAudioElement>(null)
     // 添加一个状态来跟踪容器是否已经准备好
     const [containerReady, setContainerReady] = useState(false);
+  // 添加动画标记状态
+  const [animationMarkers, setAnimationMarkers] = useState<AnimationMarker[]>([])
+  const [loadingMarkers, setLoadingMarkers] = useState(false)
+  // 添加一个useRef来存储每秒计算一次的可见性结果
+  const visibilityCache = useRef<Record<string, boolean>>({});
+  // 存储当前整数秒的ref，用于检测是否需要清除缓存
+  const lastSecondRef = useRef<number>(-1);
 
+  // 创建一个函数用于获取动画标记
+  const fetchAnimationMarkers = async (scene?: Scene) => {
+    if (!scene || !scene.id) return;
+    
+    setLoadingMarkers(true);
+    try {
+      const result = await getSceneAnimationMarkers(scene.id);
+      console.log("API 返回结果:", result);
+      if (result.code === 0 && result.data?.markers) {
+        console.log("成功获取动画标记:", result.data.markers.length, "个标记");
+        setAnimationMarkers(result.data.markers);
+      } else {
+        console.error("获取标记失败, API返回:", result);
+        setAnimationMarkers([]);
+      }
+    } catch (error) {
+      console.error("获取动画标记失败:", error);
+      setAnimationMarkers([]);
+    } finally {
+      setLoadingMarkers(false);
+    }
+  };
     // 处理模态框关闭，清空渲染内容
     const handleOpenChange = (open: boolean) => {
         if (!open) {
@@ -61,6 +92,7 @@ export default function PreviewModal({
             setCurrentTime(0);
             setIsPlaying(false);
             setError(null);
+            setAnimationMarkers([]); // 清空动画标记
 
             // 如果有音频正在播放，停止它
             if (audioRef.current) {
@@ -101,6 +133,19 @@ export default function PreviewModal({
             }
         }
     }, [open, activeSceneIndex, scenes]);
+
+    // 当场景改变时，获取该场景的动画标记
+    useEffect(() => {
+        if (!open) return;
+        
+        const currentScene = scenes[currentSceneIndex];
+        if (currentScene && isScenePlayable(currentScene)) {
+            fetchAnimationMarkers(currentScene);
+        } else {
+            // 如果当前场景不可播放，清空动画标记
+            setAnimationMarkers([]);
+        }
+    }, [currentSceneIndex, open, scenes]);
 
     // 处理音频同步
     useEffect(() => {
@@ -293,6 +338,25 @@ export default function PreviewModal({
             }
         };
     }, [isPlaying, duration]);
+    
+    // 添加一个调试函数来显示当前动画标记状态
+    useEffect(() => {
+        if (isPlaying && animationMarkers.length > 0) {
+            // 转换为毫秒以便于比较
+            const currentTimeMs = currentTime * 1000;
+            
+            // 根据当前时间查找正在触发的动画标记
+            const activeMarkers = animationMarkers.filter(marker => 
+                marker.timestamp !== undefined && 
+                Math.abs(marker.timestamp - currentTimeMs) < 100 // 100ms容差内的标记视为活跃
+            );
+            
+            // 如果有标记被触发，打印出来以便调试
+            if (activeMarkers.length > 0) {
+                console.log('触发动画标记:', activeMarkers);
+            }
+        }
+    }, [currentTime, isPlaying, animationMarkers]);
 
     // 播放/暂停控制
     const togglePlay = () => {
@@ -434,8 +498,6 @@ export default function PreviewModal({
         // 计算内容在容器中的偏移量（居中显示）
         const offsetX = (containerWidth - scaledContentWidth) / 2;
         const offsetY = (containerHeight - scaledContentHeight) / 2;
-
-        console.log("容器尺寸:", containerWidth, containerHeight);
         // 返回缩放后的位置和尺寸，考虑偏移量
         return {
             x: x * scale + offsetX,
@@ -550,6 +612,255 @@ export default function PreviewModal({
             setDuration(60);
         }
     }, [open, currentSceneIndex, scenes, currentScene]);
+
+    // 修改isElementVisible函数，使用缓存减少计算频率
+    const isElementVisible = (startMarkerId?: string, endMarkerId?: string, animationBehavior?: string) => {
+        if (!startMarkerId && !endMarkerId) return true; // 如果没有动画标记，则始终可见
+        
+        // 获取当前整数秒
+        const currentTimeSeconds = Math.floor(currentTime);
+        
+        // 生成缓存key
+        const cacheKey = `${startMarkerId || ''}-${endMarkerId || ''}-${animationBehavior || ''}-${currentTimeSeconds}`;
+        
+        // 如果当前秒数变化了，清空缓存
+        if (lastSecondRef.current !== currentTimeSeconds) {
+            lastSecondRef.current = currentTimeSeconds;
+            visibilityCache.current = {}; // 清空缓存
+            
+        }
+        
+        // 检查缓存中是否有结果
+        if (cacheKey in visibilityCache.current) {
+            return visibilityCache.current[cacheKey];
+        }
+        
+        // 以下是原来的可见性计算逻辑
+        // 查找开始和结束标记
+        const startMarker = startMarkerId ? animationMarkers.find(marker => marker.id === startMarkerId) : null;
+        const endMarker = endMarkerId ? animationMarkers.find(marker => marker.id === endMarkerId) : null;
+        
+        // 检查元素是否应该可见（采用秒级别比较，忽略毫秒）
+        let shouldBeVisible = false;
+        
+        if (startMarker && startMarker.timestamp !== undefined) {
+            // 将毫秒转为秒并向下取整
+            const markerTimeSeconds = Math.floor(startMarker.timestamp / 1000);
+            
+            // 简化的比较: 只要当前播放秒数 >= 动画标记秒数，就显示元素
+            shouldBeVisible = currentTimeSeconds >= markerTimeSeconds;
+            
+        }
+        
+        // 如果有结束标记，检查是否应该隐藏
+        if (endMarker && endMarker.timestamp !== undefined) {
+            const endTimeSeconds = Math.floor(endMarker.timestamp / 1000);
+            // 如果当前时间超过结束时间，应该隐藏
+            if (currentTimeSeconds >= endTimeSeconds) {
+                shouldBeVisible = false;
+            }
+        }
+        
+        // 将结果存入缓存
+        visibilityCache.current[cacheKey] = shouldBeVisible;
+        
+        return shouldBeVisible;
+    };
+
+    // 用useMemo优化视频播放时的重复渲染
+    const currentTimeInteger = useMemo(() => Math.floor(currentTime), [currentTime]);
+    
+    
+    // 生成CSS动画样式
+    const getAnimationStyle = (element: any) => {
+        if (!element.animationType || element.animationType === "none") {
+            return {};
+        }
+        
+        // 检查元素是否有开始标记
+        const startMarker = element.startAnimationMarkerId 
+            ? animationMarkers.find(marker => marker.id === element.startAnimationMarkerId)
+            : null;
+            
+        // 检查元素是否有结束标记
+        const endMarker = element.endAnimationMarkerId
+            ? animationMarkers.find(marker => marker.id === element.endAnimationMarkerId)
+            : null;
+        
+        // 计算当前时间（毫秒）
+        const currentTimeMs = currentTime * 1000;
+        
+        // 初始化样式变量
+        let transform = 'none';
+        let opacity = 1;
+        let transition = `all 1s linear`; // 匀速过渡，持续1秒
+        
+        // 检查当前是否处于动画中
+        let isAnimating = false;
+        let isEntering = false;
+        let isExiting = false;
+        
+        // 根据动画行为(enter/exit/both)判断当前应该显示什么动画
+        if (element.animationBehavior === "enter" || element.animationBehavior === "both") {
+            if (startMarker && startMarker.timestamp !== undefined) {
+                // 判断是否在进入动画时间范围内
+                const enterEndTime = startMarker.timestamp + 1000; // 1秒动画时间
+                isEntering = currentTimeMs >= startMarker.timestamp && currentTimeMs <= enterEndTime;
+                isAnimating = isAnimating || isEntering;
+            }
+        }
+        
+        if (element.animationBehavior === "exit" || element.animationBehavior === "both") {
+            if (endMarker && endMarker.timestamp !== undefined) {
+                // 判断是否在退出动画时间范围内
+                const exitStartTime = endMarker.timestamp - 1000; // 提前1秒开始退出动画
+                isExiting = currentTimeMs >= exitStartTime && currentTimeMs <= endMarker.timestamp;
+                isAnimating = isAnimating || isExiting;
+            }
+        } else {
+            // 如果没有指定动画行为，只处理进入动画
+            if (startMarker && startMarker.timestamp !== undefined) {
+                const enterEndTime = startMarker.timestamp + 1000;
+                isEntering = currentTimeMs >= startMarker.timestamp && currentTimeMs <= enterEndTime;
+                isAnimating = isEntering;
+            }
+        }
+        
+        // 根据动画类型和方向生成样式
+        if (isEntering) {
+            // 进入动画 - 如果正在动画过程中
+            if (element.animationType === "fade") {
+                // 计算当前进度
+                const progress = (currentTimeMs - (startMarker?.timestamp || 0)) / 1000;
+                opacity = Math.min(1, progress); // 从0到1逐渐变不透明
+            } else if (element.animationType === "slide") {
+                // 计算当前位置进度
+                const progress = (currentTimeMs - (startMarker?.timestamp || 0)) / 1000;
+                
+                // 根据方向计算当前位置
+                switch (element.animationDirection) {
+                    case "right":
+                        // 从左到右，初始位置为-50px
+                        transform = `translateX(${-50 * (1 - progress)}px)`;
+                        break;
+                    case "left":
+                        // 从右到左，初始位置为50px
+                        transform = `translateX(${50 * (1 - progress)}px)`;
+                        break;
+                    case "down":
+                        // 从上到下，初始位置为-50px
+                        transform = `translateY(${-50 * (1 - progress)}px)`;
+                        break;
+                    case "up":
+                        // 从下到上，初始位置为50px
+                        transform = `translateY(${50 * (1 - progress)}px)`;
+                        break;
+                    default:
+                        transform = `translateX(${-50 * (1 - progress)}px)`;
+                }
+                
+                // 透明度随着位置变化
+                opacity = Math.min(1, progress);
+            }
+        } else if (isExiting) {
+            // 退出动画 - 如果正在动画过程中
+            if (element.animationType === "fade") {
+                // 计算退出进度
+                const progress = (currentTimeMs - ((endMarker?.timestamp || 0) - 1000)) / 1000;
+                opacity = 1 - progress; // 从1到0逐渐变透明
+            } else if (element.animationType === "slide") {
+                // 计算当前退出位置进度
+                const progress = (currentTimeMs - ((endMarker?.timestamp || 0) - 1000)) / 1000;
+                
+                // 根据方向计算当前退出位置
+                switch (element.animationDirection) {
+                    case "right":
+                        // 向右退出，从0到50px
+                        transform = `translateX(${50 * progress}px)`;
+                        break;
+                    case "left":
+                        // 向左退出，从0到-50px
+                        transform = `translateX(${-50 * progress}px)`;
+                        break;
+                    case "up":
+                        // 向上退出，从0到-50px
+                        transform = `translateY(${-50 * progress}px)`;
+                        break;
+                    case "down":
+                        // 向下退出，从0到50px
+                        transform = `translateY(${50 * progress}px)`;
+                        break;
+                    default:
+                        transform = `translateX(${50 * progress}px)`;
+                }
+                
+                // 透明度随着位置变化
+                opacity = 1 - progress;
+            }
+        } else {
+            // 不在动画过程中
+            if (startMarker && startMarker.timestamp !== undefined && currentTimeMs < startMarker.timestamp) {
+                // 在进入时间之前
+                if (element.animationType === "fade") {
+                    opacity = 0;
+                } else if (element.animationType === "slide") {
+                    // 根据方向设置初始位置
+                    switch (element.animationDirection) {
+                        case "right":
+                            transform = 'translateX(-50px)';
+                            break;
+                        case "left":
+                            transform = 'translateX(50px)';
+                            break;
+                        case "up":
+                            transform = 'translateY(50px)';
+                            break;
+                        case "down":
+                            transform = 'translateY(-50px)';
+                            break;
+                        default:
+                            transform = 'translateX(-50px)';
+                    }
+                    opacity = 0; // 确保元素在开始前不可见
+                }
+            } else if (endMarker && endMarker.timestamp !== undefined && currentTimeMs > endMarker.timestamp) {
+                // 在退出时间之后
+                if (element.animationBehavior === "exit" || element.animationBehavior === "both") {
+                    opacity = 0; // 退出后应该不可见
+                    
+                    if (element.animationType === "slide") {
+                        // 根据方向设置最终位置
+                        switch (element.animationDirection) {
+                            case "right":
+                                transform = 'translateX(50px)';
+                                break;
+                            case "left":
+                                transform = 'translateX(-50px)';
+                                break;
+                            case "up":
+                                transform = 'translateY(-50px)';
+                                break;
+                            case "down":
+                                transform = 'translateY(50px)';
+                                break;
+                            default:
+                                transform = 'translateX(50px)';
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 禁用React优化过渡，确保每一帧都重新计算位置
+        transition = isAnimating ? 'none' : transition;
+        
+        return {
+            transform,
+            opacity,
+            transition
+        };
+    };
+
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent
@@ -635,10 +946,27 @@ export default function PreviewModal({
                                                 textElement.width,
                                                 textElement.height
                                             );
+                                            
+                                            // 检查文本元素是否应该可见（基于动画标记）
+                                            const isVisible = isElementVisible(
+                                                textElement.startAnimationMarkerId,
+                                                textElement.endAnimationMarkerId,
+                                                textElement.animationBehavior
+                                            );
+                                            
+                                            // 如果不可见则跳过渲染
+                                            if (!isVisible && isPlaying) {
+                                                return null;
+                                            }
+                                            
+                                            // 获取动画样式
+                                            const animationStyle = isPlaying 
+                                                ? getAnimationStyle(textElement) 
+                                                : {};
 
                                             return (
                                                 <div
-                                                    key={`text-${index}`}
+                                                    key={`text-${index}-${currentTimeInteger}`}
                                                     className="absolute"
                                                     style={{
                                                         left: `${x}px`,
@@ -646,7 +974,6 @@ export default function PreviewModal({
                                                         width: `${width}px`,
                                                         height: `${height}px`,
                                                         zIndex: textElement.zIndex || 10,
-                                                        transform: `rotate(${textElement.rotation || 0}deg)`,
                                                     }}
                                                 >
                                                     <div
@@ -668,6 +995,9 @@ export default function PreviewModal({
                                                             whiteSpace: 'pre-wrap',
                                                             wordBreak: 'break-word',
                                                             overflow: 'visible',
+                                                            opacity: animationStyle.opacity,
+                                                            transform: animationStyle.transform ? `${animationStyle.transform} rotate(${textElement.rotation || 0}deg)` : `rotate(${textElement.rotation || 0}deg)`,
+                                                            transition: animationStyle.transition
                                                         }}
                                                     >
                                                         {textElement.content}
@@ -686,10 +1016,28 @@ export default function PreviewModal({
                                                     imageMedia.element.width,
                                                     imageMedia.element.height
                                                 );
+                                                
+                                                // 检查图片元素是否应该可见（基于动画标记）
+                                                const isVisible = isElementVisible(
+                                                    imageMedia.element.startAnimationMarkerId,
+                                                    imageMedia.element.endAnimationMarkerId,
+                                                    imageMedia.element.animationBehavior
+                                                );
+                                            
+                                                
+                                                // 如果不可见则跳过渲染
+                                                if (!isVisible && isPlaying) {
+                                                    return null;
+                                                }
+                                                
+                                                // 获取动画样式
+                                                const animationStyle = isPlaying 
+                                                    ? getAnimationStyle(imageMedia.element) 
+                                                    : {};
 
                                                 return (
                                                     <div
-                                                        key={`image-${index}`}
+                                                        key={`image-${index}-${currentTimeInteger}`}
                                                         className="absolute"
                                                         style={{
                                                             left: `${x}px`,
@@ -697,13 +1045,17 @@ export default function PreviewModal({
                                                             width: `${width}px`,
                                                             height: `${height}px`,
                                                             zIndex: imageMedia.element.zIndex || 5,
-                                                            transform: `rotate(${imageMedia.element.rotation || 0}deg)`,
                                                         }}
                                                     >
                                                         <img
                                                             src={imageMedia.element.src}
                                                             className="w-full h-full object-contain"
                                                             alt=""
+                                                            style={{
+                                                                opacity: animationStyle.opacity,
+                                                                transform: animationStyle.transform ? `${animationStyle.transform} rotate(${imageMedia.element.rotation || 0}deg)` : `rotate(${imageMedia.element.rotation || 0}deg)`,
+                                                                transition: animationStyle.transition
+                                                            }}
                                                         />
                                                     </div>
                                                 );
@@ -718,10 +1070,27 @@ export default function PreviewModal({
                                                     videoMedia.element.width,
                                                     videoMedia.element.height
                                                 );
+                                                
+                                                // 检查视频元素是否应该可见（基于动画标记）
+                                                const isVisible = isElementVisible(
+                                                    videoMedia.element.startAnimationMarkerId,
+                                                    videoMedia.element.endAnimationMarkerId,
+                                                    videoMedia.element.animationBehavior
+                                                );
+                                                
+                                                // 如果不可见则跳过渲染
+                                                if (!isVisible && isPlaying) {
+                                                    return null;
+                                                }
+                                                
+                                                // 获取动画样式
+                                                const animationStyle = isPlaying 
+                                                    ? getAnimationStyle(videoMedia.element) 
+                                                    : {};
 
                                                 return (
                                                     <div
-                                                        key={`video-${index}`}
+                                                        key={`video-${index}-${currentTimeInteger}`}
                                                         className="absolute"
                                                         style={{
                                                             left: `${x}px`,
@@ -729,7 +1098,6 @@ export default function PreviewModal({
                                                             width: `${width}px`,
                                                             height: `${height}px`,
                                                             zIndex: videoMedia.element.zIndex || 5,
-                                                            transform: `rotate(${videoMedia.element.rotation || 0}deg)`,
                                                         }}
                                                     >
                                                         <video
@@ -738,6 +1106,11 @@ export default function PreviewModal({
                                                             autoPlay={isPlaying}
                                                             loop
                                                             muted={isMuted}
+                                                            style={{
+                                                                opacity: animationStyle.opacity,
+                                                                transform: animationStyle.transform ? `${animationStyle.transform} rotate(${videoMedia.element.rotation || 0}deg)` : `rotate(${videoMedia.element.rotation || 0}deg)`,
+                                                                transition: animationStyle.transition
+                                                            }}
                                                         />
                                                     </div>
                                                 );
@@ -781,17 +1154,23 @@ export default function PreviewModal({
                                         {!isPlaying && (
                                             <Button
                                                 onClick={togglePlay}
-                                                className="absolute z-20 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm p-6"
+                                                className="absolute z-20 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm"
                                                 style={{
                                                     left: '50%',
                                                     top: '50%',
-                                                    transform: 'translate(-50%, -50%)'
+                                                    transform: 'translate(-50%, -50%)',
+                                                    width: '56px',
+                                                    height: '56px',
+                                                    padding: 0,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center'
                                                 }}
                                             >
                                                 {isLoading ? (
-                                                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-t-transparent" />
+                                                    <div className="h-7 w-7 animate-spin rounded-full border-4 border-white border-t-transparent" />
                                                 ) : (
-                                                    <Play className="h-8 w-8 text-white fill-white" />
+                                                    <Play className="h-7 w-7 text-white fill-white" />
                                                 )}
                                             </Button>
                                         )}
@@ -956,6 +1335,10 @@ export default function PreviewModal({
                                                 // 使用setTimeout确保DOM更新
                                                 setTimeout(() => {
                                                     setCurrentTime(0);
+                                                    // 获取该场景的动画标记
+                                                    if (isPlayable && scene) {
+                                                        fetchAnimationMarkers(scene);
+                                                    }
                                                 }, 0);
                                             }}
                                             title={tooltipText}

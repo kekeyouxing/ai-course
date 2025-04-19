@@ -1,0 +1,139 @@
+import instance from "@/api/axios";
+
+// 会员等级类型
+export type MembershipTier = "Free" | "Basic" | "Advanced" | "Super";
+
+// 会员特性接口 - 匹配实际接口返回的字段名
+export interface MembershipFeature {
+  id: number;
+  tier: MembershipTier;
+  maxCharacters: number;     // 最大虚拟角色数量(0表示无自定义角色)
+  maxVideoDuration: number;  // 最大视频时长(秒)
+  maxTextLength: number;     // 每个场景最大文本长度
+  monthlyPrice: number;      // 每月价格(分)
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 获取会员等级特性接口
+export interface GetMembershipResponse {
+  code: number;
+  data: MembershipFeature[];
+  msg: string;
+}
+
+// 将后端会员数据转换为前端展示格式
+export interface TierDisplay {
+  id: string;
+  name: string;
+  price: string;
+  period: string;
+  description: string;
+  features: { name: string; included: boolean }[];
+}
+
+// 会员支付请求接口
+export interface MembershipPaymentRequest {
+  tier: MembershipTier;
+}
+
+// 会员支付响应接口
+export interface MembershipPaymentResponse {
+  code: number;
+  data: string;  // 微信支付二维码链接
+  msg: string;
+}
+
+// 获取会员等级特性
+export async function getMembershipFeatures(): Promise<MembershipFeature[]> {
+  try {
+    const response = await instance.get<GetMembershipResponse>("/memberships/tiers");
+    
+    if (response.data.code === 0) {
+      return response.data.data;
+    }
+    
+    throw new Error(response.data.msg || "获取会员等级特性失败");
+  } catch (error) {
+    console.error("获取会员等级特性失败:", error);
+    throw error;
+  }
+}
+
+// 将后端会员数据转换为前端展示格式
+export function convertFeaturesToDisplay(features: MembershipFeature[]): TierDisplay[] {
+  // 会员等级名称映射
+  const tierNames: Record<MembershipTier, string> = {
+    Free: "免费用户",
+    Basic: "基础会员",
+    Advanced: "高级会员",
+    Super: "超级会员"
+  };
+  
+  // 会员等级描述映射
+  const tierDescriptions: Record<MembershipTier, string> = {
+    Free: "免费体验基本功能，限时一个月",
+    Basic: "适合个人用户的基础功能",
+    Advanced: "适合专业用户的高级套餐",
+    Super: "适合企业用户的全功能套餐"
+  };
+  
+  return features.map(feature => {
+    // 将分转换为元，并格式化为价格字符串
+    const priceInYuan = feature.monthlyPrice;
+    const priceString = feature.tier === "Free" ? "免费" : `¥${priceInYuan}`;
+    
+    // 构建特性列表
+    const featureList = [
+      { 
+        name: `最多${feature.maxCharacters}个自定义角色（永久拥有）`, 
+        included: feature.maxCharacters > 0 
+      },
+      { 
+        name: `视频总时长上限${Math.floor(feature.maxVideoDuration / 60)}分钟`, 
+        included: true 
+      },
+      { 
+        name: `脚本文本上限${feature.maxTextLength}字符`, 
+        included: true 
+      },
+      // 根据等级添加额外特性
+      { 
+        name: "优先客户支持", 
+        included: ["Advanced", "Super"].includes(feature.tier) 
+      },
+      { 
+        name: "高级AI生成功能", 
+        included: ["Advanced", "Super"].includes(feature.tier) 
+      }
+    ];
+    
+    return {
+      id: feature.tier.toLowerCase(),
+      name: tierNames[feature.tier],
+      price: priceString,
+      period: feature.tier === "Free" ? "" : "一个月",
+      description: tierDescriptions[feature.tier],
+      features: featureList
+    };
+  });
+}
+
+// 发起会员支付请求
+export async function requestMembershipPayment(tier: MembershipTier): Promise<string> {
+  try {
+    const response = await instance.post<MembershipPaymentResponse>(
+      "/payments/membership", 
+      { tier } as MembershipPaymentRequest
+    );
+    
+    if (response.data.code === 0 && response.data.data) {
+      return response.data.data;
+    }
+    
+    throw new Error(response.data.msg || "获取支付二维码失败");
+  } catch (error) {
+    console.error("发起会员支付请求失败:", error);
+    throw error;
+  }
+}

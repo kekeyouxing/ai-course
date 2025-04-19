@@ -144,3 +144,60 @@ export async function generateScriptFromImageAnalysis(request: ImageAnalysisRequ
         throw error;
     }
 }
+
+// 更新场景内容的API函数
+export async function updateScene(sceneId: string, sceneData: Partial<Scene>): Promise<void> {
+    try {
+        const response = await instance.put<{
+            code: number;
+            msg: string;
+        }>(`/scenes/${sceneId}`, sceneData);
+        
+        if (response.data.code !== 0) {
+            throw new Error(response.data.msg || "更新场景失败");
+        }
+    } catch (error) {
+        console.error("更新场景API错误:", error);
+        throw error;
+    }
+}
+
+// 创建新场景的API函数
+export async function createScene(projectId: string, sceneData: Partial<Scene>): Promise<Scene> {
+    try {
+        const response = await instance.post<{
+            code: number;
+            data: Scene;
+            msg: string;
+        }>(`/scenes/project/${projectId}`, sceneData);
+        
+        if (response.data.code !== 0) {
+            throw new Error(response.data.msg || "创建场景失败");
+        }
+        
+        return response.data.data;
+    } catch (error) {
+        console.error("创建场景API错误:", error);
+        throw error;
+    }
+}
+
+// 复制场景的API函数
+export async function duplicateScene(sceneId: string): Promise<Scene> {
+    try {
+        const response = await instance.post<{
+            code: number;
+            data: Scene;
+            msg: string;
+        }>(`/scenes/${sceneId}/duplicate`);
+        
+        if (response.data.code !== 0) {
+            throw new Error(response.data.msg || "复制场景失败");
+        }
+        
+        return response.data.data;
+    } catch (error) {
+        console.error("复制场景API错误:", error);
+        throw error;
+    }
+}

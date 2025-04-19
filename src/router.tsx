@@ -9,6 +9,8 @@ import VideoEditor from "@/app/video-edioter";
 import VoiceCloningUI from "@/components/clone/voice-cloning-ui";
 import {VoiceCloningProvider} from '@/hooks/VoiceCloningContext';
 import AuthRoute from "@/components/auth/AuthRoute";
+import OrdersPage from "@/app/orders-page";
+import ResourceLogsPage from "@/app/resource-logs-page";
 
 export const routes: RouteObject[] = [
     {
@@ -46,6 +48,22 @@ export const routes: RouteObject[] = [
                 handle: {
                     breadcrumb: "项目",
                     pathSegments: ["projects"] // 明确层级关系
+                }
+            },
+            {
+                path: "orders",
+                element: <AuthRoute key={Date.now()}><OrdersPage/></AuthRoute>,
+                handle: {
+                    breadcrumb: "订单记录",
+                    pathSegments: ["orders"] // 明确层级关系
+                }
+            },
+            {
+                path: "resource-logs",
+                element: <AuthRoute key={Date.now()}><ResourceLogsPage/></AuthRoute>,
+                handle: {
+                    breadcrumb: "使用记录",
+                    pathSegments: ["resource-logs"] // 明确层级关系
                 }
             }
         ]

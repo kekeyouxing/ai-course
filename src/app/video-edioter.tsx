@@ -17,6 +17,8 @@ import { getAllElementsForAlignment } from "@/utils/alignment-utils";
 import { useZIndexOperations } from "@/hooks/use-zindex-operations";
 import { usePreviewDimensions } from "@/hooks/use-preview-dimensions";
 import { useCanvasDimensions } from "@/hooks/use-canvas-dimensions";
+import { ShapeContent } from "@/components/workspace/shape-content";
+import { ResizableShape } from "@/components/workspace/resizable-shape"
 // 导入类型定义
 import {
     Scene,
@@ -24,8 +26,9 @@ import {
     VideoMedia,
     SelectedElementType,
     AspectRatioType,
+    ShapeElement,
+    ShapeType
 } from "@/types/scene"
-import { v4 as uuidv4 } from 'uuid';
 import { ResizableVideo } from "@/components/workspace/resizable-video";
 
 // 更新导出类型
@@ -56,10 +59,16 @@ import {
 } from "@/utils/editor-operations"
 // 导入 MediaContent 和类型
 import MediaContent from "@/components/media/media-content";
-import { getScenesByProjectId, updateSceneTitle, deleteScene } from "@/api/scene";
+import { getScenesByProjectId, updateSceneTitle, deleteScene, updateScene, createScene, duplicateScene } from "@/api/scene";
 import { toast } from "sonner";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useElementOperations } from "@/hooks/use-element-operations";
+
+// 导入防抖更新Hook
+import { useDebouncedSceneUpdate } from "@/hooks/use-debounced-update";
+
+// 生成唯一ID的函数
+const generateId = () => Math.random().toString(36).substring(2, 9);
 
 export default function VideoEditor() {
     // 添加加载状态
@@ -80,6 +89,7 @@ export default function VideoEditor() {
         "Background",
         "Media",
         "Text",
+        "Shape",
     ]
     const [history, setHistory] = useState<Scene[][]>([scenes])
     const [historyIndex, setHistoryIndex] = useState<number>(0)
@@ -105,6 +115,10 @@ export default function VideoEditor() {
     const navigate = useNavigate();
     const location = useLocation();
     const project = location.state?.project;
+
+    // 初始化防抖更新方法
+    const debouncedUpdateScene = useDebouncedSceneUpdate();
+
     useEffect(() => {
         const fetchScenes = async () => {
             setIsLoading(true); // 开始加载
@@ -124,7 +138,6 @@ export default function VideoEditor() {
                 setHistory([scenesWithDates]);
                 if (project) {
                     // 可以直接使用项目数据
-                    console.log("项目数据:", project);
                     setVideoTitle(project.name); // 例如设置视频标题
                 }
                 // 等待DOM更新后计算预览尺寸
@@ -183,10 +196,12 @@ export default function VideoEditor() {
             setActiveTab("Avatar")
         } else if (element?.type === "image" || element?.type === "video") {
             setActiveTab("Media")
+        } else if (element?.type === "shape") {
+            setActiveTab("Shape")
         }
     }, [])
 
-    // 改进的历史记录更新函数
+    // 修改updateHistory函数，添加后端同步
     const updateHistory = useCallback(
         (newScenes: Scene[]) => {
             // 如果当前不在历史记录的最后，则截断历史记录
@@ -196,8 +211,13 @@ export default function VideoEditor() {
             setHistory(newHistory)
             setHistoryIndex(newHistory.length - 1)
             setScenes(JSON.parse(JSON.stringify(newScenes))) // 确保状态更新
+            
+            // 与后端同步当前场景的更改
+            if (activeScene < newScenes.length && newScenes[activeScene]?.id) {
+                debouncedUpdateScene(newScenes[activeScene].id, newScenes[activeScene]);
+            }
         },
-        [history, historyIndex],
+        [history, historyIndex, activeScene, debouncedUpdateScene],
     )
 
     // 修改宽高比例变化处理函数，同时更新当前场景的宽高比例
@@ -254,6 +274,7 @@ export default function VideoEditor() {
         handleAddMedia,
         getSelectedMedia,
         handleBackgroundChange,
+        handleShapeUpdate
     } = useElementOperations(
         scenes,
         activeScene,
@@ -327,7 +348,17 @@ export default function VideoEditor() {
                     selectedMedia={getSelectedMedia()}
                     sceneId={scenes[activeScene].id}
                     onDelete={handleDeleteElement}
-
+                />
+            case "Shape":
+                return <ShapeContent
+                    shape={
+                        selectedElement?.type === "shape" && selectedElement.index !== undefined &&
+                        Array.isArray(scenes[activeScene]?.shapes) ? 
+                        scenes[activeScene]?.shapes[selectedElement.index] : 
+                        undefined
+                    }
+                    onUpdate={handleShapeUpdate}
+                    sceneId={scenes[activeScene]?.id}
                 />
             // Add more cases for other tabs
             default:
@@ -368,23 +399,40 @@ export default function VideoEditor() {
     }, [handleUndo, handleRedo, selectedElement, handleDeleteElement, handleCopyElement, handlePasteElement]);
 
     // 修改添加新场景的函数，包含当前选择的宽高比例
-    const addNewScene = useCallback(() => {
-        const newScene: Scene = {
-            id: uuidv4(),
-            title: `Scene ${scenes.length + 1}`,
-            media: [],
-            texts: [],  // 初始化为空数组
-            avatar: null,
-            background: {
-                type: "color",
-                color: "#FFFFFF"
-            },
-            script: "",  // 确保添加空脚本字段
-            aspectRatio: aspectRatio  // 使用当前选择的宽高比例
+    const addNewScene = useCallback(async () => {
+        try {
+            const newSceneData: Partial<Scene> = {
+                title: `Scene ${scenes.length + 1}`,
+                media: [],
+                texts: [],
+                avatar: null,
+                background: {
+                    type: "color",
+                    color: "#FFFFFF"
+                },
+                script: "",
+                aspectRatio: aspectRatio,
+                language: "zh", // 默认使用中文
+                voiceId: ""     // 默认为空，后续用户可选择
+            };
+            
+            if (!projectId) {
+                toast.error("项目ID不存在，无法创建场景");
+                return;
+            }
+            
+            // 调用创建场景API
+            const createdScene = await createScene(projectId, newSceneData);
+            
+            // 更新本地状态
+            const newScenes = [...scenes, createdScene];
+            updateHistory(newScenes);
+            setActiveScene(scenes.length);
+        } catch (error) {
+            console.error("创建场景失败:", error);
+            toast.error("创建场景失败，请重试");
         }
-        updateHistory([...scenes, newScene])
-        setActiveScene(scenes.length)
-    }, [scenes, updateHistory, aspectRatio])
+    }, [scenes, updateHistory, aspectRatio, projectId]);
 
     // 处理场景标题更新
     const handleSceneTitleUpdate = useCallback(async (index: number, newTitle: string) => {
@@ -427,18 +475,64 @@ export default function VideoEditor() {
     };
     
 // Handle copying a scene
-const handleCopyScene = useCallback(() => {
+const handleCopyScene = useCallback(async () => {
     if (!scenes[activeScene]) return;
-    // Insert the copied scene after the current scene
-    const newScenes = [...scenes];
-    // newScenes.splice(activeScene + 1, 0, sceneCopy);
     
-    // Update history with new scenes array
-    updateHistory(newScenes);
-    
-    // Set the newly copied scene as active
-    setActiveScene(activeScene + 1);
+    try {
+        // 调用复制场景API，后端会自动处理位置信息
+        const createdScene = await duplicateScene(scenes[activeScene].id);
+        
+        // 在本地场景数组中插入新复制的场景，位置是当前场景的后面
+        const targetPosition = activeScene + 1;
+        const newScenes = [...scenes];
+        newScenes.splice(targetPosition, 0, createdScene);
+        
+        // 更新历史记录
+        updateHistory(newScenes);
+        
+        // 将活动场景设置为新复制的场景
+        setActiveScene(targetPosition);
+        
+    } catch (error) {
+        console.error("复制场景失败:", error);
+        toast.error("复制场景失败，请重试");
+    }
 }, [scenes, activeScene, updateHistory]);
+
+    // 处理添加形状的函数
+    const handleAddShapeElement = (shapeType: ShapeType) => {
+        const centerX = currentCanvasDimensions.width / 2 - 50; // 居中位置
+        const centerY = currentCanvasDimensions.height / 2 - 50;
+        
+        // 确保shapes数组已初始化
+        const newScenes = [...scenes];
+        if (!Array.isArray(newScenes[activeScene].shapes)) {
+            newScenes[activeScene].shapes = [];
+        }
+        
+        // 创建新形状
+        const newShape: ShapeElement = {
+            type: shapeType,
+            width: 100,
+            height: 100,
+            x: centerX,
+            y: centerY,
+            rotation: 0,
+            fill: "#" + Math.floor(Math.random()*16777215).toString(16), // 随机颜色
+            stroke: "#000000",
+            strokeWidth: 2,
+            zIndex: 20
+        };
+        
+        // 添加到当前场景
+        newScenes[activeScene].shapes.push(newShape);
+        updateHistory(newScenes);
+        
+        // 选中新添加的形状
+        const index = newScenes[activeScene].shapes.length - 1;
+        handleElementSelect({ type: "shape", index });
+    };
+
     return (
         <div className="flex flex-col h-screen bg-white">
             {isLoading ? (
@@ -468,6 +562,7 @@ const handleCopyScene = useCallback(() => {
                         onSelectTextType={handleAddTextElement} // 更新引用
                         selectedElementType={selectedElement?.type}
                         onClearSelection={() => setSelectedElement(null)}
+                        onSelectShapeType={handleAddShapeElement}
                     />
 
                     {/* Main Content */}
@@ -586,6 +681,40 @@ const handleCopyScene = useCallback(() => {
                                                 }
                                                 return null;
                                             })}
+
+                                            {/* 渲染形状元素 */}
+                                            {scenes[activeScene].shapes?.map((shape, index) => (
+                                                <ElementContextMenu
+                                                    key={`shape-${index}`}
+                                                    onBringToFront={handleBringToFront}
+                                                    onSendToBack={handleSendToBack}
+                                                    onBringForward={handleBringForward}
+                                                    onSendBackward={handleSendBackward}
+                                                    disabled={!(selectedElement?.type === "shape" && selectedElement.index === index)}
+                                                >
+                                                    <ResizableShape
+                                                        {...shape}
+                                                        onResize={(newSize) => {
+                                                            const newScenes = [...scenes];
+                                                            if (!newScenes[activeScene].shapes) {
+                                                                newScenes[activeScene].shapes = [];
+                                                            }
+                                                            newScenes[activeScene].shapes[index] = {
+                                                                ...shape,
+                                                                ...newSize
+                                                            };
+                                                            updateHistory(newScenes);
+                                                        }}
+                                                        onSelect={() => handleElementSelect({ type: "shape", index })}
+                                                        isSelected={selectedElement?.type === "shape" && selectedElement.index === index}
+                                                        canvasWidth={currentCanvasDimensions.width}
+                                                        canvasHeight={currentCanvasDimensions.height}
+                                                        containerWidth={previewDimensions.width}
+                                                        containerHeight={previewDimensions.height}
+                                                        otherElements={getAllElementsForAlignment(scenes[activeScene], undefined, "shape", index)}
+                                                    />
+                                                </ElementContextMenu>
+                                            ))}
 
                                             {scenes[activeScene].avatar && (
                                                 <ElementContextMenu
