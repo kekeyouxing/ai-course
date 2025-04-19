@@ -57,7 +57,10 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
         className="shadow-md"
       >
         <BackgroundRenderer
-          background={scenes[activeScene].background}
+          background={scenes[activeScene]?.background || {
+            type: "color",
+            color: "#ffffff"
+          }}
           onClick={(e: React.MouseEvent) => {
             if (e.target === e.currentTarget) {
               handleElementSelect(null);

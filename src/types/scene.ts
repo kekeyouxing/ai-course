@@ -104,6 +104,7 @@ export interface ShapeElement {
     stroke: string
     strokeWidth: number
     zIndex: number
+    borderRadius?: number // 圆角半径，仅对矩形和空心矩形有效
     // 动画相关字段
     animationType?: "none" | "fade" | "slide";
     animationBehavior?: "enter" | "exit" | "both";

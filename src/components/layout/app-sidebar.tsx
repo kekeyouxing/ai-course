@@ -21,23 +21,22 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import SubscriptionModal from "@/components/subscription/subscription-modal";
 import VideoPackModal from "@/components/videopack/videopack-modal";
-// import { UserResourceInfo } from "@/components/layout/user-resource-info";
 
 // Menu items.
 const items = [
     {
         title: "主页",
-        url: "/home",
+        url: "/app/home",
         icon: Home,
     },
     {
         title: "虚拟形象",
-        url: "/videolab",
+        url: "/app/videolab",
         icon: Users,
     },
     {
         title: "项目详情",
-        url: "/projects",
+        url: "/app/projects",
         icon: Briefcase,
     },
 ]

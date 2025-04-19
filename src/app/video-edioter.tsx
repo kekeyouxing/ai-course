@@ -75,7 +75,7 @@ export default function VideoEditor() {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     // 添加复制粘贴相关状态
     const [clipboardItem, setClipboardItem] = useState<{
-        type: "text" | "image" | "video" | "avatar";
+        type: "text" | "image" | "video" | "avatar" | "shape";
         data: any;  // 使用 any 类型或者更具体的联合类型
     } | null>(null);
     const [activeTab, setActiveTab] = useState<string>("Script")

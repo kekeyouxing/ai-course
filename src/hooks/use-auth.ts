@@ -1,7 +1,7 @@
 import {create} from 'zustand'
 import axios from 'axios'
 import {jwtDecode} from 'jwt-decode'
-import { getUserInfo } from '@/api/user'
+// import { getUserInfo } from '@/api/user'
 import { useUserInfo } from './use-user-info'
 
 interface JwtPayload {

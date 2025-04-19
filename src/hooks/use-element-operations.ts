@@ -382,6 +382,9 @@ const handleTextUpdate = useCallback(
     (updates: Partial<ShapeElement>) => {
       if (!selectedElement || selectedElement.type !== "shape" || selectedElement.index === undefined) return;
 
+      // 记录收到的更新
+      console.log("ShapeUpdate received:", updates);
+      
       const newScenes = [...scenes];
       // 确保shapes数组存在
       if (!Array.isArray(newScenes[activeScene].shapes)) {
@@ -394,10 +397,20 @@ const handleTextUpdate = useCallback(
         selectedElement.index >= 0
       ) {
         // 更新形状的属性，包括旋转角度
-        newScenes[activeScene].shapes[selectedElement.index] = {
+        const updatedShape = {
           ...newScenes[activeScene].shapes[selectedElement.index],
           ...updates
         };
+        
+        // 记录更新前后的旋转值
+        console.log(
+          "Rotation update:", 
+          newScenes[activeScene].shapes[selectedElement.index].rotation, 
+          "->", 
+          updatedShape.rotation
+        );
+        
+        newScenes[activeScene].shapes[selectedElement.index] = updatedShape;
         updateHistory(newScenes);
       } else {
         console.error("无效的形状元素索引:", selectedElement.index);

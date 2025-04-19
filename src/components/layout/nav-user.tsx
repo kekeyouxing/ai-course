@@ -212,11 +212,11 @@ export function NavUser() {
                         
                         <DropdownMenuSeparator/>
                         <DropdownMenuGroup>
-                            <DropdownMenuItem onClick={() => navigate('/orders')}>
+                            <DropdownMenuItem onClick={() => navigate('/app/orders')}>
                                 <CreditCard className="h-4 w-4 mr-2"/>
                                 账单
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => navigate('/resource-logs')}>
+                            <DropdownMenuItem onClick={() => navigate('/app/resource-logs')}>
                                 <FileText className="h-4 w-4 mr-2"/>
                                 使用记录
                             </DropdownMenuItem>

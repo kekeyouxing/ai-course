@@ -1,4 +1,4 @@
-import { Scene, TextElement, ImageMedia, VideoMedia, AvatarElement, SelectedElementType } from "@/types/scene";
+import { Scene, ImageMedia, VideoMedia, SelectedElementType } from "@/types/scene";
 
 // 获取当前元素的 zIndex
 export function getCurrentElementZIndex(
@@ -8,17 +8,26 @@ export function getCurrentElementZIndex(
 ): number {
     if (!selectedElement) return 0;
     
+    // 确保当前场景存在
+    if (!scenes[activeScene]) return 0;
+    
     let currentZIndex = 0;
     
     if (selectedElement.type === "text" && selectedElement.index !== undefined) {
-        currentZIndex = scenes[activeScene].texts[selectedElement.index].zIndex || 0;
+        // 确保texts数组存在且索引有效
+        if (scenes[activeScene].texts && scenes[activeScene].texts[selectedElement.index]) {
+            currentZIndex = scenes[activeScene].texts[selectedElement.index].zIndex || 0;
+        }
     } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
-        const mediaIndex = scenes[activeScene].media.findIndex(item => item.id === selectedElement.mediaId);
-        if (mediaIndex !== -1) {
-            if (scenes[activeScene].media[mediaIndex].type === "image") {
-                currentZIndex = (scenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex || 0;
-            } else if (scenes[activeScene].media[mediaIndex].type === "video") {
-                currentZIndex = (scenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex || 0;
+        // 确保media数组存在
+        if (scenes[activeScene].media) {
+            const mediaIndex = scenes[activeScene].media.findIndex(item => item.id === selectedElement.mediaId);
+            if (mediaIndex !== -1 && scenes[activeScene].media[mediaIndex]) {
+                if (scenes[activeScene].media[mediaIndex].type === "image") {
+                    currentZIndex = (scenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex || 0;
+                } else if (scenes[activeScene].media[mediaIndex].type === "video") {
+                    currentZIndex = (scenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex || 0;
+                }
             }
         }
     } else if (selectedElement.type === "avatar" && scenes[activeScene].avatar) {
@@ -35,31 +44,38 @@ export function collectAllElements(
 ): {type: string, index?: number, mediaId?: string, zIndex: number}[] {
     const allElements: {type: string, index?: number, mediaId?: string, zIndex: number}[] = [];
     
+    // 确保当前场景存在
+    if (!scenes[activeScene]) return allElements;
+    
     // 收集文本元素
-    scenes[activeScene].texts.forEach((text, index) => {
-        allElements.push({
-            type: "text",
-            index,
-            zIndex: text.zIndex || 0
+    if (scenes[activeScene].texts) {
+        scenes[activeScene].texts.forEach((text, index) => {
+            allElements.push({
+                type: "text",
+                index,
+                zIndex: text.zIndex || 0
+            });
         });
-    });
+    }
     
     // 收集媒体元素
-    scenes[activeScene].media.forEach((media) => {
-        if (media.type === "image") {
-            allElements.push({
-                type: "image",
-                mediaId: media.id,
-                zIndex: (media as ImageMedia).element.zIndex || 0
-            });
-        } else if (media.type === "video") {
-            allElements.push({
-                type: "video",
-                mediaId: media.id,
-                zIndex: (media as VideoMedia).element.zIndex || 0
-            });
-        }
-    });
+    if (scenes[activeScene].media) {
+        scenes[activeScene].media.forEach((media) => {
+            if (media.type === "image") {
+                allElements.push({
+                    type: "image",
+                    mediaId: media.id,
+                    zIndex: (media as ImageMedia).element.zIndex || 0
+                });
+            } else if (media.type === "video") {
+                allElements.push({
+                    type: "video",
+                    mediaId: media.id,
+                    zIndex: (media as VideoMedia).element.zIndex || 0
+                });
+            }
+        });
+    }
     
     // 收集头像元素
     if (scenes[activeScene].avatar) {
@@ -105,15 +121,24 @@ export function updateElementZIndex(
 ): Scene[] {
     const newScenes = [...scenes];
     
+    // 确保当前场景存在
+    if (!newScenes[activeScene]) return newScenes;
+    
     if (selectedElement.type === "text" && selectedElement.index !== undefined) {
-        newScenes[activeScene].texts[selectedElement.index].zIndex = newZIndex;
+        // 确保texts数组和索引有效
+        if (newScenes[activeScene].texts && newScenes[activeScene].texts[selectedElement.index]) {
+            newScenes[activeScene].texts[selectedElement.index].zIndex = newZIndex;
+        }
     } else if ((selectedElement.type === "image" || selectedElement.type === "video") && selectedElement.mediaId) {
-        const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === selectedElement.mediaId);
-        if (mediaIndex !== -1) {
-            if (newScenes[activeScene].media[mediaIndex].type === "image") {
-                (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
-            } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
-                (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
+        // 确保media数组存在
+        if (newScenes[activeScene].media) {
+            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === selectedElement.mediaId);
+            if (mediaIndex !== -1 && newScenes[activeScene].media[mediaIndex]) {
+                if (newScenes[activeScene].media[mediaIndex].type === "image") {
+                    (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
+                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
+                    (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
+                }
             }
         }
     } else if (selectedElement.type === "avatar" && newScenes[activeScene].avatar) {
@@ -129,6 +154,9 @@ export function normalizeZIndices(
     activeScene: number
 ): Scene[] {
     const newScenes = [...scenes];
+    
+    // 确保当前场景存在
+    if (!newScenes[activeScene]) return newScenes;
     
     // 收集所有元素
     const allElements = collectAllElements(newScenes, activeScene);
@@ -151,18 +179,24 @@ export function normalizeZIndices(
         
         // 更新元素的 z-index
         if (element.type === "text" && element.index !== undefined) {
-            newScenes[activeScene].texts[element.index].zIndex = newZIndex;
+            // 确保texts数组和索引有效
+            if (newScenes[activeScene].texts && newScenes[activeScene].texts[element.index]) {
+                newScenes[activeScene].texts[element.index].zIndex = newZIndex;
+            }
         } else if ((element.type === "image" || element.type === "video") && element.mediaId) {
-            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === element.mediaId);
-            if (mediaIndex !== -1) {
-                if (newScenes[activeScene].media[mediaIndex].type === "image") {
-                    (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
-                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
-                    (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
+            // 确保media数组存在
+            if (newScenes[activeScene].media) {
+                const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === element.mediaId);
+                if (mediaIndex !== -1 && newScenes[activeScene].media[mediaIndex]) {
+                    if (newScenes[activeScene].media[mediaIndex].type === "image") {
+                        (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
+                    } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
+                        (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
+                    }
                 }
             }
-        } else if (element.type === "avatar") {
-            newScenes[activeScene].avatar!.zIndex = newZIndex;
+        } else if (element.type === "avatar" && newScenes[activeScene].avatar) {
+            newScenes[activeScene].avatar.zIndex = newZIndex;
         }
     }
     
@@ -176,6 +210,9 @@ export function bringToFront(
     selectedElement: SelectedElementType | null
 ): Scene[] | null {
     if (!selectedElement) return null;
+    
+    // 确保当前场景存在
+    if (!scenes[activeScene]) return scenes;
     
     // 先确保所有元素的 z-index 唯一且连续
     let newScenes = normalizeZIndices([...scenes], activeScene);
@@ -197,18 +234,24 @@ export function bringToFront(
         const newZIndex = i + 2; // 确保从2开始
         
         if (element.type === "text" && element.index !== undefined) {
-            newScenes[activeScene].texts[element.index].zIndex = newZIndex;
+            // 确保texts数组和索引有效
+            if (newScenes[activeScene].texts && newScenes[activeScene].texts[element.index]) {
+                newScenes[activeScene].texts[element.index].zIndex = newZIndex;
+            }
         } else if ((element.type === "image" || element.type === "video") && element.mediaId) {
-            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === element.mediaId);
-            if (mediaIndex !== -1) {
-                if (newScenes[activeScene].media[mediaIndex].type === "image") {
-                    (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
-                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
-                    (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
+            // 确保media数组存在
+            if (newScenes[activeScene].media) {
+                const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === element.mediaId);
+                if (mediaIndex !== -1 && newScenes[activeScene].media[mediaIndex]) {
+                    if (newScenes[activeScene].media[mediaIndex].type === "image") {
+                        (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
+                    } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
+                        (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
+                    }
                 }
             }
-        } else if (element.type === "avatar") {
-            newScenes[activeScene].avatar!.zIndex = newZIndex;
+        } else if (element.type === "avatar" && newScenes[activeScene].avatar) {
+            newScenes[activeScene].avatar.zIndex = newZIndex;
         }
     }
     
@@ -222,6 +265,9 @@ export function sendToBack(
     selectedElement: SelectedElementType | null
 ): Scene[] | null {
     if (!selectedElement) return null;
+    
+    // 确保当前场景存在
+    if (!scenes[activeScene]) return scenes;
     
     // 先确保所有元素的 z-index 唯一且连续
     let newScenes = normalizeZIndices([...scenes], activeScene);
@@ -243,18 +289,24 @@ export function sendToBack(
         const newZIndex = i + 2; // 确保从2开始
         
         if (element.type === "text" && element.index !== undefined) {
-            newScenes[activeScene].texts[element.index].zIndex = newZIndex;
+            // 确保texts数组和索引有效
+            if (newScenes[activeScene].texts && newScenes[activeScene].texts[element.index]) {
+                newScenes[activeScene].texts[element.index].zIndex = newZIndex;
+            }
         } else if ((element.type === "image" || element.type === "video") && element.mediaId) {
-            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === element.mediaId);
-            if (mediaIndex !== -1) {
-                if (newScenes[activeScene].media[mediaIndex].type === "image") {
-                    (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
-                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
-                    (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
+            // 确保media数组存在
+            if (newScenes[activeScene].media) {
+                const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === element.mediaId);
+                if (mediaIndex !== -1 && newScenes[activeScene].media[mediaIndex]) {
+                    if (newScenes[activeScene].media[mediaIndex].type === "image") {
+                        (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
+                    } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
+                        (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
+                    }
                 }
             }
-        } else if (element.type === "avatar") {
-            newScenes[activeScene].avatar!.zIndex = newZIndex;
+        } else if (element.type === "avatar" && newScenes[activeScene].avatar) {
+            newScenes[activeScene].avatar.zIndex = newZIndex;
         }
     }
     
@@ -268,6 +320,9 @@ export function bringForward(
     selectedElement: SelectedElementType | null
 ): Scene[] | null {
     if (!selectedElement) return null;
+    
+    // 确保当前场景存在
+    if (!scenes[activeScene]) return scenes;
     
     // 先确保所有元素的 z-index 唯一且连续
     let newScenes = normalizeZIndices([...scenes], activeScene);
@@ -297,18 +352,24 @@ export function bringForward(
         const newZIndex = i + 2; // 确保从2开始
         
         if (element.type === "text" && element.index !== undefined) {
-            newScenes[activeScene].texts[element.index].zIndex = newZIndex;
+            // 确保texts数组和索引有效
+            if (newScenes[activeScene].texts && newScenes[activeScene].texts[element.index]) {
+                newScenes[activeScene].texts[element.index].zIndex = newZIndex;
+            }
         } else if ((element.type === "image" || element.type === "video") && element.mediaId) {
-            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === element.mediaId);
-            if (mediaIndex !== -1) {
-                if (newScenes[activeScene].media[mediaIndex].type === "image") {
-                    (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
-                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
-                    (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
+            // 确保media数组存在
+            if (newScenes[activeScene].media) {
+                const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === element.mediaId);
+                if (mediaIndex !== -1 && newScenes[activeScene].media[mediaIndex]) {
+                    if (newScenes[activeScene].media[mediaIndex].type === "image") {
+                        (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
+                    } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
+                        (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
+                    }
                 }
             }
-        } else if (element.type === "avatar") {
-            newScenes[activeScene].avatar!.zIndex = newZIndex;
+        } else if (element.type === "avatar" && newScenes[activeScene].avatar) {
+            newScenes[activeScene].avatar.zIndex = newZIndex;
         }
     }
     
@@ -322,6 +383,9 @@ export function sendBackward(
     selectedElement: SelectedElementType | null
 ): Scene[] | null {
     if (!selectedElement) return null;
+    
+    // 确保当前场景存在
+    if (!scenes[activeScene]) return scenes;
     
     // 先确保所有元素的 z-index 唯一且连续
     let newScenes = normalizeZIndices([...scenes], activeScene);
@@ -351,18 +415,24 @@ export function sendBackward(
         const newZIndex = i + 2; // 确保从2开始
         
         if (element.type === "text" && element.index !== undefined) {
-            newScenes[activeScene].texts[element.index].zIndex = newZIndex;
+            // 确保texts数组和索引有效
+            if (newScenes[activeScene].texts && newScenes[activeScene].texts[element.index]) {
+                newScenes[activeScene].texts[element.index].zIndex = newZIndex;
+            }
         } else if ((element.type === "image" || element.type === "video") && element.mediaId) {
-            const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === element.mediaId);
-            if (mediaIndex !== -1) {
-                if (newScenes[activeScene].media[mediaIndex].type === "image") {
-                    (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
-                } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
-                    (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
+            // 确保media数组存在
+            if (newScenes[activeScene].media) {
+                const mediaIndex = newScenes[activeScene].media.findIndex(item => item.id === element.mediaId);
+                if (mediaIndex !== -1 && newScenes[activeScene].media[mediaIndex]) {
+                    if (newScenes[activeScene].media[mediaIndex].type === "image") {
+                        (newScenes[activeScene].media[mediaIndex] as ImageMedia).element.zIndex = newZIndex;
+                    } else if (newScenes[activeScene].media[mediaIndex].type === "video") {
+                        (newScenes[activeScene].media[mediaIndex] as VideoMedia).element.zIndex = newZIndex;
+                    }
                 }
             }
-        } else if (element.type === "avatar") {
-            newScenes[activeScene].avatar!.zIndex = newZIndex;
+        } else if (element.type === "avatar" && newScenes[activeScene].avatar) {
+            newScenes[activeScene].avatar.zIndex = newZIndex;
         }
     }
     

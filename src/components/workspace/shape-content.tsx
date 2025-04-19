@@ -337,6 +337,27 @@ export function ShapeContent({ shape, onUpdate, sceneId }: ShapeContentProps) {
                 </div>
               </div>
 
+              {/* Border Radius - 只有在矩形或空心矩形时显示 */}
+              {(shape.type === "rectangle" || shape.type === "hollowRectangle") && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-base font-normal text-gray-800">圆角半径</label>
+                    <span className="text-sm font-medium w-8 text-right">{shape.borderRadius || 0}px</span>
+                  </div>
+                  <div className="px-1 py-2">
+                    <Slider
+                      id="border-radius-slider"
+                      min={0}
+                      max={50}
+                      step={1}
+                      value={[shape.borderRadius || 0]}
+                      onValueChange={([borderRadius]) => handleChange({ borderRadius })}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Rotation */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

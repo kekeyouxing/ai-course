@@ -1,16 +1,17 @@
 // src/components/AuthRoute.tsx
 import {JSX, useEffect, useState} from 'react'
 import {useAuth} from '@/hooks/use-auth'
-import LoginModal from "@/app/login-modal.tsx";
 import {queryClient} from "@/lib/react-query.ts";
 import {QueryClientProvider} from "@tanstack/react-query";
 import { useUserInfo } from "@/hooks/use-user-info";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export default function AuthRoute({children}: { children: JSX.Element }) {
     const {token, isTokenExpired} = useAuth()
     const { userInfo, fetchUserInfo } = useUserInfo();
-    const [showLoginModal, setShowLoginModal] = useState(false)
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+    const navigate = useNavigate();
+    const location = useLocation();
     
     useEffect(() => {
         // 当有token但没有用户信息时，尝试获取用户信息
@@ -19,18 +20,18 @@ export default function AuthRoute({children}: { children: JSX.Element }) {
             if (token) {
                 // 检查token是否过期
                 if (isTokenExpired()) {
-                    setShowLoginModal(true);
+                    redirectToLogin();
                 } else if (!userInfo) {
                     // 有token但没有用户信息，尝试获取
                     try {
                         await fetchUserInfo();
                     } catch (error) {
                         console.error("获取用户信息失败:", error);
-                        setShowLoginModal(true);
+                        redirectToLogin();
                     }
                 }
             } else {
-                setShowLoginModal(true);
+                redirectToLogin();
             }
             setIsCheckingAuth(false);
         };
@@ -41,7 +42,7 @@ export default function AuthRoute({children}: { children: JSX.Element }) {
     // 监听 401 未授权事件
     useEffect(() => {
         const handleUnauthorized = () => {
-            setShowLoginModal(true);
+            redirectToLogin();
         };
         
         window.addEventListener('auth:unauthorized', handleUnauthorized);
@@ -51,8 +52,10 @@ export default function AuthRoute({children}: { children: JSX.Element }) {
         };
     }, []);
 
-    const handleLoginSuccess = () => {
-        setShowLoginModal(false);
+    // 重定向到登录页面，携带当前URL作为重定向目标
+    const redirectToLogin = () => {
+        const returnPath = encodeURIComponent(location.pathname + location.search);
+        navigate(`/login?returnTo=${returnPath}`);
     };
     
     // 如果正在检查权限，显示加载状态
@@ -62,20 +65,10 @@ export default function AuthRoute({children}: { children: JSX.Element }) {
         </div>;
     }
 
-    return (
+    // 只有通过验证才渲染子组件
+    return token && !isTokenExpired() ? (
         <QueryClientProvider client={queryClient}>
-            {token && !isTokenExpired() ? children : null}
-            <LoginModal
-                isOpen={showLoginModal}
-                onSuccess={handleLoginSuccess}
-                onClose={() => {
-                    setShowLoginModal(false);
-                    // 未登录时重定向到首页
-                    if (!token) {
-                        window.location.href = "/";
-                    }
-                }}
-            />
+            {children}
         </QueryClientProvider>
-    );
+    ) : null;
 }

@@ -1,7 +1,6 @@
 import Page from "@/app/page";
 import VideoLabPage from "@/app/video-lab-page";
 import {RouteObject} from "react-router";
-import {PricePage} from "@/app/price-page";
 import NotFound from "@/app/404-page.tsx";
 import HomePage from "@/app/home-page.tsx";
 import ProjectCollectionPage from "@/app/project-collection-page.tsx";
@@ -11,10 +10,20 @@ import {VoiceCloningProvider} from '@/hooks/VoiceCloningContext';
 import AuthRoute from "@/components/auth/AuthRoute";
 import OrdersPage from "@/app/orders-page";
 import ResourceLogsPage from "@/app/resource-logs-page";
+import LandingPage from "@/app/landing-page";
+import LoginPage from "@/app/login-page";
 
 export const routes: RouteObject[] = [
     {
         path: "/",
+        element: <LandingPage />,
+    },
+    {
+        path: "/login",
+        element: <LoginPage />,
+    },
+    {
+        path: "/app",
         element: <Page/>,
         children: [
             {
@@ -32,14 +41,6 @@ export const routes: RouteObject[] = [
                 handle: {
                     breadcrumb: "我的数字人",
                     pathSegments: ["videolab"] // 明确层级关系
-                }
-            },
-            {
-                path: "appprice",
-                element: <PricePage/>,
-                handle: {
-                    breadcrumb: "价格",
-                    pathSegments: ["appprice"] // 明确层级关系
                 }
             },
             {
@@ -69,16 +70,12 @@ export const routes: RouteObject[] = [
         ]
     },
     {
-        path: "price",
-        element: <PricePage/>,
-    },
-    {
         path: "projects/:id", // 独立路径
         element: <AuthRoute key={Date.now()}><VideoEditor/></AuthRoute>, // 独立页面
     },
     {
         path: "clone", // 独立路径
-        element: <VoiceCloningProvider><VoiceCloningUI/></VoiceCloningProvider>, // 独立页面
+        element: <AuthRoute key={Date.now()}><VoiceCloningProvider><VoiceCloningUI/></VoiceCloningProvider></AuthRoute>, // 独立页面
     },
     {
         path: "*",

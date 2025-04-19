@@ -5,7 +5,7 @@ import { AlignmentGuides } from "./alignment-guides";
 import { checkForSnapping, AlignmentGuide } from "@/utils/alignment-utils";
 
 interface ResizableShapeProps extends ShapeElement {
-  onResize: (newSize: { width: number; height: number; x: number; y: number }) => void;
+  onResize: (newSize: { width: number; height: number; x: number; y: number; rotation: number }) => void;
   onSelect: () => void;
   isSelected: boolean;
   canvasWidth: number;
@@ -16,13 +16,14 @@ interface ResizableShapeProps extends ShapeElement {
 }
 
 // 渲染不同形状的组件
-const ShapeRenderer = ({ type, fill, stroke, strokeWidth, width, height }: {
+const ShapeRenderer = ({ type, fill, stroke, strokeWidth, width, height, borderRadius = 0 }: {
   type: ShapeType;
   fill: string;
   stroke: string;
   strokeWidth: number;
   width: number;
   height: number;
+  borderRadius?: number;
 }) => {
   const style = {
     fill,
@@ -44,7 +45,7 @@ const ShapeRenderer = ({ type, fill, stroke, strokeWidth, width, height }: {
   switch (type) {
     // 基础实心形状
     case 'rectangle':
-      return <rect width="100%" height="100%" style={style} />;
+      return <rect width="100%" height="100%" rx={borderRadius} ry={borderRadius} style={style} />;
     case 'circle':
       return <circle cx="50%" cy="50%" r="45%" style={style} />;
     case 'triangle':
@@ -72,7 +73,7 @@ const ShapeRenderer = ({ type, fill, stroke, strokeWidth, width, height }: {
     
     // 基础空心形状
     case 'hollowRectangle':
-      return <rect width="100%" height="100%" style={hollowStyle} />;
+      return <rect width="100%" height="100%" rx={borderRadius} ry={borderRadius} style={hollowStyle} />;
     case 'hollowCircle':
       return <circle cx="50%" cy="50%" r="45%" style={hollowStyle} />;
     case 'hollowTriangle':
@@ -190,6 +191,7 @@ export function ResizableShape({
   fill,
   stroke,
   strokeWidth,
+  borderRadius,
   onResize,
   onSelect,
   isSelected,
@@ -203,16 +205,8 @@ export function ResizableShape({
   const [isDragging, setIsDragging] = useState(false);
   const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuide[]>([]);
   
-  // // 不同形状是否需要锁定宽高比
-  // const shouldLockAspectRatio = () => {
-  //   switch(type) {
-  //     case 'circle':
-  //     case 'hollowCircle':
-  //       return true;
-  //     default:
-  //       return false;
-  //   }
-  // };
+  // 添加日志以跟踪rotation值的变化
+  console.log(`ResizableShape rendering with rotation: ${rotation}°`);
   
   // 计算缩放比例
   const scaleX = containerWidth / canvasWidth;
@@ -235,11 +229,13 @@ export function ResizableShape({
     const newX = Math.round(rescale(position.x, scaleX));
     const newY = Math.round(rescale(position.y, scaleY));
     
+    // 确保我们保留当前的旋转值
     onResize({
       width: newWidth,
       height: newHeight,
       x: newX,
-      y: newY
+      y: newY,
+      rotation // 保持旋转角度不变
     });
   };
 
@@ -273,11 +269,13 @@ export function ResizableShape({
     const newX = Math.round(rescale(data.x, scaleX));
     const newY = Math.round(rescale(data.y, scaleY));
     
+    // 确保我们保留当前的旋转值
     onResize({
       width,
       height,
       x: newX,
-      y: newY
+      y: newY,
+      rotation // 保持旋转角度不变
     });
   };
 
@@ -313,9 +311,6 @@ export function ResizableShape({
         onMouseDown={onSelect}
         onTouchStart={onSelect}
         style={{
-          ...getBorderStyle(),
-          transform: `rotate(${rotation}deg)`,
-          transformOrigin: 'center center',
           touchAction: 'none',
           zIndex: isSelected ? 1000 : undefined,
         }}
@@ -333,10 +328,19 @@ export function ResizableShape({
           style={{ 
             width: '100%', 
             height: '100%',
-            cursor: isDragging ? 'grabbing' : 'grab' 
+            cursor: isDragging ? 'grabbing' : 'grab',
+            position: 'relative',
+            transform: `rotate(${rotation}deg)`,
+            transformOrigin: 'center center',
+            ...getBorderStyle()
           }}
         >
-          <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <svg 
+            width="100%" 
+            height="100%" 
+            viewBox="0 0 100 100" 
+            preserveAspectRatio="none"
+          >
             <ShapeRenderer 
               type={type} 
               fill={fill} 
@@ -344,6 +348,7 @@ export function ResizableShape({
               strokeWidth={strokeWidth}
               width={width}
               height={height}
+              borderRadius={borderRadius}
             />
           </svg>
           

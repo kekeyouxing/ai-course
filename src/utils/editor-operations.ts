@@ -40,13 +40,13 @@ export const useCopyElementOperation = (
   scenes: Scene[],
   activeScene: number,
   selectedElement: SelectedElementType | null,
-  setClipboardItem: (item: { type: "text" | "image" | "video" | "avatar"; data: any; } | null) => void
+  setClipboardItem: (item: { type: "text" | "image" | "video" | "avatar" | "shape"; data: any; } | null) => void
 ) => {
   return () => {
     if (!selectedElement) return;
 
     const newClipboardItem = { type: selectedElement.type, data: undefined } as {
-      type: "text" | "image" | "video" | "avatar";
+      type: "text" | "image" | "video" | "avatar" | "shape";
       data: any;
     };
     const currentScenes = [...scenes];
@@ -89,6 +89,14 @@ export const useCopyElementOperation = (
       if (currentScenes[activeScene].avatar) {
         newClipboardItem.data = { ...currentScenes[activeScene].avatar };
       }
+    } else if (selectedElement.type === "shape" && selectedElement.index !== undefined) {
+      // 确保形状数组存在且索引有效
+      if (Array.isArray(currentScenes[activeScene].shapes) && 
+          selectedElement.index >= 0 && 
+          selectedElement.index < currentScenes[activeScene].shapes.length) {
+        // 复制形状元素
+        newClipboardItem.data = { ...currentScenes[activeScene].shapes[selectedElement.index] };
+      }
     }
 
     if (newClipboardItem.data) {
@@ -99,7 +107,7 @@ export const useCopyElementOperation = (
 
 // 粘贴元素操作
 export const usePasteElementOperation = (
-  clipboardItem: { type: "text" | "image" | "video" | "avatar"; data: any; } | null,
+  clipboardItem: { type: "text" | "image" | "video" | "avatar" | "shape"; data: any; } | null,
   scenes: Scene[],
   activeScene: number,
   updateHistory: (newScenes: Scene[]) => void,
@@ -197,6 +205,26 @@ export const usePasteElementOperation = (
       setSelectedElement({
         type: "avatar"
       });
+    } else if (clipboardItem.type === "shape") {
+      // 确保形状数组存在
+      if (!Array.isArray(newScenes[activeScene].shapes)) {
+        newScenes[activeScene].shapes = [];
+      }
+      
+      // 粘贴形状元素
+      const newShape = { 
+        ...clipboardItem.data,
+        x: clipboardItem.data.x + OFFSET,
+        y: clipboardItem.data.y + OFFSET
+      };
+      newScenes[activeScene].shapes.push(newShape);
+      
+      // 选中新粘贴的形状元素
+      updateHistory(newScenes);
+      setSelectedElement({
+        type: "shape",
+        index: newScenes[activeScene].shapes.length - 1
+      });
     }
   };
 };
@@ -236,6 +264,15 @@ export const useDeleteElementOperation = (
     } else if (selectedElement.type === "avatar") {
       // 将选中的元素设置为 null
       newScenes[activeScene].avatar = null;
+    } else if (selectedElement.type === "shape" && selectedElement.index !== undefined) {
+      // 确保形状数组存在且索引有效
+      if (Array.isArray(newScenes[activeScene].shapes) && 
+          selectedElement.index >= 0 && 
+          selectedElement.index < newScenes[activeScene].shapes.length) {
+        // 删除指定索引的形状元素
+        newScenes[activeScene].shapes.splice(selectedElement.index, 1);
+        console.log("删除形状元素:", selectedElement.index, "形状数组:", newScenes[activeScene].shapes);
+      }
     }
 
     // 更新历史记录

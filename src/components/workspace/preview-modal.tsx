@@ -861,6 +861,109 @@ export default function PreviewModal({
         };
     };
 
+    // 渲染不同形状的SVG
+    const ShapeRenderer = ({ 
+        type, 
+        fill, 
+        stroke, 
+        strokeWidth, 
+        borderRadius = 0,
+        scale = 1
+    }: {
+        type: string;
+        fill: string;
+        stroke: string;
+        strokeWidth: number;
+        borderRadius?: number;
+        scale?: number;
+    }) => {
+        // 计算缩放后的描边宽度（不设置最小值）
+        const scaledStrokeWidth = strokeWidth * scale;
+        
+        const style = {
+            fill,
+            stroke,
+            strokeWidth: scaledStrokeWidth,
+            width: '100%',
+            height: '100%',
+        };
+
+        // 空心形状的样式
+        const hollowStyle = {
+            fill: 'none',
+            stroke,
+            strokeWidth: scaledStrokeWidth,
+            width: '100%',
+            height: '100%',
+        };
+        
+        // 注意：borderRadius不需要缩放，直接使用原始值
+        // 在SVG中rx/ry被解释为百分比值
+
+        switch (type) {
+            // 基础实心形状
+            case 'rectangle':
+                return <rect width="100%" height="100%" rx={borderRadius} ry={borderRadius} style={style} />;
+            case 'circle':
+                return <circle cx="50%" cy="50%" r="45%" style={style} />;
+            case 'triangle':
+                return <polygon points={`50%,10% 10%,90% 90%,90%`} style={style} />;
+            case 'diamond':
+            case 'rhombus':
+                return <polygon points={`50%,10% 90%,50% 50%,90% 10%,50%`} style={style} />;
+            case 'star':
+                return <polygon points="50,5 63,38 100,38 69,59 82,95 50,75 18,95 31,59 0,38 37,38" style={{ ...style, transform: 'scale(0.9)' }} />;
+            
+            // 基础空心形状
+            case 'hollowRectangle':
+                return <rect width="100%" height="100%" rx={borderRadius} ry={borderRadius} style={hollowStyle} />;
+            case 'hollowCircle':
+                return <circle cx="50%" cy="50%" r="45%" style={hollowStyle} />;
+            case 'hollowTriangle':
+                return <polygon points={`50%,10% 10%,90% 90%,90%`} style={hollowStyle} />;
+            case 'hollowStar':
+                return <polygon points="50,5 63,38 100,38 69,59 82,95 50,75 18,95 31,59 0,38 37,38" style={{ ...hollowStyle, transform: 'scale(0.9)' }} />;
+            
+            // 特殊形状
+            case 'pacman':
+                return <path d="M50,20 A30,30 0 1 0 50,80 L50,50 Z" style={style} />;
+            case 'quarterCircle':
+                return <path d="M10,90 L10,10 L90,10 A80,80 0 0 1 10,90 Z" style={style} />;
+            case 'halfCircle':
+                return <path d="M10,50 A40,40 0 0 1 90,50 L10,50 Z" style={style} />;
+            case 'cross':
+                return <path d="M35,10 H65 V35 H90 V65 H65 V90 H35 V65 H10 V35 H35 Z" style={style} />;
+            
+            // 多边形
+            case 'pentagon':
+                return <polygon points="50,5 95,35 80,90 20,90 5,35" style={{ ...style, transform: 'scale(0.9)' }} />;
+            case 'hexagon':
+                return <polygon points="50,5 90,25 90,75 50,95 10,75 10,25" style={{ ...style, transform: 'scale(0.9)' }} />;
+            case 'trapezoid':
+                return <polygon points="20,20 80,20 95,80 5,80" style={style} />;
+            case 'parallelogram':
+                return <polygon points="25,20 95,20 75,80 5,80" style={style} />;
+            
+            // 特殊图形
+            case 'heart':
+                return <path d="M50,90 C100,65 100,25 75,15 C55,8 50,25 50,25 C50,25 45,8 25,15 C0,25 0,65 50,90 Z" style={{ ...style, transform: 'scale(0.9)' }} />;
+            case 'arrow':
+                return <polygon points="0,40 70,40 70,20 100,50 70,80 70,60 0,60" style={{ ...style, transform: 'scale(0.9)' }} />;
+            case 'rightArrow':
+                return (
+                    <g style={{ transform: 'scale(0.9)' }}>
+                        <line x1="10" y1="50" x2="70" y2="50" style={{ ...hollowStyle, strokeWidth: scaledStrokeWidth * 2 }} />
+                        <polyline points="50,20 80,50 50,80" style={{ ...hollowStyle, strokeWidth: scaledStrokeWidth * 2, fill: 'none' }} />
+                    </g>
+                );
+            case 'line':
+                return <line x1="10%" y1="50%" x2="90%" y2="50%" style={{ ...hollowStyle, strokeWidth: scaledStrokeWidth * 2 }} />;
+            
+            default:
+                return <rect width="100%" height="100%" style={style} />;
+        }
+    };
+
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent
@@ -1149,6 +1252,97 @@ export default function PreviewModal({
                                                 );
                                             })()
                                         )}
+
+                                        {/* 渲染形状元素 */}
+                                        {scene?.shapes?.map((shape, index) => {
+                                            const { x, y, width, height } = calculateScaledPosition(
+                                                shape.x,
+                                                shape.y,
+                                                shape.width,
+                                                shape.height
+                                            );
+
+                                            // 计算统一缩放比例用于SVG内部元素
+                                            const containerEl = videoContainerRef.current?.querySelector('.absolute.inset-0');
+                                            const containerWidth = containerEl?.clientWidth || 0;
+                                            const containerHeight = containerEl?.clientHeight || 0;
+                                            
+                                            // 获取原始画布尺寸
+                                            let originalWidth = 1920;
+                                            let originalHeight = 1080;
+                                            
+                                            if (scene?.aspectRatio) {
+                                                switch (scene.aspectRatio) {
+                                                    case "9:16":
+                                                        originalWidth = 1080;
+                                                        originalHeight = 1920;
+                                                        break;
+                                                    case "1:1":
+                                                        originalWidth = 1080;
+                                                        originalHeight = 1080;
+                                                        break;
+                                                    case "4:3":
+                                                        originalWidth = 1440;
+                                                        originalHeight = 1080;
+                                                        break;
+                                                }
+                                            }
+                                            
+                                            const scale = Math.min(containerWidth / originalWidth, containerHeight / originalHeight);
+                                            
+                                            // 检查形状元素是否应该可见（基于动画标记）
+                                            const isVisible = isElementVisible(
+                                                shape.startAnimationMarkerId,
+                                                shape.endAnimationMarkerId,
+                                                shape.animationBehavior
+                                            );
+                                            
+                                            // 如果不可见则跳过渲染
+                                            if (!isVisible && isPlaying) {
+                                                return null;
+                                            }
+                                            
+                                            // 获取动画样式
+                                            const animationStyle = isPlaying 
+                                                ? getAnimationStyle(shape) 
+                                                : {};
+
+                                            return (
+                                                <div
+                                                    key={`shape-${index}-${currentTimeInteger}`}
+                                                    className="absolute"
+                                                    style={{
+                                                        left: `${x}px`,
+                                                        top: `${y}px`,
+                                                        width: `${width}px`,
+                                                        height: `${height}px`,
+                                                        zIndex: shape.zIndex || 10,
+                                                        opacity: animationStyle.opacity,
+                                                        transform: animationStyle.transform 
+                                                            ? `${animationStyle.transform} rotate(${shape.rotation || 0}deg)` 
+                                                            : `rotate(${shape.rotation || 0}deg)`,
+                                                        transition: animationStyle.transition,
+                                                        transformOrigin: 'center center'
+                                                    }}
+                                                >
+                                                    <svg 
+                                                        width="100%" 
+                                                        height="100%" 
+                                                        viewBox="0 0 100 100" 
+                                                        preserveAspectRatio="none"
+                                                    >
+                                                        <ShapeRenderer 
+                                                            type={shape.type}
+                                                            fill={shape.fill}
+                                                            stroke={shape.stroke}
+                                                            strokeWidth={shape.strokeWidth}
+                                                            borderRadius={shape.borderRadius}
+                                                            scale={scale}
+                                                        />
+                                                    </svg>
+                                                </div>
+                                            );
+                                        })}
 
                                         {/* 播放按钮 */}
                                         {!isPlaying && (
