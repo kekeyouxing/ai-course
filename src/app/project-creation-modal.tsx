@@ -1,14 +1,14 @@
 import { useCallback, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, FileIcon, Image, UploadCloud,Loader2 } from "lucide-react";
+import { CheckCircle, FileIcon, UploadCloud, Loader2 } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 import instance_oss from "@/api/axios-oss";
 import instance from '@/api/axios';
 import { v4 as uuidv4 } from 'uuid';
 import { createProject } from "@/api/project";
-import { useAuth } from "@/hooks/use-auth"; // 导入 useAuth hook
+import { useAuth } from "@/hooks/use-auth";
 
 interface ProjectCreationModalProps {
     isOpen: boolean;
@@ -22,10 +22,9 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
     const [uploadComplete, setUploadComplete] = useState<boolean>(false);
     const [fileUrl, setFileUrl] = useState<string>("");
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
-    const [selectedOption, setSelectedOption] = useState<"empty" | "ppt" | null>(null);
-    const INVALID_FILE_ERROR = '文件大小或格式无效!';
-    // 在组件内部添加一个状态来跟踪处理阶段
     const [processingStage, setProcessingStage] = useState<string>("");
+    const INVALID_FILE_ERROR = '文件大小或格式无效!';
+    
     const clearData = () => {
         setUploadProgress(0);
         setUploadComplete(false);
@@ -36,7 +35,6 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
     const onDrop = useCallback((acceptedFiles: File[]) => {
         // 当用户重新上传文件时，重置所有相关状态
         clearData();
-        setSelectedOption("ppt"); // 确保选中PPT选项
 
         const validFile = acceptedFiles.find((file) => {
             const isPPTX = file.name.endsWith('.pptx');
@@ -112,19 +110,15 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
 
             const fileUrlTemp = `https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/${objectKey}`;
             setFileUrl(fileUrlTemp);
-
-            setSelectedOption("ppt"); // 确保选中PPT选项
         } catch (error) {
             console.log(error);
             toast.error('PPT上传失败!');
         }
     };
 
-    // 修改后的 handleCreate 方法
-    // 修改handleCreate方法，添加处理阶段提示
     const handleCreate = async () => {
-        if (!selectedOption) {
-            toast.error('请选择创建方式');
+        if (!file || !uploadComplete) {
+            toast.error('请先上传PPT文件');
             return;
         }
 
@@ -140,14 +134,8 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
         setIsProcessing(true);
 
         try {
-            // 根据选项类型显示不同的提示信息
-            if (selectedOption === "ppt") {
-                setProcessingStage("正在创建项目，这可能需要一点时间...");
-            } else {
-                setProcessingStage("正在创建项目，请稍候...");
-            }
-            
-            const projectId = await createProject(selectedOption, fileUrl);
+            setProcessingStage("正在处理PPT文件，这可能需要一点时间...");
+            const projectId = await createProject("ppt", fileUrl);
             onCreate(projectId);
             onClose();
         } catch (error) {
@@ -160,82 +148,60 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden">
+            <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
                 <DialogHeader className="p-6">
-                    <DialogTitle className="text-xl">新建项目</DialogTitle>
+                    <DialogTitle className="text-xl">导入PPT创建项目</DialogTitle>
                 </DialogHeader>
 
                 <div className="p-6">
-                    <div className="grid grid-cols-2 gap-6">
-                        {/* 左侧 - 上传PPT文档 */}
-                        <div
-                            {...getRootProps()}
-                            className={`
-                            bg-white rounded-lg p-6 
-                            flex flex-col items-center justify-center 
-                            border-2 ${selectedOption === "ppt" ? "border-blue-500" : "border-dashed border-gray-300"} 
-                            cursor-pointer transition-colors
-                            ${isDragActive ? "bg-blue-50" : ""}
-                            ${selectedOption === "ppt" ? "ring-2 ring-blue-200" : ""}
-                            h-48
-                          `}
-                        >
-                            <input {...getInputProps()} />
-                            <UploadCloud className={`w-8 h-8 mb-3 ${selectedOption === "ppt" ? "text-blue-500" : "text-gray-400"}`} />
-                            <div className="text-center">
-                                <p className={`font-medium ${selectedOption === "ppt" ? "text-blue-600" : "text-gray-600"}`}>从PPT创建</p>
-                                <p className="text-gray-600 mt-1 text-sm">点击上传或拖放文件</p>
-                                <p className="text-xs text-gray-500 mt-1">仅支持.pptx格式，最大50MB</p>
-                            </div>
+                    {/* 上传PPT文档区域 */}
+                    <div
+                        {...getRootProps()}
+                        className={`
+                        bg-white rounded-lg p-6 
+                        flex flex-col items-center justify-center 
+                        border-2 ${isDragActive ? "border-blue-500" : "border-dashed border-gray-300"} 
+                        cursor-pointer transition-colors
+                        ${isDragActive ? "bg-blue-50" : ""}
+                        h-64 mb-6
+                      `}
+                    >
+                        <input {...getInputProps()} />
+                        <UploadCloud className={`w-12 h-12 mb-4 ${file ? "text-blue-500" : "text-gray-400"}`} />
+                        <div className="text-center">
+                            <p className={`font-medium ${file ? "text-blue-600" : "text-gray-600"}`}>上传PPT文件</p>
+                            <p className="text-gray-600 mt-2">点击上传或拖放文件到此处</p>
+                            <p className="text-sm text-gray-500 mt-1">仅支持.pptx格式，最大50MB</p>
+                        </div>
 
-                            {file && (
-                                <div className="w-full mt-3 space-y-1">
-                                    <div
-                                        className={`flex items-center justify-between p-2 rounded-lg ${uploadComplete ? 'bg-green-50' : 'bg-gray-50'}`}>
-                                        <div className="flex items-center gap-2">
-                                            {uploadComplete ? <CheckCircle className="w-3 h-3 text-green-500" /> :
-                                                <FileIcon className="w-3 h-3 text-gray-400" />}
-                                            <span
-                                                className={`text-xs ${uploadComplete ? 'text-green-600' : 'text-gray-600'}`}>{file.name}</span>
-                                        </div>
+                        {file && (
+                            <div className="w-full mt-4 space-y-2">
+                                <div
+                                    className={`flex items-center justify-between p-3 rounded-lg ${uploadComplete ? 'bg-green-50' : 'bg-gray-50'}`}>
+                                    <div className="flex items-center gap-2">
+                                        {uploadComplete ? <CheckCircle className="w-4 h-4 text-green-500" /> :
+                                            <FileIcon className="w-4 h-4 text-gray-400" />}
                                         <span
-                                            className="text-xs text-gray-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</span>
+                                            className={`text-sm ${uploadComplete ? 'text-green-600' : 'text-gray-600'}`}>{file.name}</span>
                                     </div>
-                                    {!uploadComplete && (
-                                        <div className="w-full bg-gray-200 rounded-full h-1.5">
-                                            <div className="bg-blue-600 h-1.5 rounded-full"
-                                                style={{ width: `${uploadProgress}%` }}></div>
-                                        </div>
-                                    )}
+                                    <span
+                                        className="text-xs text-gray-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</span>
                                 </div>
-                            )}
-                        </div>
-
-                        {/* 右侧 - 新建空白项目 */}
-                        <div
-                            className={`
-                                bg-white rounded-lg p-6 
-                                flex flex-col items-center justify-center 
-                                border-2 ${selectedOption === "empty" ? "border-blue-500" : "border-gray-300"} 
-                                relative cursor-pointer transition-all
-                                ${selectedOption === "empty" ? "ring-2 ring-blue-200" : ""}
-                                h-48
-                            `}
-                            onClick={() => setSelectedOption("empty")}
-                        >
-                            <div className={`mb-3 p-3 rounded-full ${selectedOption === "empty" ? "bg-blue-100" : "bg-gray-100"}`}>
-                                <Image className={`w-8 h-8 ${selectedOption === "empty" ? "text-blue-500" : "text-gray-500"}`} />
+                                {!uploadComplete && (
+                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                        <div className="bg-blue-600 h-2 rounded-full"
+                                            style={{ width: `${uploadProgress}%` }}></div>
+                                    </div>
+                                )}
                             </div>
-                            <h3 className="font-medium">空白项目</h3>
-                            <p className="text-gray-500 text-sm text-center mt-1">从零开始创建</p>
-                        </div>
+                        )}
                     </div>
 
                     {/* 底部按钮区域 */}
-                    <div className="flex justify-end mt-6">
+                    <div className="flex justify-end">
                         <Button
                             onClick={handleCreate}
-                            disabled={isProcessing || (selectedOption === "ppt" && (!file || !uploadComplete))}
+                            disabled={isProcessing || !file || !uploadComplete}
                             className="min-w-[100px]"
                         >
                             {isProcessing ? (
@@ -243,11 +209,11 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                     <span>{processingStage || '处理中...'}</span>
                                 </div>
-                            ) : '创建'}
+                            ) : '创建项目'}
                         </Button>
                     </div>
                 </div>
             </DialogContent>
         </Dialog>
-    );
+    )
 }

@@ -25,9 +25,10 @@ import { QRCodeSVG } from "qrcode.react"
 interface VideoPackModalProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  showActionButton?: boolean;
 }
 
-export default function VideoPackModal({ open, onOpenChange }: VideoPackModalProps) {
+export default function VideoPackModal({ open, onOpenChange, showActionButton = true }: VideoPackModalProps) {
   const [selectedPack, setSelectedPack] = useState<string | null>(null)
   const [packs, setPacks] = useState<VideoPackDisplay[]>([])
   const [loading, setLoading] = useState(true)
@@ -147,19 +148,21 @@ export default function VideoPackModal({ open, onOpenChange }: VideoPackModalPro
           )}
 
           <div className="flex justify-center mt-6">
-            <Button 
-              size="lg" 
-              disabled={!selectedPack || loading || paymentLoading} 
-              className="px-8"
-              onClick={handlePayment}
-            >
-              {paymentLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  处理中...
-                </>
-              ) : "立即购买"}
-            </Button>
+            {showActionButton && (
+              <Button 
+                size="lg" 
+                disabled={!selectedPack || loading || paymentLoading} 
+                className="px-8"
+                onClick={handlePayment}
+              >
+                {paymentLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    处理中...
+                  </>
+                ) : "立即购买"}
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>

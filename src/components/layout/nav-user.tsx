@@ -30,7 +30,7 @@ export function NavUser() {
     const navigate = useNavigate()
 
     useEffect(() => {
-            fetchUserInfo()
+        fetchUserInfo()
     }, [fetchUserInfo])
 
     const membershipInfo = getMembershipInfo()

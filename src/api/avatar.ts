@@ -1,6 +1,6 @@
 import { AliyunImageProcessResponse } from "@/hooks/VoiceCloningContext"
 import instance from "./axios";
-
+import { toast } from "sonner";
 // Updated Avatar interface to match backend response
 export interface Avatar {
   id: number;
@@ -54,7 +54,6 @@ export async function addAvatar(file: File, ratio: string, name: string): Promis
                 'Content-Type': 'multipart/form-data'
             }
         });
-
         return response.data;
     } catch (error) {
         console.error('添加头像失败:', error);

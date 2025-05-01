@@ -26,7 +26,7 @@ export interface ElementPosition {
  * Gets all elements from a scene for alignment purposes, optionally excluding one element
  * @param scene The current scene
  * @param excludeId Optional ID of the element to exclude (for example, the currently selected element)
- * @param excludeType Optional type of the element to exclude ('text', 'image', 'video', 'avatar')
+ * @param excludeType Optional type of the element to exclude ('text', 'image', 'video', 'avatar', 'shape')
  * @param excludeIndex Optional index of the text element to exclude
  * @returns Array of element positions
  */
@@ -82,6 +82,20 @@ export function getAllElementsForAlignment(
       y: scene.avatar.y,
       width: scene.avatar.width,
       height: scene.avatar.height
+    });
+  }
+  
+  // Add shape elements
+  if (scene.shapes) {
+    scene.shapes.forEach((shape: any, index: number) => {
+      if (!(excludeType === 'shape' && excludeIndex === index)) {
+        elements.push({
+          x: shape.x,
+          y: shape.y,
+          width: shape.width,
+          height: shape.height
+        });
+      }
     });
   }
   

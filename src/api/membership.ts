@@ -1,5 +1,12 @@
 import instance from "@/api/axios";
-
+// 支付订单状态枚举
+export enum OrderStatus {
+  PENDING = "pending",
+  SUCCESS = "success",
+  FAILED = "failed",
+  REFUND = "refund",
+  CLOSED = "closed",
+}
 // 会员等级类型
 export type MembershipTier = "Free" | "Basic" | "Advanced" | "Super";
 
@@ -40,7 +47,10 @@ export interface MembershipPaymentRequest {
 // 会员支付响应接口
 export interface MembershipPaymentResponse {
   code: number;
-  data: string;  // 微信支付二维码链接
+  data: {
+    qrcodeURL: string;
+    orderId: string;
+  };  // 微信支付二维码链接
   msg: string;
 }
 
@@ -120,7 +130,7 @@ export function convertFeaturesToDisplay(features: MembershipFeature[]): TierDis
 }
 
 // 发起会员支付请求
-export async function requestMembershipPayment(tier: MembershipTier): Promise<string> {
+export async function requestMembershipPayment(tier: MembershipTier): Promise<{qrcodeURL: string; orderId: string}> {
   try {
     const response = await instance.post<MembershipPaymentResponse>(
       "/payments/membership", 
@@ -134,6 +144,32 @@ export async function requestMembershipPayment(tier: MembershipTier): Promise<st
     throw new Error(response.data.msg || "获取支付二维码失败");
   } catch (error) {
     console.error("发起会员支付请求失败:", error);
+    throw error;
+  }
+}
+
+// 支付状态检查响应接口
+export interface PaymentStatusResponse {
+  code: number;
+  data: {
+    status: OrderStatus;
+    order_id: string;
+  };
+  msg: string;
+}
+
+// 检查支付状态
+export async function checkPaymentStatus(orderId: string): Promise<{status: OrderStatus}> {
+  try {
+    const response = await instance.get<PaymentStatusResponse>(`/payments/status/${orderId}`);
+    
+    if (response.data.code === 0 && response.data.data) {
+      return { status: response.data.data.status };
+    }
+    
+    throw new Error(response.data.msg || "获取支付状态失败");
+  } catch (error) {
+    console.error("检查支付状态失败:", error);
     throw error;
   }
 }

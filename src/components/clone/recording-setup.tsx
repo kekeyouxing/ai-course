@@ -95,7 +95,7 @@ export default function RecordingSetup({onBack}: { onBack: () => void }) {
     }
     const discardVoideCloing = () => {
         discardData()
-        window.location.href = "/home";
+        window.location.href = "/app/home";
     }
     return (
         <div className="min-h-screen bg-gray-100">

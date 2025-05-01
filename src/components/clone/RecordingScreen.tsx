@@ -11,7 +11,7 @@ export default function RecordingScreen({ onBack }: { onBack: () => void }) {
     const discardVoideCloing = () => {
         discardData()
         //跳转到 home页面
-        window.location.href = "/home";
+        window.location.href = "/app/home";
     }
     return (
         <div className="min-h-screen flex flex-col">

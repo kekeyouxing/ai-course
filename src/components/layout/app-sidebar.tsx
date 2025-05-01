@@ -85,16 +85,6 @@ export function AppSidebar() {
                                     </SidebarMenuItem>
                                 ))}
 
-                                {/* 用户资源信息 */}
-                                {/* <SidebarMenuItem>
-                                    <div className="px-2 pt-4 pb-2">
-                                        <UserResourceInfo 
-                                            setSubscriptionModalOpen={setSubscriptionModalOpen}
-                                            setVideoPackModalOpen={setVideoPackModalOpen}
-                                        />
-                                    </div>
-                                </SidebarMenuItem> */}
-
                                 {/* 订阅项 - 固定的侧边栏项，带有按钮，不导航 */}
                                 <SidebarMenuItem>
                                     <div className="flex items-center justify-between p-2 hover:bg-accent">

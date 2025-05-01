@@ -27,7 +27,7 @@ export default function UploadScreen({ onBack }: { onBack: () => void }) {
             await submitData();
             toast.success('提交成功！');
             
-            window.location.href = "/videolab";
+            window.location.href = "/app/videolab";
         } catch (error) {
             console.error('提交失败:', error);
             toast.error('提交失败，请重试');
@@ -145,7 +145,7 @@ export default function UploadScreen({ onBack }: { onBack: () => void }) {
     const discardVoideCloing = () => {
         discardData()
         //跳转到 home页面
-        window.location.href = "/home";
+        window.location.href = "/app/home";
     }
 
     return (

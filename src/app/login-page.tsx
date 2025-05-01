@@ -6,17 +6,54 @@ import { useAuth } from "@/hooks/use-auth";
 import instance from "@/api/axios";
 import { toast } from "sonner";
 import { useNavigate, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
+
+// Define project type
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+}
 
 export default function LoginPage() {
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [countdown, setCountdown] = useState(0);
   const [phoneError, setPhoneError] = useState("");
-  const [projects, setProjects] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // 硬编码的项目数据，不再从API获取
+  const displayProjects: Project[] = [
+    {
+      id: "demo1",
+      title: "教育课程",
+      description: "制作专业的在线课程和教学视频，轻松传递知识。",
+      icon: <Layers className="h-6 w-6" />
+    },
+    {
+      id: "demo2",
+      title: "企业宣传视频",
+      description: "展示您的品牌价值和企业文化，提升专业形象。",
+      icon: <Layers className="h-6 w-6" />  
+    },
+    {
+      id: "demo3",
+      title: "社交媒体短视频",
+      description: "为社交平台优化的短视频模板，吸引更多关注。",
+      icon: <Layers className="h-6 w-6" />
+    }
+  ];
+
+  // 初始化当前项目为第一个项目
+  useEffect(() => {
+    if (displayProjects.length > 0 && !currentProject) {
+      setCurrentProject(displayProjects[0]);
+    }
+  }, [currentProject]);
 
   // 获取URL中的returnTo参数
   const getReturnPath = () => {
@@ -41,24 +78,6 @@ export default function LoginPage() {
       setPhoneError("");
     }
   };
-
-  // 获取示例项目
-  useEffect(() => {
-    setIsLoading(true);
-    instance
-      .get("/featured-projects")
-      .then((res) => {
-        if (res.data && res.data.code === 0) {
-          setProjects(res.data.data.projects || []);
-        }
-      })
-      .catch((err) => {
-        console.error("获取项目失败:", err);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, []);
 
   // 使用 async/await 方式处理登录请求
   const handleLogin = async () => {
@@ -124,30 +143,6 @@ export default function LoginPage() {
         console.log("验证码发送请求错误:", err);
       });
   };
-
-  // 提供一些示例项目，以防API调用失败
-  const fallbackProjects = [
-    {
-      id: "demo1",
-      title: "企业宣传视频",
-      coverImage: "/screenshots/project1.jpg",
-      description: "专业的企业介绍视频模板，帮助您展示公司产品和服务。"
-    },
-    {
-      id: "demo2",
-      title: "教育课程",
-      coverImage: "/screenshots/project2.jpg",
-      description: "适合在线教育的视频模板，包含动画和互动元素。"
-    },
-    {
-      id: "demo3",
-      title: "社交媒体短视频",
-      coverImage: "/screenshots/project3.jpg",
-      description: "为社交平台优化的短视频模板，吸引更多关注。"
-    }
-  ];
-
-  const displayProjects = projects.length > 0 ? projects : fallbackProjects;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -220,63 +215,59 @@ export default function LoginPage() {
             <div className="mt-8 text-center">
               <p className="text-sm text-gray-500">登录即表示您同意我们的</p>
               <p className="text-sm text-gray-500">
-                <a href="#" className="text-blue-500 hover:underline">
-                  服务条款
-                </a>{" "}
-                和{" "}
-                <a href="#" className="text-blue-500 hover:underline">
-                  隐私政策
-                </a>
+                <Link to="/terms" className="text-blue-500 hover:underline">
+                  条款与隐私
+                </Link>
               </p>
             </div>
           </div>
         </div>
 
-        {/* 右侧项目展示区域 */}
-        <div className="w-full md:w-1/2 bg-gray-50 p-8">
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold mb-8">精选模板项目</h2>
+        {/* 右侧简洁展示区域 */}
+        <div className="w-full md:w-1/2 bg-gray-50 flex items-center justify-center">
+          <div className="max-w-2xl w-full px-10 py-16">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-gray-900 mb-3">AI 视频创作平台</h2>
+              <p className="text-gray-500 text-lg">简单高效的视频制作工具，让创作更轻松</p>
+            </div>
             
-            {isLoading ? (
-              <div className="grid gap-6">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-white rounded-lg shadow-sm p-4 animate-pulse">
-                    <div className="w-full h-40 bg-gray-200 rounded-md mb-4"></div>
-                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-full"></div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid gap-6">
-                {displayProjects.map((project) => (
-                  <div key={project.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div className="aspect-video w-full bg-gray-100">
-                      {project.coverImage ? (
-                        <img
-                          src={project.coverImage}
-                          alt={project.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
-                          项目预览图
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-bold text-lg mb-2">{project.title}</h3>
-                      <p className="text-gray-600 text-sm">{project.description}</p>
+            <div className="bg-white rounded-lg shadow-md p-10 mb-8">
+              {currentProject && (
+                <div className="space-y-8">
+                  <div className="flex items-center justify-center">
+                    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                      {currentProject.icon}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                  
+                  <div className="text-center">
+                    <h3 className="text-2xl font-bold text-gray-800 mb-3">{currentProject.title}</h3>
+                    <p className="text-gray-600 text-base">{currentProject.description}</p>
+                  </div>
+                  
+                  <div className="pt-6 border-t border-gray-100">
+                    <div className="flex justify-between text-base text-gray-500">
+                      <span>高清导出</span>
+                      <span>AI 脚本</span>
+                      <span>模板库</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
             
-            <div className="mt-8 text-center">
-              <p className="text-gray-500">
-                登录后解锁全部模板和功能，开始创建您的精彩视频
-              </p>
+            <div className="flex justify-center space-x-3">
+              {displayProjects.map((project, index) => (
+                <button
+                  key={project.id}
+                  className={`w-3 h-3 rounded-full transition-colors ${
+                    currentProject?.id === project.id 
+                      ? 'bg-primary' 
+                      : 'bg-gray-300'
+                  }`}
+                  onClick={() => setCurrentProject(project)}
+                />
+              ))}
             </div>
           </div>
         </div>

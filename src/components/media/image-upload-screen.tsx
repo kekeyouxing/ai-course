@@ -264,7 +264,7 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
                     variant="outline"
                     className="rounded-full text-gray-700 border-gray-300 hover:bg-gray-50"
                     onClick={() => {
-                        window.location.href = "/home"
+                        window.location.href = "/app/home"
                     }}
                 >
                     回到主页

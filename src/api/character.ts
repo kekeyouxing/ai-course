@@ -1,5 +1,5 @@
 import instance from '@/api/axios';
-
+import { toast } from 'sonner';
 // 获取所有声音数据（系统声音和自定义声音）
 export async function getVoices() {
     try {
@@ -30,3 +30,15 @@ export async function getVoices() {
     }
 }
 
+// 检验是否可以继续克隆的函数
+export async function checkCloneEligibility(): Promise<{
+    code: number;
+    msg: string;
+  }> {
+    try {
+        const response = await instance.get('/characters/checkEligibility')
+        return response.data
+    } catch (error) {
+        throw error
+    }
+  }

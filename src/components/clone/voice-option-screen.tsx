@@ -30,7 +30,7 @@ export default function VoiceOptionScreen({ onBack }: { onBack: () => void }) {
 
     const handleSubmit = () => {
         submitData();
-        window.location.href = "/videolab";
+        window.location.href = "/app/videolab";
     }
 
     return (

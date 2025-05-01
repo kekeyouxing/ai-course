@@ -98,4 +98,6 @@ export function formatOrderTime(dateString: string | null): string {
 // 格式化金额显示
 export function formatAmount(amount: number): string {
   return `¥${amount.toFixed(2)}`;
-} 
+} // 检查支付状态函数
+
+

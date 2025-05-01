@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 // 导入新的API函数和类型
 import { getVoices } from "@/api/character"
+import { checkCloneEligibility } from "@/api/character" // 导入检验克隆资格函数
 import {
     SystemVoice,
     ClonedVoice
@@ -27,6 +28,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useNavigate } from "react-router-dom"
+import { toast } from "sonner" // 导入toast组件
 // 移除重复的类型定义，因为已经从character.ts导入
 
 // 初始化空数组
@@ -42,6 +44,7 @@ export default function VideoLabPage() {
     const [filteredDefaultVoices, setFilteredDefaultVoices] = useState<SystemVoice[]>(initialDefaultVoices);
     const [filteredCustomVoices, setFilteredCustomVoices] = useState<ClonedVoice[]>(initialCustomVoices);
     const [loading, setLoading] = useState(true);
+
     // 处理系统声音播放
     const handlePlaySystemAudio = (voice: SystemVoice) => {
         if (playingVoiceId === voice.voice_id) {
@@ -185,25 +188,38 @@ export default function VideoLabPage() {
 
     // 添加这行代码
     const navigate = useNavigate();
+    
+    // 处理克隆虚拟形象点击事件
+    const handleCloneClick = async () => {
+        try {
+            const result = await checkCloneEligibility();
+            if (result.code === 0) {
+                // 如果有资格继续克隆，则跳转到克隆页面
+                window.location.href = '/clone';
+            } else {
+                // 如果没有资格，显示提示信息
+               toast.error(result.msg || "您当前不满足克隆条件，请稍后再试。");
+            }
+        } catch (error) {
+            toast.error("无法检查克隆资格，请稍后再试。");
+        }
+    };
 
     return (
         <div className="container mx-auto py-6 max-w-6xl">
             {/* 顶部克隆声音卡片 */}
             <div
-                onClick={() => window.location.href = '/clone'}
-                className="rounded-xl p-6 w-80 flex flex-col bg-gradient-to-br from-orange-400 via-orange-300 to-amber-200 cursor-pointer hover:shadow-lg transition-shadow">
-                <div className="flex justify-between items-start mb-6">
-                    <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center">
-                        <Mic className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="flex items-center">
-                        <div className="text-white/90 text-sm flex items-center">
-                        </div>
+                onClick={handleCloneClick}
+                className="rounded-xl p-4 flex flex-col bg-white border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-all duration-300 w-80"
+            >
+                <div className="mb-4">
+                    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                        <Mic className="w-5 h-5 text-orange-500" />
                     </div>
                 </div>
                 <div className="mt-auto">
-                    <h3 className="text-2xl font-bold text-white mb-2">创建虚拟形象</h3>
-                    <p className="text-white/90">录制一段30秒的视频，并用你的声音为所有角色和旁白配音</p>
+                    <h3 className="text-lg font-semibold mb-1">创建虚拟形象</h3>
+                    <p className="text-sm text-gray-500">录制一段30秒的视频，并用你的声音为所有角色和旁白配音</p>
                 </div>
             </div>
 
@@ -312,7 +328,7 @@ export default function VideoLabPage() {
                                     <Mic className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                                     <h3 className="text-lg font-medium text-gray-600 mb-2">您还没有创建虚拟形象</h3>
                                     <p className="text-gray-500 max-w-md mx-auto mb-6">创建您自己的虚拟形象，让您的声音为视频增添个性</p>
-                                    <Button onClick={() => window.location.href = '/clone'} className="rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600">
+                                    <Button onClick={handleCloneClick} className="rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600">
                                         立即创建
                                     </Button>
                                 </div>

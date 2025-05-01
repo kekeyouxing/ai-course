@@ -1,9 +1,10 @@
-import { Suspense, useEffect, useRef, useState } from "react"
-import { getProjects, deleteProject, renameProject } from "@/api/project"
+import { Suspense, useEffect, useRef, useState, useCallback } from "react"
+import { getProjects, deleteProject, renameProject, createProject } from "@/api/project"
 import { ProjectCreationModal } from "@/app/project-creation-modal.tsx";
-import { Briefcase, MoreVertical, Trash, Edit, Share2, Check, X } from "lucide-react";
+import { Briefcase, MoreVertical, Trash, Edit, Share2, Check, X, Import, Loader2, Clock, FileCheck, AlertTriangle, ExternalLink, Download, Play } from "lucide-react";
 import { Project, Scene } from "@/types/scene";
 import { toast } from "sonner";
+import { getUserProjectProgressList, ProjectProgress, ProjectProgressStatus, getProgressStatusText, getProgressStatusClass } from "@/api/project-progress";
 
 // 在顶部导入区新增
 import { useNavigate } from "react-router-dom";
@@ -17,64 +18,121 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScenePreview } from "@/components/workspace/scene-preview";
+import { useAuth } from "@/hooks/use-auth";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ProjectCollectionPage() {
     const navigate = useNavigate();
     const [projects, setProjects] = useState<Project[]>([]); // 添加类型注解
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(true); // 添加加载状态
+    const [isCreatingEmptyProject, setIsCreatingEmptyProject] = useState(false);
+    
+    // 项目进度相关状态
+    const [activeTab, setActiveTab] = useState<string>("projects");
+    const [progressList, setProgressList] = useState<ProjectProgress[]>([]);
+    const [progressLoading, setProgressLoading] = useState(true);
+    const [progressPagination, setProgressPagination] = useState({ total: 0, page: 1, pageSize: 10 });
+    
     // 在组件内部添加状态和ref
     // 修改状态初始化
-    const [containerWidth, setContainerWidth] = useState<number>(0);
-    const containerRef = useRef<HTMLDivElement>(null);
+    // 添加容器宽度映射，存储每个项目的容器宽度
+    const [containerWidths, setContainerWidths] = useState<{[key: string]: number}>({});
+    // 跟踪已设置的观察者，避免重复设置
+    const observersRef = useRef<{[key: string]: ResizeObserver}>({});
     // 新增状态
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [renameDialogOpen, setRenameDialogOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [newProjectName, setNewProjectName] = useState("");
+    
+    // 格式化日期时间
+    const formatDateTime = (dateStr: string) => {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        return `${date.toLocaleDateString('zh-CN')} ${date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
+    };
+    
+    // 获取项目列表
+    const fetchProjects = async () => {
+        try {
+            setLoading(true);
+            const data = await getProjects();
+            setProjects(data);
+        } catch (error) {
+            console.error("获取项目失败:", error);
+            setProjects([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    // 获取项目进度列表
+    const fetchProgressList = async (page: number = 1) => {
+        try {
+            setProgressLoading(true);
+            const response = await getUserProjectProgressList(page, progressPagination.pageSize);
+            setProgressList(response.progress);
+            setProgressPagination(response.pagination);
+        } catch (error) {
+            console.error("获取项目进度失败:", error);
+            setProgressList([]);
+        } finally {
+            setProgressLoading(false);
+        }
+    };
+    
     // 修改useEffect
     useEffect(() => {
-        // 先获取项目数据
-        const fetchProjects = async () => {
-            try {
-                const data = await getProjects();
-                setProjects(data);
-            } catch (error) {
-                console.error("获取项目失败:", error);
-                setProjects([]);
-            } finally {
-                setLoading(false);
+        if (activeTab === "projects") {
+            fetchProjects();
+        } else if (activeTab === "progress") {
+            fetchProgressList();
+        }
+    }, [activeTab]);
 
-                // 数据加载完成后，设置ResizeObserver
-                setTimeout(() => {
-                    if (containerRef.current) {
-                        const resizeObserver = new ResizeObserver(entries => {
-                            for (let entry of entries) {
-                                const { width } = entry.contentRect;
-                                setContainerWidth(width);
-                            }
-                        });
-
-                        // 立即获取初始宽度
-                        const initialWidth = containerRef.current.getBoundingClientRect().width;
-                        if (initialWidth > 0) {
-                            setContainerWidth(initialWidth);
-                        }
-
-                        resizeObserver.observe(containerRef.current);
-
-                        return () => {
-                            if (containerRef.current) {
-                                resizeObserver.unobserve(containerRef.current);
-                            }
-                        };
-                    }
-                }, 0);
+    // 处理容器引用的回调函数，使用useCallback避免重新创建
+    const handleContainerRef = useCallback((id: string, element: HTMLDivElement | null) => {
+        // 如果元素为空，清理观察者并返回
+        if (!element) {
+            if (observersRef.current[id]) {
+                observersRef.current[id].disconnect();
+                delete observersRef.current[id];
             }
-        };
-
-        fetchProjects();
-    }, []);
+            return;
+        }
+        
+        // 如果此ID的观察者已存在，不要重复设置
+        if (observersRef.current[id]) return;
+        
+        // 获取容器宽度
+        const width = element.getBoundingClientRect().width;
+        if (width > 0) {
+            setContainerWidths(prev => {
+                // 只有当宽度发生变化时才更新
+                if (prev[id] === width) return prev;
+                return { ...prev, [id]: width };
+            });
+        }
+        
+        // 创建新的ResizeObserver
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const newWidth = entry.contentRect.width;
+                if (newWidth > 0) {
+                    setContainerWidths(prev => {
+                        // 只有当宽度发生变化时才更新
+                        if (prev[id] === newWidth) return prev;
+                        return { ...prev, [id]: newWidth };
+                    });
+                }
+            }
+        });
+        
+        // 保存观察者引用
+        observersRef.current[id] = resizeObserver;
+        resizeObserver.observe(element);
+    }, []); // 空依赖数组确保此函数只创建一次
 
     // 计算预览尺寸的函数，根据aspectRatio调整宽高比
     const calculatePreviewDimensions = (scene: Scene, containerWidth: number) => {
@@ -91,8 +149,9 @@ export default function ProjectCollectionPage() {
 
         return { width: previewWidth, height: previewHeight };
     };
+    
     function handleCreateProject(projectId: string): void {
-        navigate(`/projects/${projectId}`);
+        navigate(`/app/projects/${projectId}`);
     }
 
     // 新增点击处理函数
@@ -103,7 +162,7 @@ export default function ProjectCollectionPage() {
             console.error("Project not found:", projectId);
             return;
         }
-        navigate(`/projects/${projectId}`, { state: { project } });
+        navigate(`/app/projects/${projectId}`, { state: { project } });
     };
 
     // 新增删除项目函数
@@ -154,115 +213,334 @@ export default function ProjectCollectionPage() {
             .catch(() => toast.error("复制链接失败"));
     };
 
+    // 处理视频下载
+    const handleDownloadVideo = (url: string) => {
+        if (!url) {
+            toast.error("视频链接不存在");
+            return;
+        }
+        
+        // 创建一个隐藏的a标签并模拟点击下载
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'video.mp4';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
+
     // 阻止事件冒泡
     const stopPropagation = (e: React.MouseEvent) => {
         e.stopPropagation();
     };
 
+    // 新增直接创建空白项目的函数
+    const handleCreateEmptyProject = async () => {
+        try {
+            // 检查用户是否已登录
+            const { user, token } = useAuth.getState();
+            if (!user || !token) {
+                // 触发登录事件，显示登录框
+                const event = new CustomEvent('auth:unauthorized');
+                window.dispatchEvent(event);
+                return;
+            }
+
+            setIsCreatingEmptyProject(true);
+            const projectId = await createProject("empty");
+            toast.success("空白项目创建成功");
+            // 直接导航到项目
+            navigate(`/app/projects/${projectId}`);
+        } catch (error) {
+            console.error("创建空白项目失败:", error);
+            toast.error("创建空白项目失败");
+        } finally {
+            setIsCreatingEmptyProject(false);
+        }
+    };
+
     return (
         <div className="container mx-auto px-4 py-8">
-            <div onClick={() => setIsModalOpen(true)}
-                className="rounded-xl w-80 p-6 flex flex-col bg-gradient-to-br from-purple-500 via-purple-400 to-amber-700 cursor-pointer hover:shadow-lg transition-all duration-300 transform hover:scale-105 hover:brightness-110 active:scale-95"
-            >
-                <div className="mb-6">
-                    <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center">
-                        <Briefcase className="w-6 h-6 text-white" />
+            {/* 创建项目卡片，始终显示在页面顶部 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {/* Create empty project card */}
+                <div onClick={handleCreateEmptyProject}
+                    className="rounded-xl p-4 flex flex-col bg-white border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-all duration-300"
+                >
+                    <div className="mb-4">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            {isCreatingEmptyProject ? (
+                                <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                            ) : (
+                                <Briefcase className="w-5 h-5 text-blue-500" />
+                            )}
+                        </div>
+                    </div>
+                    <div className="mt-auto">
+                        <h3 className="text-lg font-semibold mb-1">创建空白项目</h3>
+                        <p className="text-sm text-gray-500">{isCreatingEmptyProject ? "创建中..." : "从头开始创建新项目"}</p>
                     </div>
                 </div>
-                <div className="mt-auto">
-                    <h3 className="text-2xl font-bold text-white mb-2">创建项目</h3>
-                    <p className="text-white/90">你可以新建空白项目，或导入PPT创建项目</p>
+
+                {/* Import to create project card */}
+                <div onClick={() => setIsModalOpen(true)}
+                    className="rounded-xl p-4 flex flex-col bg-white border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-all duration-300"
+                >
+                    <div className="mb-4">
+                        <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <Import className="w-5 h-5 text-green-500" />
+                        </div>
+                    </div>
+                    <div className="mt-auto">
+                        <h3 className="text-lg font-semibold mb-1">导入创建项目</h3>
+                        <p className="text-sm text-gray-500">从PPT或PDF创建项目</p>
+                    </div>
                 </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-8">
-                {loading ? (
-                    <div className="text-gray-500">加载项目中...</div>
-                ) : projects.length === 0 ? (
-                    <div className="text-gray-500">暂无项目，点击上方卡片创建</div>
-                ) : (
-                    <Suspense fallback={<div>Loading projects...</div>}>
-                        {projects.map((project) => (
-                            <div
-                                key={project.id}
-                                className="rounded-xl overflow-hidden hover:shadow-lg hover:border-gray-300 active:shadow-lg active:border-gray-300 transition-all duration-300 cursor-pointer relative"
-                                onClick={() => handleProjectClick(project.id)}
-                            >
-                                {/* 操作菜单 */}
-                                <div
-                                    className="absolute top-2 right-2 z-10 border-0 outline-none ring-0 focus:outline-none focus:ring-0"
-                                    onClick={stopPropagation}
-                                >
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <div className="h-8 w-8 bg-white/80 hover:bg-gray-100 hover:text-gray-700 active:bg-gray-100 active:text-gray-700 rounded-full cursor-pointer transition-colors border-0 shadow-none outline-none ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=open]:bg-gray-100 data-[state=open]:text-gray-700 flex items-center justify-center">
-                                                <MoreVertical className="h-4 w-4" />
+
+            <Tabs defaultValue="projects" value={activeTab} onValueChange={setActiveTab} className="mb-8">
+                <TabsList>
+                    <TabsTrigger value="projects">我的项目</TabsTrigger>
+                    <TabsTrigger value="progress">我的视频</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="projects">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {loading ? (
+                            <div className="text-gray-500">加载项目中...</div>
+                        ) : projects.length === 0 ? (
+                            <div className="text-gray-500">暂无项目，点击上方卡片创建</div>
+                        ) : (
+                            <Suspense fallback={<div>Loading projects...</div>}>
+                                {projects.map((project) => (
+                                    <div
+                                        key={project.id}
+                                        className="rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg hover:border-gray-300 active:shadow-lg active:border-gray-300 transition-all duration-300 cursor-pointer relative"
+                                        onClick={() => handleProjectClick(project.id)}
+                                    >
+                                        {/* 操作菜单 */}
+                                        <div
+                                            className="absolute top-2 right-2 z-10 border-0 outline-none ring-0 focus:outline-none focus:ring-0"
+                                            onClick={stopPropagation}
+                                        >
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <div className="h-8 w-8 bg-white/80 hover:bg-gray-100 hover:text-gray-700 active:bg-gray-100 active:text-gray-700 rounded-full cursor-pointer transition-colors border-0 shadow-none outline-none ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=open]:bg-gray-100 data-[state=open]:text-gray-700 flex items-center justify-center">
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </div>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    {/* 下拉菜单内容保持不变 */}
+                                                    <DropdownMenuItem className="cursor-pointer" onClick={() => {
+                                                        setSelectedProject(project);
+                                                        setNewProjectName(project.name);
+                                                        setRenameDialogOpen(true);
+                                                    }}>
+                                                        <Edit className="mr-2 h-4 w-4" />
+                                                        <span>重命名</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem className="cursor-pointer" onClick={() => handleShareProject(project)}>
+                                                        <Share2 className="mr-2 h-4 w-4" />
+                                                        <span>分享链接</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        className="text-red-600 cursor-pointer"
+                                                        onClick={() => {
+                                                            setSelectedProject(project);
+                                                            setDeleteDialogOpen(true);
+                                                        }}
+                                                    >
+                                                        <Trash className="mr-2 h-4 w-4" />
+                                                        <span>删除</span>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+
+                                        {/* 缩略图区域 */}
+                                        {project.scenes[0] ? (
+                                            <div ref={(element) => {
+                                                handleContainerRef(project.id, element);
+                                            }} className="h-40 overflow-hidden">
+                                                {containerWidths[project.id] > 0 && (
+                                                    <ScenePreview
+                                                        scene={project.scenes[0]}
+                                                        width={calculatePreviewDimensions(project.scenes[0], containerWidths[project.id]).width}
+                                                        height={calculatePreviewDimensions(project.scenes[0], containerWidths[project.id]).height}
+                                                    />
+                                                )}
                                             </div>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            {/* 下拉菜单内容保持不变 */}
-                                            <DropdownMenuItem className="cursor-pointer" onClick={() => {
-                                                setSelectedProject(project);
-                                                setNewProjectName(project.name);
-                                                setRenameDialogOpen(true);
-                                            }}>
-                                                <Edit className="mr-2 h-4 w-4" />
-                                                <span>重命名</span>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem className="cursor-pointer" onClick={() => handleShareProject(project)}>
-                                                <Share2 className="mr-2 h-4 w-4" />
-                                                <span>分享链接</span>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                className="text-red-600 cursor-pointer"
-                                                onClick={() => {
-                                                    setSelectedProject(project);
-                                                    setDeleteDialogOpen(true);
-                                                }}
-                                            >
-                                                <Trash className="mr-2 h-4 w-4" />
-                                                <span>删除</span>
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-
-                                {/* 缩略图区域 */}
-                                {project.scenes[0] ? (
-                                    <div ref={containerRef} className="h-40 overflow-hidden">
-                                        {containerWidth > 0 && (
-                                            <ScenePreview
-                                                scene={project.scenes[0]}
-                                                width={calculatePreviewDimensions(project.scenes[0], containerWidth).width}
-                                                height={calculatePreviewDimensions(project.scenes[0], containerWidth).height}
-                                            />
+                                        ) : (
+                                            <div className="h-40 bg-white flex items-center justify-center border-b">
+                                                {/* 默认背景 */}
+                                            </div>
                                         )}
-                                    </div>
-                                ) : (
-                                    <div className="h-40 bg-white flex items-center justify-center border-b">
-                                        {/* 默认背景 */}
-                                    </div>
-                                )}
 
-                                {/* 项目信息区域 */}
-                                <div className="p-4">
-                                    <h3 className="font-semibold text-lg mb-2 line-clamp-1">{project.name}</h3>
-                                    <div className="flex justify-between items-center">
-                                        <div className="text-sm text-gray-500">
-                                            {new Date(project.updatedAt).toLocaleDateString('zh-CN')}
-                                        </div>
-                                        <div className={`text-xs px-2 py-1 rounded-full ${project.status === 'published'
-                                            ? 'bg-green-50 text-green-600'
-                                            : 'bg-amber-50 text-amber-600'
-                                            }`}>
-                                            {project.status === 'published' ? '已发布' : '草稿'}
+                                        {/* 项目信息区域 */}
+                                        <div className="p-4">
+                                            <h3 className="font-semibold text-lg mb-2 line-clamp-1">{project.name}</h3>
+                                            <div className="flex justify-between items-center">
+                                                <div className="text-sm text-gray-500">
+                                                    {new Date(project.updatedAt).toLocaleDateString('zh-CN')}
+                                                </div>
+                                                <div className={`text-xs px-2 py-1 rounded-full ${project.status === 'published'
+                                                    ? 'bg-green-50 text-green-600'
+                                                    : 'bg-amber-50 text-amber-600'
+                                                    }`}>
+                                                    {project.status === 'published' ? '已发布' : '草稿'}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                ))}
+                            </Suspense>
+                        )}
+                    </div>
+                </TabsContent>
+                
+                <TabsContent value="progress">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {progressLoading ? (
+                            <div className="text-gray-500">加载视频中...</div>
+                        ) : progressList.length === 0 ? (
+                            <div className="text-gray-500">暂无生成的视频</div>
+                        ) : (
+                            <Suspense fallback={<div>Loading videos...</div>}>
+                                {progressList.map((progress) => {
+                                    const { bgColor, textColor } = getProgressStatusClass(progress.status);
+                                    return (
+                                        <div 
+                                            key={progress.id}
+                                            className="rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg hover:border-gray-300 transition-all duration-300 cursor-pointer relative"
+                                            onClick={() => {
+                                                if (progress.status === 'SUCCEEDED' && progress.url) {
+                                                    window.open(progress.url, '_blank');
+                                                }
+                                            }}
+                                        >
+                                            {/* 视频缩略图/状态显示区域 */}
+                                            <div className="h-40 bg-gray-100 flex items-center justify-center relative">
+                                                {progress.status === 'SUCCEEDED' && progress.url ? (
+                                                    <>
+                                                        <div className="bg-black h-full w-full flex items-center justify-center">
+                                                            <FileCheck className="h-12 w-12 text-white opacity-50" />
+                                                        </div>
+                                                        <div className="absolute inset-0 flex items-center justify-center">
+                                                            <div className="bg-black/30 rounded-full p-4">
+                                                                <Play className="h-10 w-10 text-white" />
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                ) : progress.status === 'PENDING' ? (
+                                                    <div className="flex flex-col items-center">
+                                                        {/* <Loader2 className="h-12 w-12 text-blue-500 animate-spin mb-2" /> */}
+                                                        <p className="text-blue-600 font-medium">视频生成耗时较长，请耐心等待...</p>
+                                                    </div>
+                                                ) : progress.status === 'FAILED' ? (
+                                                    <div className="flex flex-col items-center">
+                                                        <AlertTriangle className="h-12 w-12 text-red-500 mb-2" />
+                                                        <p className="text-red-600 font-medium">生成失败</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col items-center">
+                                                        <Clock className="h-12 w-12 text-gray-400 mb-2" />
+                                                        <p className="text-gray-500 font-medium">等待处理</p>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* 状态标签 */}
+                                                <div className="absolute top-2 right-2">
+                                                    <span className={`px-2 py-1 text-xs leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}>
+                                                        {progress.status === 'PENDING' ? (
+                                                            <div className="flex items-center gap-1">
+                                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                                {getProgressStatusText(progress.status)}
+                                                            </div>
+                                                        ) : progress.status === 'SUCCEEDED' ? (
+                                                            <div className="flex items-center gap-1">
+                                                                <FileCheck className="h-3 w-3" />
+                                                                {getProgressStatusText(progress.status)}
+                                                            </div>
+                                                        ) : progress.status === 'FAILED' ? (
+                                                            <div className="flex items-center gap-1">
+                                                                <AlertTriangle className="h-3 w-3" />
+                                                                {getProgressStatusText(progress.status)}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center gap-1">
+                                                                <Clock className="h-3 w-3" />
+                                                                {getProgressStatusText(progress.status)}
+                                                            </div>
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* 视频信息区域 */}
+                                            <div className="p-4">
+                                                <h3 className="font-semibold text-lg mb-2 line-clamp-1">{progress.projectName}</h3>
+                                                <div className="flex justify-between items-center">
+                                                    <div className="text-sm text-gray-500">
+                                                        {formatDateTime(progress.createdAt)}
+                                                    </div>
+                                                    
+                                                    {progress.status === 'SUCCEEDED' && progress.url && (
+                                                        <Button 
+                                                            variant="outline" 
+                                                            size="sm"
+                                                            className="h-7 px-2 bg-green-50 text-green-600 border-green-100 hover:bg-green-100"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDownloadVideo(progress.url || '');
+                                                            }}
+                                                        >
+                                                            <Download className="h-3.5 w-3.5 mr-1" />
+                                                            下载
+                                                        </Button>
+                                                    )}
+                                                    
+                                                    {progress.status === 'FAILED' && (
+                                                        <div className="text-xs text-red-500 line-clamp-1 max-w-[180px]">
+                                                            {progress.errorMessage || '生成失败'}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </Suspense>
+                        )}
+                    </div>
+                    
+                    {/* 分页控制 */}
+                    {progressList.length > 0 && (
+                        <div className="flex items-center justify-between mt-6">
+                            <div className="text-sm text-gray-500">
+                                总计 {progressPagination.total} 条记录
                             </div>
-                        ))}
-                    </Suspense>
-                )}
-            </div>
+                            <div className="flex space-x-2">
+                                <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    disabled={progressPagination.page <= 1}
+                                    onClick={() => fetchProgressList(progressPagination.page - 1)}
+                                >
+                                    上一页
+                                </Button>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    disabled={progressPagination.page * progressPagination.pageSize >= progressPagination.total}
+                                    onClick={() => fetchProgressList(progressPagination.page + 1)}
+                                >
+                                    下一页
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </TabsContent>
+            </Tabs>
 
             {/* 项目创建模态框 */}
             <ProjectCreationModal

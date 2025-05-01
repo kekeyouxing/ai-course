@@ -374,7 +374,7 @@ export function VideoTabs({
                                     onClick={() => handleTabClick(tab)}
                                 >
                                     <Type className="h-5 w-5 mb-1" />
-                                    {tab}
+                                    文本
                                 </button>
                             </PopoverTrigger>
                             <TextTypeSelector 
@@ -393,7 +393,7 @@ export function VideoTabs({
                                     onClick={() => handleTabClick(tab)}
                                 >
                                     <Square className="h-5 w-5 mb-1" />
-                                    {tab}
+                                    图形
                                 </button>
                             </PopoverTrigger>
                             <ShapeTypeSelector 
@@ -414,7 +414,10 @@ export function VideoTabs({
                             {tab === "Avatar" && <User className="h-5 w-5 mb-1" />}
                             {tab === "Background" && <Layers className="h-5 w-5 mb-1" />}
                             {tab === "Media" && <Image className="h-5 w-5 mb-1" />}
-                            {tab}
+                            {tab === "Script" && "脚本"}
+                            {tab === "Avatar" && "角色"}
+                            {tab === "Background" && "背景"}
+                            {tab === "Media" && "媒体"}
                         </button>
                     );
                 }

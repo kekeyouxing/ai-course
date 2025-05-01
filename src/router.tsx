@@ -12,6 +12,10 @@ import OrdersPage from "@/app/orders-page";
 import ResourceLogsPage from "@/app/resource-logs-page";
 import LandingPage from "@/app/landing-page";
 import LoginPage from "@/app/login-page";
+import AppPricePage from "@/app/app-price-page";
+import AboutPage from "@/app/about-page";
+import ContactPage from "@/app/contact-page";
+import TermsPage from "@/app/terms-page";
 
 export const routes: RouteObject[] = [
     {
@@ -23,12 +27,27 @@ export const routes: RouteObject[] = [
         element: <LoginPage />,
     },
     {
+        path: "appprice",
+        element: <AppPricePage />,
+    },
+    {
+        path: "/about",
+        element: <AboutPage />,
+    },
+    {
+        path: "/contact",
+        element: <ContactPage />,
+    },
+    {
+        path: "/terms",
+        element: <TermsPage />,
+    },
+    {
         path: "/app",
         element: <Page/>,
         children: [
             {
                 path: "home",
-                // element: <HomePage/>,
                 element: <AuthRoute key={Date.now()}><HomePage/></AuthRoute>,
                 handle: {
                     breadcrumb: "主页", // 面包屑标题
@@ -66,11 +85,11 @@ export const routes: RouteObject[] = [
                     breadcrumb: "使用记录",
                     pathSegments: ["resource-logs"] // 明确层级关系
                 }
-            }
+            },
         ]
     },
     {
-        path: "projects/:id", // 独立路径
+        path: "/app/projects/:id", // 独立路径
         element: <AuthRoute key={Date.now()}><VideoEditor/></AuthRoute>, // 独立页面
     },
     {
@@ -80,5 +99,6 @@ export const routes: RouteObject[] = [
     {
         path: "*",
         element: <NotFound/>
-    }
+    },
+
 ];

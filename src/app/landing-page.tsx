@@ -16,14 +16,12 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center space-x-6">
             <a href="#features" className="text-gray-600 hover:text-gray-900">功能</a>
             <a href="#how-it-works" className="text-gray-600 hover:text-gray-900">工作原理</a>
-            <Link to="/app/appprice" className="text-gray-600 hover:text-gray-900">价格</Link>
+            <Link to="/appprice" className="text-gray-600 hover:text-gray-900">价格</Link>
+            <Link to="/contact" className="text-gray-600 hover:text-gray-900">联系我们</Link>
           </div>
           <div className="flex items-center space-x-4">
             <Link to="/app/home">
               <Button variant="outline">登录</Button>
-            </Link>
-            <Link to="/app/home">
-              <Button>免费试用</Button>
             </Link>
           </div>
         </div>
@@ -43,19 +41,6 @@ export default function LandingPage() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Link to="/projects/demo">
-              <Button size="lg" variant="outline" className="px-8">
-                查看演示
-              </Button>
-            </Link>
-          </div>
-          <div className="mt-12 relative">
-            <div className="absolute inset-0 bg-gradient-to-t from-blue-50 to-transparent z-10 pointer-events-none h-40 -bottom-1 top-auto"></div>
-            <img
-              src="/screenshots/editor.png"
-              alt="视频编辑器截图"
-              className="rounded-lg shadow-2xl border border-gray-200 w-full"
-            />
           </div>
         </div>
       </section>
@@ -154,7 +139,7 @@ export default function LandingPage() {
             />
             <TestimonialCard
               quote="界面直观，功能强大。我没有任何视频制作经验，但使用这个平台后，我创建的视频质量让我的团队惊讶不已。"
-              author="李华"
+              author="柯宥兴"
               role="内容创作者"
             />
             <TestimonialCard
@@ -201,24 +186,21 @@ export default function LandingPage() {
               <h3 className="text-lg font-semibold mb-4">产品</h3>
               <ul className="space-y-2">
                 <li><a href="#features" className="text-gray-400 hover:text-white">功能</a></li>
-                <li><Link to="/app/appprice" className="text-gray-400 hover:text-white">价格</Link></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">模板</a></li>
+                <li><Link to="/appprice" className="text-gray-400 hover:text-white">价格</Link></li>
               </ul>
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-4">资源</h3>
               <ul className="space-y-2">
-                <li><a href="#" className="text-gray-400 hover:text-white">文档</a></li>
                 <li><a href="#" className="text-gray-400 hover:text-white">教程</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">博客</a></li>
               </ul>
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-4">公司</h3>
               <ul className="space-y-2">
-                <li><a href="#" className="text-gray-400 hover:text-white">关于我们</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">联系方式</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">条款与隐私</a></li>
+                <li><Link to="/about" className="text-gray-400 hover:text-white">关于我们</Link></li>
+                <li><Link to="/contact" className="text-gray-400 hover:text-white">联系方式</Link></li>
+                <li><Link to="/terms" className="text-gray-400 hover:text-white">条款与隐私</Link></li>
               </ul>
             </div>
           </div>

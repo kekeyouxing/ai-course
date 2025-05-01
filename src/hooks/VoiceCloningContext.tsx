@@ -57,7 +57,6 @@ export const VoiceCloningProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const [isEditMode, setIsEditMode] = useState(false);
     const [characterId, setCharacterId] = useState<string | null>(null);
     const submitData = async () => {
-
         const data = {
             voiceName,
             gender: gender,
@@ -72,7 +71,6 @@ export const VoiceCloningProvider: React.FC<{ children: React.ReactNode }> = ({ 
         };
         try {
             const endpoint = isEditMode ? '/characters/update' : '/characters/create';
-            console.log('data', data);
             const response = await instance.post(endpoint, data);
             if (response.status !== 200) {
                 throw new Error(isEditMode ? '更新数据失败' : '提交数据失败');
@@ -80,7 +78,6 @@ export const VoiceCloningProvider: React.FC<{ children: React.ReactNode }> = ({ 
             if (response.data.code !== 0) {
                 throw new Error(isEditMode ? '更新失败' : '创建失败');
             }
-            console.log('数据提交成功');
         } catch (error) {
             console.error('提交数据时出错:', error);
         }

@@ -543,6 +543,7 @@ const handleCopyScene = useCallback(async () => {
                 <>
                     {/* Top Navigation */}
                     <VideoHeader
+                        projectId={projectId}
                         videoTitle={videoTitle}
                         handleUndo={handleUndo}
                         handleRedo={handleRedo}
