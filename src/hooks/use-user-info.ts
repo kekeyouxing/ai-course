@@ -4,7 +4,6 @@ import { getUserInfo, UserInfoDTO } from '@/api/user'
 interface UserInfoState {
   userInfo: UserInfoDTO | null;
   loading: boolean;
-  error: string | null;
   
   // 操作方法
   fetchUserInfo: () => Promise<void>;
@@ -30,17 +29,15 @@ interface UserInfoState {
 export const useUserInfo = create<UserInfoState>((set, get) => ({
   userInfo: null,
   loading: false,
-  error: null,
   
   // 获取用户信息
   fetchUserInfo: async () => {
     try {
-      set({ loading: true, error: null });
+      set({ loading: true });
       const userInfo = await getUserInfo();
       set({ userInfo, loading: false });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '获取用户信息失败';
-      set({ error: errorMessage, loading: false });
+      set({ loading: false });
     }
   },
   
@@ -82,5 +79,5 @@ export const useUserInfo = create<UserInfoState>((set, get) => ({
       totalVideoSeconds: memberVideoSeconds + packageVideoSeconds,
       totalTextChars: memberTextChars + packageTextChars
     };
-  }
+  },
 })); 

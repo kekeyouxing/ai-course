@@ -6,6 +6,7 @@ import {QueryClientProvider} from "@tanstack/react-query";
 import { useUserInfo } from "@/hooks/use-user-info";
 import { useNavigate, useLocation } from "react-router-dom";
 
+
 export default function AuthRoute({children}: { children: JSX.Element }) {
     const {token, isTokenExpired} = useAuth()
     const { userInfo, fetchUserInfo } = useUserInfo();
