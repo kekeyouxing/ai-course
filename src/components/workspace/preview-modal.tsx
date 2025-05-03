@@ -451,7 +451,6 @@ export default function PreviewModal({
     const calculateScaledPosition = (x: number, y: number, width: number, height: number) => {
         // 获取预览容器的实际尺寸
         const containerEl = videoContainerRef.current?.querySelector('.absolute.inset-0');
-        console.log("containerEl", containerEl)
         const containerWidth = containerEl?.clientWidth || 0;
         const containerHeight = containerEl?.clientHeight || 0;
 

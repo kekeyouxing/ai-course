@@ -88,7 +88,7 @@ const handleTextUpdate = useCallback(
       // Create new text element
       const newText: TextElement = {
         content: type === "title" ? "标题" : type === "subtitle" ? "副标题" : "正文",
-        fontSize: type === "title" ? 144 : type === "subtitle" ? 120 : 65,
+        fontSize: type === "title" ? 96 : type === "subtitle" ? 66 : 46,
         x: canvasDimensions.width / 2 - 400, // Center horizontally
         y: canvasDimensions.height / 2 - 100, // Center vertically
         width: 800, // Increase width to fit text

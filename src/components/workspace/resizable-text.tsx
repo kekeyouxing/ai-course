@@ -75,6 +75,7 @@ export function ResizableText({
     const [localContent, setLocalContent] = useState(content)
     const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuide[]>([])
     const [isDragging, setIsDragging] = useState(false)
+    const [textareaHeight, setTextareaHeight] = useState<number | null>(null);
     
     // 计算实际显示尺寸与标准尺寸的比例
     const scaleX = (containerWidth || canvasWidth) / canvasWidth;
@@ -97,6 +98,26 @@ export function ResizableText({
     // 使用ref来获取实际内容高度
     const contentRef = useRef<HTMLDivElement>(null);
     
+    // 添加一个ref用于textarea
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    
+    // 自动调整textarea高度的函数
+    const adjustTextareaHeight = useCallback(() => {
+        if (textareaRef.current) {
+            // 重置高度以获取准确的scrollHeight
+            textareaRef.current.style.height = '0px';
+            // 设置高度为scrollHeight
+            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+        }
+    }, []);
+    
+    // 当进入编辑模式或内容变化时，调整textarea高度
+    useEffect(() => {
+        if (isEditing) {
+            adjustTextareaHeight();
+        }
+    }, [isEditing, localContent, adjustTextareaHeight]);
+
     // 当内容变化时，更新实际高度到父组件
     useEffect(() => {
         if (contentRef.current) {
@@ -227,7 +248,7 @@ export function ResizableText({
             >
                 <div
                     ref={contentRef}
-                    className={`w-full flex items-center ${isSelected ? "outline outline-1 outline-blue-500" : ""} ${animationClassName}`}
+                    className={`w-full ${isSelected ? "outline outline-1 outline-blue-500" : ""} ${animationClassName}`}
                     style={{
                         ...textStyle,
                         transform: `rotate(${rotation}deg)`,
@@ -236,33 +257,47 @@ export function ResizableText({
                         height: "auto", // 确保高度自动适应内容
                         padding: "0", // 移除内边距
                         lineHeight: "1.2", // 设置更紧凑的行高
-                        display: "inline-block" // 使元素宽度适应内容
+                        display: "inline-block", // 使元素宽度适应内容
+                        whiteSpace: "pre-wrap" // 保证换行正确显示
                     }}
                     onDoubleClick={() => setIsEditing(true)}                
                 >
                 {isEditing ? (
-                    <input
-                        type="text"
+                    <textarea
+                        ref={textareaRef}
                         value={localContent}
-                        onChange={(e) => setLocalContent(e.target.value)}
+                        onChange={(e) => {
+                            setLocalContent(e.target.value);
+                            // 使用setTimeout确保在下一个渲染周期调整高度
+                            setTimeout(adjustTextareaHeight, 0);
+                        }}
                         onBlur={() => {
-                            setIsEditing(false)
-                            onTextChange(localContent)
+                            setIsEditing(false);
+                            onTextChange(localContent);
                         }}
                         onMouseDown={(e) => e.stopPropagation()} // 阻止事件冒泡
-                        className="w-full bg-transparent outline-none p-0 m-0"
+                        className="w-full bg-transparent outline-none p-0 m-0 resize-none"
                         style={{ 
                             fontSize: "inherit", 
                             fontFamily: "inherit", 
                             color: "inherit", 
                             fontWeight: "inherit", 
                             fontStyle: "inherit", 
-                            textAlign: alignment,
-                            lineHeight: "1.2" // 保持与外层一致的行高
+                            textAlign: alignment as any,
+                            lineHeight: "1.2",
+                            minHeight: "1em",
+                            whiteSpace: "pre-wrap", // 保留换行
+                            border: "none",
+                            display: "block", // 块级元素
+                            overflow: "hidden" // 隐藏滚动条
                         }}
+                        autoFocus
                     />
                 ) : (
-                    <div className="w-full p-0 m-0" style={{ textAlign: alignment }}>
+                    <div className="w-full p-0 m-0" style={{ 
+                        textAlign: alignment,
+                        whiteSpace: "pre-wrap" // 保持与编辑模式一致的换行处理
+                    }}>
                         {localContent}
                     </div>
                 )}

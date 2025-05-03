@@ -287,13 +287,16 @@ export default function VideoEditor() {
     );
     // 场景切换
     const handleSceneClick = useCallback((index: number) => {
+        // 清除当前选中的元素，避免在新场景中找不到相同索引的元素
+        setSelectedElement(null);
+        
         setActiveScene(index);
 
         // 设置当前场景的宽高比例
         if (scenes[index].aspectRatio) {
             setAspectRatio(scenes[index].aspectRatio);
         }
-    }, [scenes]);
+    }, [scenes, setAspectRatio]);
 
     // 使用封装的操作函数
     const handleUndo = useUndoOperation(history, historyIndex, setHistoryIndex, setScenes);
