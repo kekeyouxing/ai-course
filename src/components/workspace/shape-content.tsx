@@ -29,7 +29,7 @@ const shapeTypeNames: Record<ShapeType, string> = {
   "arrow": "箭头",
   "hollowRectangle": "空心矩形",
   "hollowCircle": "空心圆形",
-  "hollowTriangle": "空心三角",
+  "hollowTriangle": "空心三角形",
   "hollowStar": "空心星形",
   "pacman": "吃豆人",
   "quarterCircle": "四分之一圆",

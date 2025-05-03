@@ -25,6 +25,7 @@ const ShapeRenderer = ({ type, fill, stroke, strokeWidth, width, height, borderR
   height: number;
   borderRadius?: number;
 }) => {
+  
   const style = {
     fill,
     stroke,
@@ -51,7 +52,7 @@ const ShapeRenderer = ({ type, fill, stroke, strokeWidth, width, height, borderR
     case 'triangle':
       return (
         <polygon 
-          points={`50%,10% 10%,90% 90%,90%`}
+          points="50,10 10,90 90,90"
           style={style}
         />
       );
@@ -59,7 +60,7 @@ const ShapeRenderer = ({ type, fill, stroke, strokeWidth, width, height, borderR
     case 'rhombus':
       return (
         <polygon 
-          points={`50%,10% 90%,50% 50%,90% 10%,50%`}
+          points="50,10 90,50 50,90 10,50"
           style={style}
         />
       );
@@ -79,7 +80,7 @@ const ShapeRenderer = ({ type, fill, stroke, strokeWidth, width, height, borderR
     case 'hollowTriangle':
       return (
         <polygon 
-          points={`50%,10% 10%,90% 90%,90%`}
+          points="50,10 10,90 90,90"
           style={hollowStyle}
         />
       );
@@ -204,9 +205,6 @@ export function ResizableShape({
   const shapeRef = useRef<Rnd>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuide[]>([]);
-  
-  // 添加日志以跟踪rotation值的变化
-  console.log(`ResizableShape rendering with rotation: ${rotation}°`);
   
   // 计算缩放比例
   const scaleX = containerWidth / canvasWidth;

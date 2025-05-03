@@ -12,7 +12,8 @@ import {
     Loader2,
     Clock,
     Text,
-    FileText
+    FileText,
+    RefreshCw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AspectRatioType, Scene } from "@/types/scene"
@@ -267,7 +268,11 @@ export function VideoHeader({
 
                         <div className="h-4 border-r border-gray-300 mx-1"></div>
                         
-                        <Popover>
+                        <Popover onOpenChange={(open) => {
+                            if (open) {
+                                fetchUserInfo();
+                            }
+                        }}>
                             <PopoverTrigger>
                                 <Button
                                     variant="outline"
@@ -279,6 +284,18 @@ export function VideoHeader({
                             </PopoverTrigger>
                             <PopoverContent className="w-72 p-3">
                                 <div className="space-y-3">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h4 className="text-sm font-medium">余额信息</h4>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="h-7 px-2 text-xs" 
+                                            onClick={() => fetchUserInfo()}
+                                        >
+                                            <RefreshCw className="h-3 w-3 mr-1" />
+                                            刷新
+                                        </Button>
+                                    </div>
                                     <div>
                                         <p className="text-sm font-medium flex items-center text-amber-700 mb-1.5">
                                             <Clock className="h-4 w-4 mr-1.5" />

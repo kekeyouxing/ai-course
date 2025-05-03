@@ -1,6 +1,5 @@
 import { AliyunImageProcessResponse } from "@/hooks/VoiceCloningContext"
 import instance from "./axios";
-import { toast } from "sonner";
 // Updated Avatar interface to match backend response
 export interface Avatar {
   id: number;

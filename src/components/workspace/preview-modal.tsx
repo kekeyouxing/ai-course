@@ -451,6 +451,7 @@ export default function PreviewModal({
     const calculateScaledPosition = (x: number, y: number, width: number, height: number) => {
         // 获取预览容器的实际尺寸
         const containerEl = videoContainerRef.current?.querySelector('.absolute.inset-0');
+        console.log("containerEl", containerEl)
         const containerWidth = containerEl?.clientWidth || 0;
         const containerHeight = containerEl?.clientHeight || 0;
 
@@ -491,17 +492,9 @@ export default function PreviewModal({
         // 计算缩放比例 - 使用统一的缩放比例以保持宽高比
         const scale = Math.min(containerWidth / originalWidth, containerHeight / originalHeight);
 
-        // 计算缩放后的内容实际尺寸
-        const scaledContentWidth = originalWidth * scale;
-        const scaledContentHeight = originalHeight * scale;
-
-        // 计算内容在容器中的偏移量（居中显示）
-        const offsetX = (containerWidth - scaledContentWidth) / 2;
-        const offsetY = (containerHeight - scaledContentHeight) / 2;
-        // 返回缩放后的位置和尺寸，考虑偏移量
         return {
-            x: x * scale + offsetX,
-            y: y * scale + offsetY,
+            x: x * scale,
+            y: y * scale,
             width: width * scale,
             height: height * scale
         };
@@ -573,7 +566,7 @@ export default function PreviewModal({
             aspectRatio: aspectRatioValue,
             maxHeight: "100%",
             maxWidth: "100%",
-            margin: "0 auto"
+            // margin: "0 auto"
         };
     };
         // 更新场景时设置时长
@@ -1119,7 +1112,7 @@ export default function PreviewModal({
                                                     imageMedia.element.width,
                                                     imageMedia.element.height
                                                 );
-                                                
+                                                console.log({ x, y, width, height })
                                                 // 检查图片元素是否应该可见（基于动画标记）
                                                 const isVisible = isElementVisible(
                                                     imageMedia.element.startAnimationMarkerId,
@@ -1152,7 +1145,7 @@ export default function PreviewModal({
                                                     >
                                                         <img
                                                             src={imageMedia.element.src}
-                                                            className="w-full h-full object-contain"
+                                                            className="w-full h-full object-cover"
                                                             alt=""
                                                             style={{
                                                                 opacity: animationStyle.opacity,

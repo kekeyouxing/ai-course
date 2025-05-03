@@ -8,7 +8,7 @@ export interface AlignmentGuide {
 }
 
 // Threshold for snapping in pixels
-export const SNAP_THRESHOLD = 3;
+export const SNAP_THRESHOLD = 5;
 
 // Canvas dimensions (standard video size)
 export const CANVAS_WIDTH = 1920;

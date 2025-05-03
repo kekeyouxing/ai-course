@@ -57,9 +57,6 @@ export function ResizableImage({
     const displayWidth = width * scaleX;
     const displayHeight = height * scaleY;
     
-    // 计算宽高比
-    const aspectRatio = width / height;
-    
     const handleResizeStop = useCallback(
         (
             e: MouseEvent | TouchEvent,
@@ -156,7 +153,6 @@ export function ResizableImage({
                 onDrag={handleDrag}
                 onDragStop={handleDragStop}
                 onResizeStop={handleResizeStop}
-                lockAspectRatio={aspectRatio} // 锁定宽高比
                 onMouseDown={(e: MouseEvent) => {
                     e.stopPropagation()
                     onSelect()

@@ -1,8 +1,9 @@
 import { useCallback } from 'react';
-import { Scene, TextElement, ImageElement, VideoElement, AvatarElement, ImageMedia, VideoMedia, Background, SelectedElementType, ShapeElement } from '@/types/scene';
+import { Scene, TextElement, ImageElement, VideoElement, AvatarElement, ImageMedia, VideoMedia, Background, SelectedElementType, ShapeElement, ShapeType } from '@/types/scene';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import { ContentMediaItem } from '@/api/media';
+import { collectAllElements } from '@/utils/layer-controls'; // Import the layer control utility
 
 /**
  * Hook for managing element operations (text, image, video, avatar)
@@ -16,6 +17,17 @@ export const useElementOperations = (
   canvasDimensions: { width: number, height: number },
   selectedElement :SelectedElementType | null
 ) => {
+  // Helper function to get the highest zIndex + 1 for new elements
+  const getTopZIndex = useCallback(() => {
+    // Collect all elements and find the highest zIndex
+    const elements = collectAllElements(scenes, activeScene);
+    if (elements.length === 0) return 2; // Start from 2 if no elements (1 is for background)
+    
+    // Find the maximum zIndex among all elements
+    const maxZIndex = Math.max(...elements.map(el => el.zIndex));
+    return maxZIndex + 1; // Return the highest + 1 to ensure it's on top
+  }, [scenes, activeScene]);
+  
   const handleTextChange = useCallback(
     (newText: string) => {
       // 从闭包中获取 selectedElement
@@ -69,10 +81,14 @@ const handleTextUpdate = useCallback(
   const handleAddTextElement = useCallback(
     (type: "title" | "subtitle" | "body") => {
       const newScenes = [...scenes];
+      
+      // Get the top zIndex for the new element
+      const topZIndex = getTopZIndex();
+      
       // Create new text element
       const newText: TextElement = {
         content: type === "title" ? "标题" : type === "subtitle" ? "副标题" : "正文",
-        fontSize: type === "title" ? 216 : type === "subtitle" ? 130 : 65,
+        fontSize: type === "title" ? 144 : type === "subtitle" ? 120 : 65,
         x: canvasDimensions.width / 2 - 400, // Center horizontally
         y: canvasDimensions.height / 2 - 100, // Center vertically
         width: 800, // Increase width to fit text
@@ -83,7 +99,8 @@ const handleTextUpdate = useCallback(
         backgroundColor: "rgba(255, 255, 255, 0)",
         bold: type === "title",
         italic: false,
-        alignment: "center"
+        alignment: "left",
+        zIndex: topZIndex // Use dynamic top zIndex
       };
 
       // Add new text element to current scene
@@ -100,7 +117,7 @@ const handleTextUpdate = useCallback(
       });
       setActiveTab("Text");
     },
-    [scenes, activeScene, updateHistory, canvasDimensions, setSelectedElement, setActiveTab]
+    [scenes, activeScene, updateHistory, canvasDimensions, setSelectedElement, setActiveTab, getTopZIndex]
   );
 
   // Image operations
@@ -214,6 +231,9 @@ const handleTextUpdate = useCallback(
     (avatarSrc: string) => {
       const newScenes = [...scenes];
 
+      // Get the top zIndex for the new element
+      const topZIndex = getTopZIndex();
+
       // Create new avatar element or update existing one
       const newAvatar: AvatarElement = {
         src: avatarSrc,
@@ -222,7 +242,7 @@ const handleTextUpdate = useCallback(
         x: canvasDimensions.width / 2 - 200, // Center placement
         y: canvasDimensions.height / 2 - 200,
         rotation: 0,
-        zIndex: 10,
+        zIndex: topZIndex, // Use dynamic top zIndex
       };
 
       // Update current scene's avatar
@@ -237,7 +257,7 @@ const handleTextUpdate = useCallback(
       });
       setActiveTab("Avatar");
     },
-    [scenes, activeScene, updateHistory, canvasDimensions, setSelectedElement, setActiveTab]
+    [scenes, activeScene, updateHistory, canvasDimensions, setSelectedElement, setActiveTab, getTopZIndex]
   );
 
   // Media operations
@@ -250,6 +270,9 @@ const handleTextUpdate = useCallback(
         toast.error("Cannot add media: current scene does not exist");
         return;
       }
+
+      // Get the top zIndex for the new element
+      const topZIndex = getTopZIndex();
 
       // Ensure media array is initialized
       if (!Array.isArray(newScenes[activeScene].media)) {
@@ -315,7 +338,7 @@ const handleTextUpdate = useCallback(
             x: x,
             y: y,
             rotation: 0,
-            zIndex: 10
+            zIndex: topZIndex // Use dynamic top zIndex
           }
         };
 
@@ -340,7 +363,7 @@ const handleTextUpdate = useCallback(
             x: x,
             y: y,
             rotation: 0,
-            zIndex: 10,
+            zIndex: topZIndex, // Use dynamic top zIndex
             volume: 0.5,
             loop: false,
             autoplay: true,
@@ -364,7 +387,7 @@ const handleTextUpdate = useCallback(
       // Switch to Media tab
       setActiveTab("Media");
     },
-    [scenes, activeScene, updateHistory, canvasDimensions, setSelectedElement, setActiveTab]
+    [scenes, activeScene, updateHistory, canvasDimensions, setSelectedElement, setActiveTab, getTopZIndex]
   );
 
   // Background operations
@@ -378,6 +401,46 @@ const handleTextUpdate = useCallback(
   );
 
   // Shape operations
+  const handleAddShapeElement = useCallback(
+    (shapeType: ShapeType) => {
+      const centerX = canvasDimensions.width / 2 - 100; // 居中位置
+      const centerY = canvasDimensions.height / 2 - 100;
+      
+      // Get the top zIndex for the new element
+      const topZIndex = getTopZIndex();
+      
+      // 确保shapes数组已初始化
+      const newScenes = [...scenes];
+      if (!Array.isArray(newScenes[activeScene].shapes)) {
+        newScenes[activeScene].shapes = [];
+      }
+      
+      // 创建新形状
+      const newShape: ShapeElement = {
+        type: shapeType,
+        width: 200,
+        height: 200,
+        x: centerX,
+        y: centerY,
+        rotation: 0,
+        fill: "#000000", // 默认颜色
+        stroke: "#000000",
+        strokeWidth: 2,
+        zIndex: topZIndex // Use dynamic top zIndex
+      };
+      
+      // 添加到当前场景
+      newScenes[activeScene].shapes.push(newShape);
+      updateHistory(newScenes);
+      
+      // 选中新添加的形状
+      const index = newScenes[activeScene].shapes.length - 1;
+      setSelectedElement({ type: "shape", index });
+      setActiveTab("Shape");
+    },
+    [scenes, activeScene, updateHistory, canvasDimensions, setSelectedElement, setActiveTab, getTopZIndex]
+  );
+
   const handleShapeUpdate = useCallback(
     (updates: Partial<ShapeElement>) => {
       if (!selectedElement || selectedElement.type !== "shape" || selectedElement.index === undefined) return;
@@ -465,6 +528,7 @@ const getSelectedMedia = useCallback(
     handleBackgroundChange,
     
     // Shape operations
-    handleShapeUpdate,
+    handleAddShapeElement,
+    handleShapeUpdate
   };
 };

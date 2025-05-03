@@ -9,7 +9,7 @@ export type ShapeType =
   | "circle" 
   | "triangle" 
   | "star" 
-  | "diamond" 
+  | "diamond"
   | "pentagon" 
   | "hexagon" 
   | "heart" 

@@ -274,7 +274,8 @@ export default function VideoEditor() {
         handleAddMedia,
         getSelectedMedia,
         handleBackgroundChange,
-        handleShapeUpdate
+        handleShapeUpdate,
+        handleAddShapeElement
     } = useElementOperations(
         scenes,
         activeScene,
@@ -499,39 +500,7 @@ const handleCopyScene = useCallback(async () => {
     }
 }, [scenes, activeScene, updateHistory]);
 
-    // 处理添加形状的函数
-    const handleAddShapeElement = (shapeType: ShapeType) => {
-        const centerX = currentCanvasDimensions.width / 2 - 50; // 居中位置
-        const centerY = currentCanvasDimensions.height / 2 - 50;
-        
-        // 确保shapes数组已初始化
-        const newScenes = [...scenes];
-        if (!Array.isArray(newScenes[activeScene].shapes)) {
-            newScenes[activeScene].shapes = [];
-        }
-        
-        // 创建新形状
-        const newShape: ShapeElement = {
-            type: shapeType,
-            width: 100,
-            height: 100,
-            x: centerX,
-            y: centerY,
-            rotation: 0,
-            fill: "#" + Math.floor(Math.random()*16777215).toString(16), // 随机颜色
-            stroke: "#000000",
-            strokeWidth: 2,
-            zIndex: 20
-        };
-        
-        // 添加到当前场景
-        newScenes[activeScene].shapes.push(newShape);
-        updateHistory(newScenes);
-        
-        // 选中新添加的形状
-        const index = newScenes[activeScene].shapes.length - 1;
-        handleElementSelect({ type: "shape", index });
-    };
+    // 使用hook中的方法处理添加形状
 
     return (
         <div className="flex flex-col h-screen bg-white">
@@ -696,15 +665,7 @@ const handleCopyScene = useCallback(async () => {
                                                     <ResizableShape
                                                         {...shape}
                                                         onResize={(newSize) => {
-                                                            const newScenes = [...scenes];
-                                                            if (!newScenes[activeScene].shapes) {
-                                                                newScenes[activeScene].shapes = [];
-                                                            }
-                                                            newScenes[activeScene].shapes[index] = {
-                                                                ...shape,
-                                                                ...newSize
-                                                            };
-                                                            updateHistory(newScenes);
+                                                            handleShapeUpdate(newSize);
                                                         }}
                                                         onSelect={() => handleElementSelect({ type: "shape", index })}
                                                         isSelected={selectedElement?.type === "shape" && selectedElement.index === index}

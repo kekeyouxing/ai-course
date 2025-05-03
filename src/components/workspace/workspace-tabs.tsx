@@ -12,12 +12,6 @@ import { useState } from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ShapeType } from "@/types/scene"
 
-interface Profile {
-    id: string
-    name: string
-    image: string
-}
-
 interface VideoTabsProps {
     tabs: string[]
     activeTab: string
@@ -279,15 +273,6 @@ function ShapeTypeSelector({
             icon: (
                 <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="3">
                     <line x1="5" y1="20" x2="35" y2="20" />
-                </svg>
-            )
-        },
-        { 
-            type: "rhombus", 
-            label: "菱形",
-            icon: (
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="currentColor">
-                    <polygon points="20,5 35,20 20,35 5,20" />
                 </svg>
             )
         }
