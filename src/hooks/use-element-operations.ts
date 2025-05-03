@@ -40,8 +40,11 @@ export const useElementOperations = (
         newScenes[activeScene].texts.length > selectedElement.index &&
         selectedElement.index >= 0
       ) {
-        newScenes[activeScene].texts[selectedElement.index].content = newText;
-        updateHistory(newScenes);
+        // 只有当内容真正发生变化时才更新，避免不必要的状态更新
+        if (newScenes[activeScene].texts[selectedElement.index].content !== newText) {
+          newScenes[activeScene].texts[selectedElement.index].content = newText;
+          updateHistory(newScenes);
+        }
       } else {
         console.error("Invalid text element index:", selectedElement.index);
         toast.error("Text element does not exist");

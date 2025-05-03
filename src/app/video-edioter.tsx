@@ -67,9 +67,6 @@ import { useElementOperations } from "@/hooks/use-element-operations";
 // 导入防抖更新Hook
 import { useDebouncedSceneUpdate } from "@/hooks/use-debounced-update";
 
-// 生成唯一ID的函数
-const generateId = () => Math.random().toString(36).substring(2, 9);
-
 export default function VideoEditor() {
     // 添加加载状态
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -187,19 +184,25 @@ export default function VideoEditor() {
     }, [projectId, CANVAS_DIMENSIONS, setAspectRatio, setPreviewDimensions]);
 
     const handleElementSelect = useCallback((element: SelectedElementType | null) => {
-        setSelectedElement(element)
-
-        // Update activeTab based on selected element
-        if (element?.type === "text") {
-            setActiveTab("Text")
-        } else if (element?.type === "avatar") {
-            setActiveTab("Avatar")
-        } else if (element?.type === "image" || element?.type === "video") {
-            setActiveTab("Media")
-        } else if (element?.type === "shape") {
-            setActiveTab("Shape")
-        }
-    }, [])
+        // 先清除当前选中的元素，再设置新的选中元素
+        // 这样可以防止不同元素之间的状态混乱
+        setSelectedElement(null);
+        // 使用setTimeout确保状态清除后再设置新状态
+        setTimeout(() => {
+            setSelectedElement(element);
+            
+            // Update activeTab based on selected element
+            if (element?.type === "text") {
+                setActiveTab("Text");
+            } else if (element?.type === "avatar") {
+                setActiveTab("Avatar");
+            } else if (element?.type === "image" || element?.type === "video") {
+                setActiveTab("Media");
+            } else if (element?.type === "shape") {
+                setActiveTab("Shape");
+            }
+        }, 0);
+    }, [setActiveTab]);
 
     // 修改updateHistory函数，添加后端同步
     const updateHistory = useCallback(
