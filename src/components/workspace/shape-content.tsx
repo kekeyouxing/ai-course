@@ -269,9 +269,32 @@ export function ShapeContent({ shape, onUpdate, sceneId }: ShapeContentProps) {
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="text-sm font-medium">Hex</div>
-                      <div className="flex h-8 w-24 rounded-md border border-input bg-background px-3 py-1 text-sm items-center">
-                        {shape.fill}
-                      </div>
+                      <input
+                        type="text"
+                        value={shape.fill}
+                        onChange={(e) => {
+                          let value = e.target.value;
+                          // Auto-add # if missing
+                          if (value.length > 0 && value[0] !== '#') {
+                            value = '#' + value;
+                          }
+                          handleChange({ fill: value });
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur();
+                          }
+                        }}
+                        onBlur={(e) => {
+                          // Validate hex color on blur
+                          const isValidHex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(e.target.value);
+                          if (!isValidHex) {
+                            // Reset to previous valid color if invalid
+                            handleChange({ fill: shape.fill });
+                          }
+                        }}
+                        className="flex h-8 w-24 rounded-md border border-input bg-background px-3 py-1 text-sm items-center"
+                      />
                     </div>
                   </PopoverContent>
                 </Popover>
@@ -310,9 +333,27 @@ export function ShapeContent({ shape, onUpdate, sceneId }: ShapeContentProps) {
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="text-sm font-medium">Hex</div>
-                      <div className="flex h-8 w-24 rounded-md border border-input bg-background px-3 py-1 text-sm items-center">
-                        {shape.stroke}
-                      </div>
+                      <input
+                        type="text"
+                        value={shape.stroke}
+                        onChange={(e) => {
+                          let value = e.target.value;
+                          // Auto-add # if missing
+                          if (value.length > 0 && value[0] !== '#') {
+                            value = '#' + value;
+                          }
+                          handleChange({ stroke: value });
+                        }}
+                        onBlur={(e) => {
+                          // Validate hex color on blur
+                          const isValidHex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(e.target.value);
+                          if (!isValidHex) {
+                            // Reset to previous valid color if invalid
+                            handleChange({ stroke: shape.stroke });
+                          }
+                        }}
+                        className="flex h-8 w-24 rounded-md border border-input bg-background px-3 py-1 text-sm items-center"
+                      />
                     </div>
                   </PopoverContent>
                 </Popover>

@@ -610,9 +610,32 @@ export default function TextContent({ textElement, onUpdate, sceneId }: TextCont
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="text-sm font-medium">Hex</div>
-                      <div className="flex h-8 w-24 rounded-md border border-input bg-background px-3 py-1 text-sm items-center">
-                        {fontColor}
-                      </div>
+                      <input
+                        type="text"
+                        value={fontColor}
+                        onChange={(e) => {
+                          let value = e.target.value;
+                          // Auto-add # if missing
+                          if (value.length > 0 && value[0] !== '#') {
+                            value = '#' + value;
+                          }
+                          handleFontColorChange(value);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur();
+                          }
+                        }}
+                        onBlur={(e) => {
+                          // Validate hex color on blur
+                          const isValidHex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(e.target.value);
+                          if (!isValidHex) {
+                            // Reset to previous valid color if invalid
+                            handleFontColorChange(fontColor);
+                          }
+                        }}
+                        className="flex h-8 w-24 rounded-md border border-input bg-background px-3 py-1 text-sm items-center"
+                      />
                     </div>
                   </PopoverContent>
                 </Popover>
@@ -651,9 +674,42 @@ export default function TextContent({ textElement, onUpdate, sceneId }: TextCont
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="text-sm font-medium">Color</div>
-                      <div className="flex h-8 w-36 rounded-md border border-input bg-background px-3 py-1 text-sm items-center">
-                        {backgroundColor}
-                      </div>
+                      <input
+                        type="text"
+                        value={backgroundColor}
+                        onChange={(e) => handleBackgroundColorChange(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur();
+                          }
+                        }}
+                        onBlur={(e) => {
+                          try {
+                            // Validate rgba color format on blur
+                            const isValidRgba = /^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*\d+(?:\.\d+)?)?\s*\)$/.test(e.target.value);
+                            if (!isValidRgba) {
+                              // Reset to previous valid color if invalid
+                              handleBackgroundColorChange(backgroundColor);
+                              // Can show a toast here for better user feedback
+                            } else {
+                              // Make sure values are in valid range
+                              const parsed = parseRgbaString(e.target.value);
+                              const valid = parsed.r >= 0 && parsed.r <= 255 && 
+                                           parsed.g >= 0 && parsed.g <= 255 && 
+                                           parsed.b >= 0 && parsed.b <= 255 && 
+                                           parsed.a >= 0 && parsed.a <= 1;
+                              
+                              if (!valid) {
+                                handleBackgroundColorChange(backgroundColor);
+                              }
+                            }
+                          } catch (error) {
+                            // If parseRgbaString fails, reset to previous value
+                            handleBackgroundColorChange(backgroundColor);
+                          }
+                        }}
+                        className="flex h-8 w-46 rounded-md border border-input bg-background px-3 py-1 text-sm items-center"
+                      />
                     </div>
                   </PopoverContent>
                 </Popover>
