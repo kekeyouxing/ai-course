@@ -22,7 +22,7 @@ interface ResizableTextProps {
     backgroundColor?: string
     bold?: boolean
     italic?: boolean
-    alignment?: "left" | "center" | "right"
+    alignment?: "left" | "center" | "right" | "justify"
     zIndex?: number
     onTextChange: (newText: string) => void
     onResize: (newSize: Partial<ResizableTextProps>) => void

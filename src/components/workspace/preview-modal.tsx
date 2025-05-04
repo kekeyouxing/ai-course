@@ -1111,7 +1111,6 @@ export default function PreviewModal({
                                                     imageMedia.element.width,
                                                     imageMedia.element.height
                                                 );
-                                                console.log({ x, y, width, height })
                                                 // 检查图片元素是否应该可见（基于动画标记）
                                                 const isVisible = isElementVisible(
                                                     imageMedia.element.startAnimationMarkerId,
@@ -1340,7 +1339,7 @@ export default function PreviewModal({
                                         {!isPlaying && (
                                             <Button
                                                 onClick={togglePlay}
-                                                className="absolute z-20 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+                                                className="absolute z-20 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm cursor-pointer"
                                                 style={{
                                                     left: '50%',
                                                     top: '50%',
@@ -1410,7 +1409,7 @@ export default function PreviewModal({
                                                         size="icon"
                                                         onClick={handlePrevScene}
                                                         disabled={currentSceneIndex === 0}
-                                                        className="text-white hover:bg-white/10 h-8 w-8"
+                                                        className="text-white hover:bg-white/10 h-8 w-8 cursor-pointer"
                                                     >
                                                         <SkipBack className="h-4 w-4" />
                                                     </Button>
@@ -1419,7 +1418,7 @@ export default function PreviewModal({
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={togglePlay}
-                                                        className="text-white hover:bg-white/10 h-8 w-8"
+                                                        className="text-white hover:bg-white/10 h-8 w-8 cursor-pointer"
                                                     >
                                                         {isLoading ? (
                                                             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -1435,7 +1434,7 @@ export default function PreviewModal({
                                                         size="icon"
                                                         onClick={handleNextScene}
                                                         disabled={currentSceneIndex === scenes.length - 1}
-                                                        className="text-white hover:bg-white/10 h-8 w-8"
+                                                        className="text-white hover:bg-white/10 h-8 w-8 cursor-pointer"
                                                     >
                                                         <SkipForward className="h-4 w-4" />
                                                     </Button>
@@ -1448,7 +1447,7 @@ export default function PreviewModal({
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={toggleMute}
-                                                        className="text-white hover:bg-white/10 h-8 w-8"
+                                                        className="text-white hover:bg-white/10 h-8 w-8 cursor-pointer"
                                                     >
                                                         {isMuted ? (
                                                             <VolumeX className="h-4 w-4" />
@@ -1470,7 +1469,7 @@ export default function PreviewModal({
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={toggleFullscreen}
-                                                    className="text-white hover:bg-white/10 h-8 w-8"
+                                                    className="text-white hover:bg-white/10 h-8 w-8 cursor-pointer"
                                                 >
                                                     <Maximize2 className="h-4 w-4" />
                                                 </Button>
@@ -1510,7 +1509,7 @@ export default function PreviewModal({
                                                 currentSceneIndex === index
                                                     ? "bg-blue-100 text-blue-700"
                                                     : isPlayable
-                                                    ? "hover:bg-gray-100 cursor-pointer"
+                                                    ? "hover:bg-gray-100 cursor-pointer hover:shadow-sm"
                                                     : "bg-gray-50 text-gray-400 cursor-not-allowed"
                                             }`}
                                             onClick={() => {

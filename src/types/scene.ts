@@ -1,4 +1,4 @@
-export type TextAlignment = "left" | "center" | "right"
+export type TextAlignment = "left" | "center" | "right" | "justify"
 
 // 定义比例类型
 export type AspectRatioType = "16:9" | "9:16" | "1:1" | "4:3";
