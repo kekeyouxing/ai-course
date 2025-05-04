@@ -1033,6 +1033,14 @@ export default function PreviewModal({
                                             />
                                         )}
 
+                                        {/* 添加一个透明层，防止文本内容被选择 */}
+                                        {isPlaying && (
+                                            <div 
+                                                className="absolute inset-0 z-5 bg-transparent" 
+                                                style={{ pointerEvents: 'auto', userSelect: 'none' }}
+                                            />
+                                        )}
+
                                         {/* 渲染场景中的文本元素 */}
                                         {scene?.texts?.map((textElement, index) => {
                                             const { x, y, width, height } = calculateScaledPosition(
@@ -1067,7 +1075,8 @@ export default function PreviewModal({
                                                         left: `${x}px`,
                                                         top: `${y}px`,
                                                         width: `${width}px`,
-                                                        height: `${height}px`,
+                                                        height: "auto",
+                                                        // minHeight: `${height}px`,
                                                         zIndex: textElement.zIndex || 10,
                                                     }}
                                                 >
@@ -1092,7 +1101,10 @@ export default function PreviewModal({
                                                             overflow: 'visible',
                                                             opacity: animationStyle.opacity,
                                                             transform: animationStyle.transform ? `${animationStyle.transform} rotate(${textElement.rotation || 0}deg)` : `rotate(${textElement.rotation || 0}deg)`,
-                                                            transition: animationStyle.transition
+                                                            transition: animationStyle.transition,
+                                                            userSelect: 'none', // 防止文本被选择
+                                                            pointerEvents: 'none', // 防止文本捕获鼠标事件
+                                                            lineHeight: '1.2',
                                                         }}
                                                     >
                                                         {textElement.content}
@@ -1139,6 +1151,7 @@ export default function PreviewModal({
                                                             width: `${width}px`,
                                                             height: `${height}px`,
                                                             zIndex: imageMedia.element.zIndex || 5,
+                                                            pointerEvents: 'none', // 防止图片捕获鼠标事件
                                                         }}
                                                     >
                                                         <img
@@ -1148,7 +1161,8 @@ export default function PreviewModal({
                                                             style={{
                                                                 opacity: animationStyle.opacity,
                                                                 transform: animationStyle.transform ? `${animationStyle.transform} rotate(${imageMedia.element.rotation || 0}deg)` : `rotate(${imageMedia.element.rotation || 0}deg)`,
-                                                                transition: animationStyle.transition
+                                                                transition: animationStyle.transition,
+                                                                userSelect: 'none', // 防止图片被选择
                                                             }}
                                                         />
                                                     </div>
@@ -1192,6 +1206,7 @@ export default function PreviewModal({
                                                             width: `${width}px`,
                                                             height: `${height}px`,
                                                             zIndex: videoMedia.element.zIndex || 5,
+                                                            pointerEvents: 'none', // 防止视频捕获鼠标事件
                                                         }}
                                                     >
                                                         <video
@@ -1203,7 +1218,8 @@ export default function PreviewModal({
                                                             style={{
                                                                 opacity: animationStyle.opacity,
                                                                 transform: animationStyle.transform ? `${animationStyle.transform} rotate(${videoMedia.element.rotation || 0}deg)` : `rotate(${videoMedia.element.rotation || 0}deg)`,
-                                                                transition: animationStyle.transition
+                                                                transition: animationStyle.transition,
+                                                                userSelect: 'none', // 防止视频被选择
                                                             }}
                                                         />
                                                     </div>
@@ -1232,6 +1248,8 @@ export default function PreviewModal({
                                                             height: `${height}px`,
                                                             zIndex: scene.avatar.zIndex || 10,
                                                             transform: `rotate(${scene.avatar.rotation || 0}deg)`,
+                                                            pointerEvents: 'none', // 防止头像捕获鼠标事件
+                                                            userSelect: 'none', // 防止头像被选择
                                                         }}
                                                     >
                                                         <img
@@ -1313,7 +1331,9 @@ export default function PreviewModal({
                                                             ? `${animationStyle.transform} rotate(${shape.rotation || 0}deg)` 
                                                             : `rotate(${shape.rotation || 0}deg)`,
                                                         transition: animationStyle.transition,
-                                                        transformOrigin: 'center center'
+                                                        transformOrigin: 'center center',
+                                                        pointerEvents: 'none', // 防止形状捕获鼠标事件
+                                                        userSelect: 'none', // 防止形状被选择
                                                     }}
                                                 >
                                                     <svg 
@@ -1337,27 +1357,38 @@ export default function PreviewModal({
 
                                         {/* 播放按钮 */}
                                         {!isPlaying && (
-                                            <Button
-                                                onClick={togglePlay}
-                                                className="absolute z-20 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm cursor-pointer"
-                                                style={{
-                                                    left: '50%',
-                                                    top: '50%',
-                                                    transform: 'translate(-50%, -50%)',
-                                                    width: '56px',
-                                                    height: '56px',
-                                                    padding: 0,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center'
-                                                }}
-                                            >
-                                                {isLoading ? (
-                                                    <div className="h-7 w-7 animate-spin rounded-full border-4 border-white border-t-transparent" />
-                                                ) : (
-                                                    <Play className="h-7 w-7 text-white fill-white" />
-                                                )}
-                                            </Button>
+                                            <>
+                                                {/* 添加一个全屏透明蒙层，拦截所有下层元素的事件 */}
+                                                <div 
+                                                    className="absolute inset-0 z-15 bg-transparent"
+                                                    onClick={togglePlay}
+                                                    style={{ pointerEvents: 'auto' }}
+                                                />
+                                                
+                                                {/* 播放按钮 */}
+                                                <Button
+                                                    onClick={togglePlay}
+                                                    className="absolute z-20 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm cursor-pointer"
+                                                    style={{
+                                                        left: '50%',
+                                                        top: '50%',
+                                                        transform: 'translate(-50%, -50%)',
+                                                        width: '56px',
+                                                        height: '56px',
+                                                        padding: 0,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        pointerEvents: 'auto', // 确保元素可以接收鼠标事件
+                                                    }}
+                                                >
+                                                    {isLoading ? (
+                                                        <div className="h-7 w-7 animate-spin rounded-full border-4 border-white border-t-transparent" />
+                                                    ) : (
+                                                        <Play className="h-7 w-7 text-white fill-white" />
+                                                    )}
+                                                </Button>
+                                            </>
                                         )}
 
                                         {/* 错误提示 */}
