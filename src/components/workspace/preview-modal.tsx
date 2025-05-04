@@ -1003,9 +1003,6 @@ export default function PreviewModal({
                                     style={getContainerStyle(scene?.aspectRatio)}
                                 >
                                     <div className="absolute inset-0 flex items-center justify-center">
-                                        {/* 内容保持不变 */}
-                                        {!isPlaying && <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />}
-
                                         {/* 场景背景 */}
                                         <div
                                             className="absolute inset-0 bg-cover bg-center z-0"
