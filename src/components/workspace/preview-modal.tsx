@@ -1084,7 +1084,6 @@ export default function PreviewModal({
                                                             justifyContent: 'center',
                                                             height: '100%',
                                                             width: '100%',
-                                                            padding: '4px',
                                                             whiteSpace: 'pre-wrap',
                                                             wordBreak: 'break-word',
                                                             overflow: 'visible',
