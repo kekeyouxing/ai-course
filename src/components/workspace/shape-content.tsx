@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Square, RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -84,14 +84,15 @@ export function ShapeContent({ shape, onUpdate, sceneId }: ShapeContentProps) {
       setLoadingMarkers(false);
     }
   };
-
+  useEffect(() => {
+    if (sceneId) {
+      fetchAnimationMarkers();
+    }
+    // 只依赖 sceneId，避免不必要的重复请求
+  }, [sceneId]);
   // 处理标签切换
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    // 当切换到动画标签时，获取最新的动画标记
-    if (tab === "animate" && sceneId) {
-      fetchAnimationMarkers();
-    }
   };
 
   // 处理布局变化，确保与text-content保持一致

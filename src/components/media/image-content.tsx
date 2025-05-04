@@ -41,14 +41,16 @@ export default function ImageContent({ imageElement, onUpdate, onDelete, sceneId
       setLoadingMarkers(false);
     }
   };
-  
+  useEffect(() => {
+    if (sceneId) {
+      fetchAnimationMarkers();
+    }
+    // 只依赖 sceneId，避免不必要的重复请求
+  }, [sceneId]);
   // 处理标签切换
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    // 当切换到动画标签时，获取最新的动画标记
-    if (tab === "animate" && sceneId) {
-      fetchAnimationMarkers();
-    }
+
   };
 
   // 处理旋转变化

@@ -43,13 +43,16 @@ export default function TextContent({ textElement, onUpdate, sceneId }: TextCont
     }
   };
 
+  useEffect(() => {
+    if (sceneId) {
+      fetchAnimationMarkers();
+    }
+    // 只依赖 sceneId，避免不必要的重复请求
+  }, [sceneId]);
+
   // 处理标签切换
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    // 当切换到动画标签时，获取最新的动画标记
-    if (tab === "animate" && sceneId) {
-      fetchAnimationMarkers();
-    }
   };
   const [textAlignment, setTextAlignment] = useState<TextAlignment>(textElement?.alignment || "left")
   const [fontColor, setFontColor] = useState(textElement?.fontColor || "#000000")
