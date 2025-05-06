@@ -72,7 +72,6 @@ export default function PreviewModal({
       const result = await getSceneAnimationMarkers(scene.id);
       console.log("API 返回结果:", result);
       if (result.code === 0 && result.data?.markers) {
-        console.log("成功获取动画标记:", result.data.markers.length, "个标记");
         setAnimationMarkers(result.data.markers);
       } else {
         console.error("获取标记失败, API返回:", result);
@@ -1065,7 +1064,6 @@ export default function PreviewModal({
                                                         top: `${y}px`,
                                                         width: `${width}px`,
                                                         height: "auto",
-                                                        // minHeight: `${height}px`,
                                                         zIndex: textElement.zIndex || 10,
                                                     }}
                                                 >
@@ -1335,34 +1333,6 @@ export default function PreviewModal({
                                                 </div>
                                             );
                                         })}
-
-                                        {/* 播放按钮 */}
-                                        {!isPlaying && (
-                                            <>
-                                                {/* 播放按钮 */}
-                                                <Button
-                                                    onClick={togglePlay}
-                                                    className="absolute z-20 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm cursor-pointer"
-                                                    style={{
-                                                        left: '50%',
-                                                        top: '50%',
-                                                        transform: 'translate(-50%, -50%)',
-                                                        width: '56px',
-                                                        height: '56px',
-                                                        padding: 0,
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center'
-                                                    }}
-                                                >
-                                                    {isLoading ? (
-                                                        <div className="h-7 w-7 animate-spin rounded-full border-4 border-white border-t-transparent" />
-                                                    ) : (
-                                                        <Play className="h-7 w-7 text-white fill-white" />
-                                                    )}
-                                                </Button>
-                                            </>
-                                        )}
 
                                         {/* 错误提示 */}
                                         {error && (

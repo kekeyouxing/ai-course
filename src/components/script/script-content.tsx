@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Play, Wand2, Bot} from "lucide-react"
+import { Play, Wand2, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import CustomEditor from "@/components/script/custom-editor"
 import TimePicker from "@/components/script/time-picker"
@@ -71,7 +71,7 @@ export default function ScriptContent({
     updateScene({ script: newScript });
   };
 
-  // 添加获取声音数据的 useEffect
+  // 只获取声音列表
   useEffect(() => {
     const fetchVoices = async () => {
       setLoading(true)
@@ -79,29 +79,25 @@ export default function ScriptContent({
       if (result.success) {
         setSystemVoices(result.systemVoices)
         setClonedVoices(result.clonedVoices)
-
-        // 如果场景中已有voiceId，则使用它
-        if (scene.voiceId) {
-          setSelectedVoiceId(scene.voiceId);
-        }
-        // 如果场景中没有voiceId，但是有自定义声音，则选择第一个自定义声音
-        else if (result.clonedVoices.length > 0) {
-          setSelectedVoiceId(result.clonedVoices[0].voice_id);
-          // 更新场景的voiceId
-          updateScene({ voiceId: result.clonedVoices[0].voice_id });
-        }
-        // 如果没有自定义声音，则选择第一个系统声音
-        else if (result.systemVoices.length > 0) {
-          setSelectedVoiceId(result.systemVoices[0].voice_id);
-          // 更新场景的voiceId
-          updateScene({ voiceId: result.systemVoices[0].voice_id });
-        }
       }
       setLoading(false)
     }
 
     fetchVoices()
-  }, [scene.id, scene.voiceId, updateScene])
+  }, []) // 空依赖数组，只在组件挂载时获取
+
+  // 处理选择声音逻辑
+  useEffect(() => {
+    if (scene.voiceId) {
+      setSelectedVoiceId(scene.voiceId);
+    } else if (clonedVoices.length > 0) {
+      setSelectedVoiceId(clonedVoices[0].voice_id);
+      updateScene({ voiceId: clonedVoices[0].voice_id });
+    } else if (systemVoices.length > 0) {
+      setSelectedVoiceId(systemVoices[0].voice_id);
+      updateScene({ voiceId: systemVoices[0].voice_id });
+    }
+  }, [scene.voiceId, clonedVoices, systemVoices])
 
   // 添加获取动画标记的 useEffect
   useEffect(() => {
@@ -278,7 +274,7 @@ export default function ScriptContent({
         sceneId: scene.id,
         language: language
       });
-      
+
       if (result.code === 0 && result.data?.result) {
         // 更新脚本内容
         updateScene({ script: result.data.result });
@@ -344,7 +340,7 @@ export default function ScriptContent({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
@@ -363,13 +359,13 @@ export default function ScriptContent({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="rounded-full h-10 flex items-center gap-1 px-3"
                   onClick={handleGenerateScript}
                   disabled={aiGenerating}
@@ -406,7 +402,7 @@ export default function ScriptContent({
         {/* Bottom: Control Buttons */}
         <div className="flex justify-center mt-auto">
           <div className="flex items-center gap-3 bg-background border rounded-full px-4 py-1.5">
-            
+
             <TimePicker
               value={timeValue}
               onChange={setTimeValue}
@@ -463,8 +459,8 @@ export default function ScriptContent({
         {/* 音频播放器 */}
         {scene.audioSrc && (
           <div className="mt-4">
-            <AudioPlayer 
-              audioUrl={scene.audioSrc} 
+            <AudioPlayer
+              audioUrl={scene.audioSrc}
               audioLength={scene.duration || 0}
               autoPlay={true}
               className="w-full"

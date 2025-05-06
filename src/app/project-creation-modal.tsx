@@ -9,6 +9,7 @@ import instance from '@/api/axios';
 import { v4 as uuidv4 } from 'uuid';
 import { createProject } from "@/api/project";
 import { useAuth } from "@/hooks/use-auth";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ProjectCreationModalProps {
     isOpen: boolean;
@@ -23,6 +24,8 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
     const [fileUrl, setFileUrl] = useState<string>("");
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
     const [processingStage, setProcessingStage] = useState<string>("");
+    const [fileType, setFileType] = useState<"ppt" | "pdf">("ppt");
+    const [projectName, setProjectName] = useState<string>("");
     const INVALID_FILE_ERROR = '文件大小或格式无效!';
     
     const clearData = () => {
@@ -30,6 +33,14 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
         setUploadComplete(false);
         setFileUrl('');
         setFile(null);
+        setProjectName('');
+    };
+
+    // 从文件名提取项目名称（去掉扩展名）
+    const extractProjectName = (filename: string): string => {
+        // 移除文件扩展名
+        const name = filename.replace(/\.(pdf|pptx)$/i, '');
+        return name || "未命名项目";
     };
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -37,9 +48,15 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
         clearData();
 
         const validFile = acceptedFiles.find((file) => {
-            const isPPTX = file.name.endsWith('.pptx');
-            const isUnderSize = file.size <= 50 * 1024 * 1024; // 50MB
-            return isPPTX && isUnderSize;
+            if (fileType === "ppt") {
+                const isPPTX = file.name.endsWith('.pptx');
+                const isUnderSize = file.size <= 50 * 1024 * 1024; // 50MB
+                return isPPTX && isUnderSize;
+            } else {
+                const isPDF = file.name.endsWith('.pdf');
+                const isUnderSize = file.size <= 50 * 1024 * 1024; // 50MB
+                return isPDF && isUnderSize;
+            }
         });
 
         if (!validFile) {
@@ -48,15 +65,19 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
         }
         console.log("找到有效文件:", validFile.name);
 
+        // 设置项目名称
+        const name = extractProjectName(validFile.name);
+        setProjectName(name);
+        
         setFile(validFile);
         handleUpload(validFile);
-    }, []);
+    }, [fileType]);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
-        accept: {
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
-        },
+        accept: fileType === "ppt" 
+            ? { 'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'] }
+            : { 'application/pdf': ['.pdf'] },
         maxSize: 50 * 1024 * 1024, // 50MB
     });
 
@@ -100,9 +121,15 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
             // 获取当前用户ID
             const { user } = useAuth.getState();
             const userId = user?.userID || 'anonymous';
+            
+            // 如果还没有设置项目名称（以防万一），设置它
+            if (!projectName && uploadFile.name) {
+                const name = extractProjectName(uploadFile.name);
+                setProjectName(name);
+            }
 
-            // 上传PPT文件，加入用户ID作为前缀
-            const objectKey = `/project/ppt/${userId}/ppt-${uuidv4()}`; // 生成带用户ID的唯一objectKey
+            // 上传文件，加入用户ID作为前缀
+            const objectKey = `/project/${fileType}/${userId}/${fileType}-${uuidv4()}`; // 生成带用户ID的唯一objectKey
             const presignedURL = await generatePresignedURL(objectKey);
 
             await uploadToTencentCloud(uploadFile, presignedURL.data);
@@ -112,13 +139,13 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
             setFileUrl(fileUrlTemp);
         } catch (error) {
             console.log(error);
-            toast.error('PPT上传失败!');
+            toast.error(`${fileType.toUpperCase()}上传失败!`);
         }
     };
 
     const handleCreate = async () => {
         if (!file || !uploadComplete) {
-            toast.error('请先上传PPT文件');
+            toast.error(`请先上传${fileType.toUpperCase()}文件`);
             return;
         }
 
@@ -134,12 +161,14 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
         setIsProcessing(true);
 
         try {
-            setProcessingStage("正在处理PPT文件，这可能需要一点时间...");
-            const projectId = await createProject("ppt", fileUrl);
+            setProcessingStage(`正在处理${fileType.toUpperCase()}文件，这可能需要一点时间...`);
+            // 如果没有项目名称，则设置为"未命名项目"
+            const finalProjectName = projectName.trim() || "未命名项目";
+            const projectId = await createProject(fileType, fileUrl, finalProjectName);
             onCreate(projectId);
             onClose();
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : '处理PPT失败，请重试!');
+            toast.error(error instanceof Error ? error.message : `处理${fileType.toUpperCase()}失败，请重试!`);
         } finally {
             setIsProcessing(false);
             setProcessingStage("");
@@ -150,11 +179,27 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
                 <DialogHeader className="p-6">
-                    <DialogTitle className="text-xl">导入PPT创建项目</DialogTitle>
+                    <DialogTitle className="text-xl">导入文件创建项目</DialogTitle>
                 </DialogHeader>
 
                 <div className="p-6">
-                    {/* 上传PPT文档区域 */}
+                    <Tabs defaultValue="ppt" className="mb-6" onValueChange={(value) => {
+                        setFileType(value as "ppt" | "pdf");
+                        clearData();
+                    }}>
+                        <TabsList className="w-full grid grid-cols-2">
+                            <TabsTrigger value="ppt">PPT导入</TabsTrigger>
+                            <TabsTrigger value="pdf">PDF导入</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="ppt" className="mt-4">
+                            <p className="text-sm text-gray-500 mb-2">从PPT文件创建项目，仅支持.pptx格式，最大50MB</p>
+                        </TabsContent>
+                        <TabsContent value="pdf" className="mt-4">
+                            <p className="text-sm text-gray-500 mb-2">从PDF文件创建项目，仅支持.pdf格式，最大50MB</p>
+                        </TabsContent>
+                    </Tabs>
+                    
+                    {/* 上传文档区域 */}
                     <div
                         {...getRootProps()}
                         className={`
@@ -169,9 +214,13 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
                         <input {...getInputProps()} />
                         <UploadCloud className={`w-12 h-12 mb-4 ${file ? "text-blue-500" : "text-gray-400"}`} />
                         <div className="text-center">
-                            <p className={`font-medium ${file ? "text-blue-600" : "text-gray-600"}`}>上传PPT文件</p>
+                            <p className={`font-medium ${file ? "text-blue-600" : "text-gray-600"}`}>上传{fileType.toUpperCase()}文件</p>
                             <p className="text-gray-600 mt-2">点击上传或拖放文件到此处</p>
-                            <p className="text-sm text-gray-500 mt-1">仅支持.pptx格式，最大50MB</p>
+                            <p className="text-sm text-gray-500 mt-1">
+                                {fileType === "ppt" 
+                                    ? "仅支持.pptx格式，最大50MB" 
+                                    : "仅支持.pdf格式，最大50MB"}
+                            </p>
                         </div>
 
                         {file && (
@@ -196,7 +245,7 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
                             </div>
                         )}
                     </div>
-
+                    
                     {/* 底部按钮区域 */}
                     <div className="flex justify-end">
                         <Button

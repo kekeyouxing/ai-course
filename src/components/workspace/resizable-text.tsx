@@ -72,16 +72,14 @@ export function ResizableText({
     animationDirection = "right",
 }: ResizableTextProps) {
     const [isEditing, setIsEditing] = useState(false)
-    const [localContent, setLocalContent] = useState(content)
     const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuide[]>([])
     const [isDragging, setIsDragging] = useState(false)
-    const [textareaHeight, setTextareaHeight] = useState<number | null>(null);
-    
+
     // 计算实际显示尺寸与标准尺寸的比例
     const scaleX = (containerWidth || canvasWidth) / canvasWidth;
     const scaleY = (containerHeight || canvasHeight) / canvasHeight;
     const scale = Math.min(scaleX, scaleY);
-    
+
     // 将标准坐标和尺寸转换为实际显示尺寸
     const displayX = x * scaleX;
     const displayY = y * scaleY;
@@ -97,10 +95,10 @@ export function ResizableText({
 
     // 使用ref来获取实际内容高度
     const contentRef = useRef<HTMLDivElement>(null);
-    
+
     // 添加一个ref用于textarea
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    
+
     // 自动调整textarea高度的函数
     const adjustTextareaHeight = useCallback(() => {
         if (textareaRef.current) {
@@ -110,13 +108,13 @@ export function ResizableText({
             textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
         }
     }, []);
-    
+
     // 当进入编辑模式或内容变化时，调整textarea高度
     useEffect(() => {
         if (isEditing) {
             adjustTextareaHeight();
         }
-    }, [isEditing, localContent, adjustTextareaHeight]);
+    }, [isEditing, content, adjustTextareaHeight]);
 
     // 当内容变化时，更新实际高度到父组件
     useEffect(() => {
@@ -130,11 +128,6 @@ export function ResizableText({
             }
         }
     }, [content, fontSize, fontFamily, bold, italic, width, scaleY]);
-
-    // 确保组件在接收新的 content 时更新本地状态
-    useEffect(() => {
-        setLocalContent(content);
-    }, [content]);
 
     const handleResizeStop = useCallback(
         (
@@ -158,7 +151,7 @@ export function ResizableText({
     const handleDragStart = useCallback(() => {
         setIsDragging(true);
     }, []);
-    
+
     // Handle drag to check for alignment
     const handleDrag = useCallback(
         (_: DraggableEvent, data: DraggableData) => {
@@ -169,16 +162,16 @@ export function ResizableText({
                 width,
                 height
             };
-            
+
             // Use provided otherElements or empty array if not provided
             const elementsToAlign = otherElements || [];
-            
+
             // Check for snapping
             const { x: snappedX, y: snappedY, guides } = checkForSnapping(currentElement, elementsToAlign, scale);
-            
+
             // Update alignment guides
             setAlignmentGuides(guides);
-            
+
             // If snapping occurred, update position
             if (snappedX !== null || snappedY !== null) {
                 // The snapped position will be applied by the Rnd component
@@ -193,11 +186,11 @@ export function ResizableText({
             // Clear alignment guides
             setAlignmentGuides([]);
             setIsDragging(false);
-            
+
             // 将实际显示位置转换回标准位置，并确保为整数
-            onResize({ 
-                x: Math.round(data.x / scaleX), 
-                y: Math.round(data.y / scaleY) 
+            onResize({
+                x: Math.round(data.x / scaleX),
+                y: Math.round(data.y / scaleY)
             })
         },
         [onResize, scaleX, scaleY],
@@ -220,7 +213,7 @@ export function ResizableText({
             {isDragging && alignmentGuides.length > 0 && (
                 <AlignmentGuides guides={alignmentGuides} scale={scale} />
             )}
-            
+
             <Rnd
                 size={{ width: displayWidth, height: displayHeight }} // 高度设为auto
                 position={{ x: displayX, y: displayY }}
@@ -260,62 +253,62 @@ export function ResizableText({
                         display: "inline-block", // 使元素宽度适应内容
                         whiteSpace: "pre-wrap" // 保证换行正确显示
                     }}
-                    onDoubleClick={() => setIsEditing(true)}                
+                    onDoubleClick={() => setIsEditing(true)}
                 >
-                {isEditing ? (
-                    <textarea
-                        ref={textareaRef}
-                        value={localContent}
-                        onChange={(e) => {
-                            setLocalContent(e.target.value);
-                            // 使用setTimeout确保在下一个渲染周期调整高度
-                            setTimeout(adjustTextareaHeight, 0);
-                        }}
-                        onBlur={() => {
-                            setIsEditing(false);
-                            onTextChange(localContent);
-                        }}
-                        onMouseDown={(e) => e.stopPropagation()} // 阻止事件冒泡
-                        className="w-full bg-transparent outline-none p-0 m-0 resize-none"
-                        style={{ 
-                            fontSize: "inherit", 
-                            fontFamily: "inherit", 
-                            color: "inherit", 
-                            fontWeight: "inherit", 
-                            fontStyle: "inherit", 
-                            textAlign: alignment as any,
-                            lineHeight: "1.2",
-                            minHeight: "1em",
-                            whiteSpace: "pre-wrap", // 保留换行
-                            border: "none",
-                            display: "block", // 块级元素
-                            overflow: "hidden" // 隐藏滚动条
-                        }}
-                        autoFocus
-                    />
-                ) : (
-                    <div className="w-full p-0 m-0" style={{ 
-                        textAlign: alignment,
-                        whiteSpace: "pre-wrap" // 保持与编辑模式一致的换行处理
-                    }}>
-                        {localContent}
-                    </div>
-                )}
-                {/* 只保留左右两侧的控制点，移除上下控制点 */}
-                {isSelected && (
-                    <>
-                        <div
-                            className="absolute right-0 top-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full translate-x-1/2 -translate-y-1/2 cursor-ew-resize">
-                            <div
-                                className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                    {isEditing ? (
+                        <textarea
+                            ref={textareaRef}
+                            value={content}
+                            onChange={(e) => {
+                                // 直接调用onTextChange同步到后端
+                                onTextChange(e.target.value);
+                                // 在文本变化后立即调整高度
+                                setTimeout(adjustTextareaHeight, 0);
+                            }}
+                            onBlur={() => {
+                                setIsEditing(false);
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()} // 阻止事件冒泡
+                            className="w-full bg-transparent outline-none p-0 m-0 resize-none"
+                            style={{
+                                fontSize: "inherit",
+                                fontFamily: "inherit",
+                                color: "inherit",
+                                fontWeight: "inherit",
+                                fontStyle: "inherit",
+                                textAlign: alignment as any,
+                                lineHeight: "1.2",
+                                minHeight: "1em",
+                                whiteSpace: "pre-wrap", // 保留换行
+                                border: "none",
+                                display: "block", // 块级元素
+                                overflow: "hidden" // 隐藏滚动条
+                            }}
+                            autoFocus
+                        />
+                    ) : (
+                        <div className="w-full p-0 m-0" style={{
+                            textAlign: alignment,
+                            whiteSpace: "pre-wrap" // 保持与编辑模式一致的换行处理
+                        }}>
+                            {content}
                         </div>
-                        <div
-                            className="absolute left-0 top-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-ew-resize">
+                    )}
+                    {/* 只保留左右两侧的控制点，移除上下控制点 */}
+                    {isSelected && (
+                        <>
                             <div
-                                className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                        </div>
-                    </>
-                )}
+                                className="absolute right-0 top-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full translate-x-1/2 -translate-y-1/2 cursor-ew-resize">
+                                <div
+                                    className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                            </div>
+                            <div
+                                className="absolute left-0 top-1/2 w-3 h-3 bg-white border border-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-ew-resize">
+                                <div
+                                    className="w-1 h-1 bg-blue-500 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                            </div>
+                        </>
+                    )}
                 </div>
             </Rnd>
         </>

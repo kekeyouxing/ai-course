@@ -72,8 +72,9 @@ export async function renameProject(id: string, newName: string) {
 
 // 在现有导出下方添加新方法
 export async function createProject(
-    type: "empty" | "ppt", 
-    pptUrl?: string
+    type: "empty" | "ppt" | "pdf", 
+    fileUrl?: string,
+    projectName?: string
 ): Promise<string> {
     try {
         const response = await instance.post<{
@@ -84,7 +85,9 @@ export async function createProject(
             msg: string;
         }>("/projects/create", {
             selectType: type,
-            pptUrl: type === "ppt" ? pptUrl : undefined
+            pptUrl: type === "ppt" ? fileUrl : undefined,
+            pdfUrl: type === "pdf" ? fileUrl : undefined,
+            name: projectName
         });
 
         if (response.data.code === 0) {
