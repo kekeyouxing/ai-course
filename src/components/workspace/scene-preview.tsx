@@ -190,12 +190,12 @@ export function ScenePreview({ scene, width, height }: ScenePreviewProps) {
               render: () => (
                 <div 
                   key={`text-${idx}`}
-                  className="absolute overflow-hidden text-ellipsis whitespace-nowrap"
+                  className="absolute overflow-hidden whitespace-pre-wrap"
                   style={{
                     left: `${text.x * scaleX}px`,
                     top: `${text.y * scaleY}px`,
                     width: `${text.width * scaleX}px`,
-                    height: `${text.height * scaleY}px`,
+                    height: "auto",
                     fontSize: `${text.fontSize * Math.min(scaleX, scaleY)}px`,
                     fontFamily: text.fontFamily || 'sans-serif',
                     color: text.fontColor || '#000000',
@@ -204,7 +204,9 @@ export function ScenePreview({ scene, width, height }: ScenePreviewProps) {
                     fontStyle: text.italic ? 'italic' : 'normal',
                     textAlign: text.alignment || 'left',
                     transform: `rotate(${text.rotation}deg)`,
-                    zIndex: text.zIndex || 1
+                    zIndex: text.zIndex || 1,
+                    lineHeight: '1.2',
+                    wordBreak: 'break-word'
                   }}
                 >
                   {text.content}
