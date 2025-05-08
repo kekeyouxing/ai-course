@@ -104,12 +104,7 @@ export async function deleteScene(sceneId: string): Promise<void> {
 export async function textToSpeech(request: TextToSpeechRequest): Promise<TextToSpeechResponse> {
     try {
         const response = await instance.post<TextToSpeechResponse>(
-            "/scenes/voice/tts", 
-            {
-                voice_id: request.voiceId,
-                scene_id: request.sceneId,
-                language: request.language || "zh"  // 默认使用中文
-            }
+            "/scenes/voice/tts", request
         );
         
         if (response.data.code !== 0) {
