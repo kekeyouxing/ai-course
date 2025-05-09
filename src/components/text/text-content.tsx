@@ -496,7 +496,10 @@ export default function TextContent({ textElement, onUpdate, sceneId }: TextCont
                     inputMode="numeric"
                     pattern="[0-9]*"
                     value={fontSize}
-                    onChange={(e) => handleFontSizeChange(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value) || 0;
+                      handleFontSizeChange(value.toString());
+                    }}
                     className="h-8 text-sm pr-8"
                   />
                   <Popover>

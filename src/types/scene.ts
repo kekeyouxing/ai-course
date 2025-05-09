@@ -191,8 +191,6 @@ export interface Scene {
     audioSrc?: string
     duration?: number
     aspectRatio?: AspectRatioType  // 添加宽高比例字段
-    language?: "zh" | "en"  // 添加语言字段，默认为中文
-    voiceId?: string  // 添加声音ID字段
 }
 
 // 选中元素类型
@@ -214,4 +212,10 @@ export interface Project {
     status: ProjectStatus       // 项目状态
     originalPptUrl?: string     // 原始PPT文件URL（如果是从PPT导入）
     createdBy?: string          // 创建者ID
+    language?: "zh" | "en"      // 项目语言，默认为中文
+    voiceId?: string           // 语音ID
+    voiceSpeed?: number        // 语音速度
+    voiceVolume?: number       // 语音音量
+    voicePitch?: number        // 语音音调
+    voiceEmotion?: string      // 语音情绪
 }

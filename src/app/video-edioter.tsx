@@ -27,7 +27,8 @@ import {
     SelectedElementType,
     AspectRatioType,
     ShapeElement,
-    ShapeType
+    ShapeType,
+    Project
 } from "@/types/scene"
 import { ResizableVideo } from "@/components/workspace/resizable-video";
 
@@ -60,6 +61,7 @@ import {
 // 导入 MediaContent 和类型
 import MediaContent from "@/components/media/media-content";
 import { getScenesByProjectId, updateSceneTitle, deleteScene, updateScene, createScene, duplicateScene } from "@/api/scene";
+import { updateProject as apiUpdateProject } from "@/api/project";
 import { toast } from "sonner";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useElementOperations } from "@/hooks/use-element-operations";
@@ -78,6 +80,8 @@ export default function VideoEditor() {
     const [activeTab, setActiveTab] = useState<string>("Script")
     const [activeScene, setActiveScene] = useState<number>(0)
     const [scenes, setScenes] = useState<Scene[]>([])
+    // 添加项目状态管理
+    const [projectData, setProjectData] = useState<Project | null>(null)
 
     const [videoTitle, setVideoTitle] = useState<string>("")
     const tabs: string[] = [
@@ -314,12 +318,43 @@ export default function VideoEditor() {
         handleBringForward,
         handleSendBackward
     } = useZIndexOperations(scenes, activeScene, selectedElement, updateHistory);
+
+    // 添加项目更新的处理函数
+    const handleUpdateProject = useCallback(async (updates: Partial<Project>) => {
+        if (!projectId) return;
+
+        try {
+            // 调用API更新项目
+            await apiUpdateProject(projectId, updates);
+            
+            // 更新本地状态
+            if (projectData) {
+                setProjectData({
+                    ...projectData,
+                    ...updates,
+                    updatedAt: new Date()
+                });
+            }
+        } catch (error) {
+            console.error("更新项目失败:", error);
+            toast.error("更新项目失败，请重试");
+        }
+    }, [projectId, projectData]);
+
     // 修改渲染Tab内容的函数
     const renderTabContent = () => {
         switch (activeTab) {
             case "Script":
                 return <ScriptContent
                     scene={scenes[activeScene]}
+                    project={projectData || {
+                        id: projectId || '',
+                        name: videoTitle,
+                        scenes: scenes,
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                        status: 'draft'
+                    }}
                     updateScene={(updates) => {
                         const newScenes = [...scenes];
                         newScenes[activeScene] = {
@@ -328,6 +363,7 @@ export default function VideoEditor() {
                         };
                         updateHistory(newScenes);
                     }}
+                    updateProject={handleUpdateProject}
                 />
             case "Avatar":
                 return <AvatarContent
@@ -419,8 +455,6 @@ export default function VideoEditor() {
                 },
                 script: "",
                 aspectRatio: aspectRatio,
-                language: "zh", // 默认使用中文
-                voiceId: ""     // 默认为空，后续用户可选择
             };
             
             if (!projectId) {
@@ -440,6 +474,19 @@ export default function VideoEditor() {
             toast.error("创建场景失败，请重试");
         }
     }, [scenes, updateHistory, aspectRatio, projectId]);
+
+    // 更新 useEffect 来初始化 projectData
+    useEffect(() => {
+        if (project) {
+            // 使用 project 数据初始化 projectData
+            setProjectData({
+                ...project,
+                // 确保日期字段是 Date 对象
+                createdAt: project.createdAt instanceof Date ? project.createdAt : new Date(project.createdAt),
+                updatedAt: project.updatedAt instanceof Date ? project.updatedAt : new Date(project.updatedAt)
+            });
+        }
+    }, [project]);
 
     // 处理场景标题更新
     const handleSceneTitleUpdate = useCallback(async (index: number, newTitle: string) => {

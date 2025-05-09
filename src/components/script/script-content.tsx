@@ -16,7 +16,7 @@ import { getSceneAnimationMarkers, syncSceneScript } from "@/api/animation"
 import { textToSpeech, generateScriptFromImageAnalysis } from "@/api/scene"
 import AudioPlayer from "@/components/script/audio-player"
 import { toast } from "sonner"
-import { Scene } from "@/types/scene"
+import { Scene, Project } from "@/types/scene"
 import {
   Tooltip,
   TooltipContent,
@@ -47,13 +47,17 @@ interface VoiceSettings {
 }
 
 interface ScriptContentProps {
-  scene: Scene;  // 修改为接收完整的scene对象
+  scene: Scene;  // 场景对象
+  project: Project; // 项目对象
   updateScene: (updates: Partial<Scene>) => void;  // 更新scene的函数
+  updateProject: (updates: Partial<Project>) => void;  // 更新project的函数
 }
 
 export default function ScriptContent({
   scene,
-  updateScene
+  project,
+  updateScene,
+  updateProject
 }: ScriptContentProps) {
   // 添加状态来存储从API获取的声音数据
   const [systemVoices, setSystemVoices] = useState<SystemVoice[]>([])
@@ -61,11 +65,11 @@ export default function ScriptContent({
   const [loading, setLoading] = useState(true)
   const [ttsLoading, setTtsLoading] = useState(false)
   const [aiGenerating, setAiGenerating] = useState(false) // 添加AI生成脚本的加载状态
-  // 使用scene中的language，如果没有则默认为中文
-  const [language, setLanguage] = useState<"zh" | "en">(scene.language || "zh")
+  // 使用project中的language，如果没有则默认为中文
+  const [language, setLanguage] = useState<"zh" | "en">(project.language || "zh")
 
-  // 使用scene中的voiceId，如果没有则为空字符串
-  const [selectedVoiceId, setSelectedVoiceId] = useState<string>(scene.voiceId || "")
+  // 使用project中的voiceId，如果没有则为空字符串
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>(project.voiceId || "")
   const [showTimePicker, setShowTimePicker] = useState(false)
   const [timeValue, setTimeValue] = useState(3)
 
@@ -73,12 +77,12 @@ export default function ScriptContent({
   const [animationMarkers, setAnimationMarkers] = useState<AnimationMarker[]>([])
   const [syncingMarkers, setSyncingMarkers] = useState(false)
 
-  // 添加语音设置状态
+  // 添加语音设置状态，使用project中的值或默认值
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>({
-    speed: 1.0,
-    volume: 1.0,
-    pitch: 0,
-    emotion: "neutral"
+    speed: project.voiceSpeed || 1.0,
+    volume: project.voiceVolume || 1.0,
+    pitch: project.voicePitch || 0,
+    emotion: project.voiceEmotion || "neutral"
   })
 
   const editorRef = useRef<{
@@ -111,16 +115,16 @@ export default function ScriptContent({
 
   // 处理选择声音逻辑
   useEffect(() => {
-    if (scene.voiceId) {
-      setSelectedVoiceId(scene.voiceId);
+    if (project.voiceId) {
+      setSelectedVoiceId(project.voiceId);
     } else if (clonedVoices.length > 0) {
       setSelectedVoiceId(clonedVoices[0].voice_id);
-      updateScene({ voiceId: clonedVoices[0].voice_id });
+      updateProject({ voiceId: clonedVoices[0].voice_id });
     } else if (systemVoices.length > 0) {
       setSelectedVoiceId(systemVoices[0].voice_id);
-      updateScene({ voiceId: systemVoices[0].voice_id });
+      updateProject({ voiceId: systemVoices[0].voice_id });
     }
-  }, [scene.voiceId, clonedVoices, systemVoices])
+  }, [project.voiceId, clonedVoices, systemVoices, updateProject])
 
   // 添加获取动画标记的 useEffect
   useEffect(() => {
@@ -264,7 +268,7 @@ export default function ScriptContent({
         voiceId: selectedVoiceId,
         sceneId: scene.id,
         language: language,
-        // 添加语音设置参数
+        // 使用语音设置参数
         speed: voiceSettings.speed,
         volume: voiceSettings.volume,
         pitch: voiceSettings.pitch,
@@ -317,41 +321,67 @@ export default function ScriptContent({
     }
   };
 
-  // 处理语音设置更改
+  // 处理语音设置更改，同时更新项目级别的设置
   const handleVoiceSettingChange = (setting: keyof VoiceSettings, value: any) => {
     setVoiceSettings(prev => ({
       ...prev,
       [setting]: value
     }));
+    
+    // 更新项目级别的设置
+    switch (setting) {
+      case 'speed':
+        updateProject({ voiceSpeed: value });
+        break;
+      case 'volume':
+        updateProject({ voiceVolume: value });
+        break;
+      case 'pitch':
+        updateProject({ voicePitch: value });
+        break;
+      case 'emotion':
+        updateProject({ voiceEmotion: value });
+        break;
+    }
   };
 
-  // 修改语言选择的处理函数，同时更新scene
+  // 修改语言选择的处理函数，同时更新project
   const handleLanguageChange = (value: "zh" | "en") => {
     setLanguage(value);
-    // 更新场景的language字段
-    updateScene({ language: value });
+    // 更新项目的language字段
+    updateProject({ language: value });
   };
 
-  // 修改声音选择的处理函数，同时更新scene
+  // 修改声音选择的处理函数，同时更新project
   const handleVoiceChange = (voiceId: string) => {
     setSelectedVoiceId(voiceId);
-    // 更新场景的voiceId字段
-    updateScene({ voiceId: voiceId });
+    // 更新项目的voiceId字段
+    updateProject({ voiceId: voiceId });
   };
 
-  // 当场景变化时，更新语言状态
+  // 当项目变化时，更新语言状态
   useEffect(() => {
-    if (scene.language) {
-      setLanguage(scene.language);
+    if (project.language) {
+      setLanguage(project.language);
     }
-  }, [scene.id, scene.language]);
+  }, [project.id, project.language]);
 
-  // 当场景变化时，更新声音ID状态
+  // 当项目变化时，更新声音ID状态
   useEffect(() => {
-    if (scene.voiceId) {
-      setSelectedVoiceId(scene.voiceId);
+    if (project.voiceId) {
+      setSelectedVoiceId(project.voiceId);
     }
-  }, [scene.id, scene.voiceId]);
+  }, [project.id, project.voiceId]);
+
+  // 当项目变化时，更新语音设置状态
+  useEffect(() => {
+    setVoiceSettings({
+      speed: project.voiceSpeed || 1.0,
+      volume: project.voiceVolume || 1.0,
+      pitch: project.voicePitch || 0,
+      emotion: project.voiceEmotion || "neutral"
+    });
+  }, [project.voiceSpeed, project.voiceVolume, project.voicePitch, project.voiceEmotion]);
 
   return (
     <div className="w-full max-w-3xl mx-auto my-6 px-4">
@@ -426,18 +456,18 @@ export default function ScriptContent({
         </div>
 
         {/* Middle: Script Input Area - 使用自定义编辑器 */}
-        <div className="flex-1 border rounded-md">
+        <div className="flex-1 border rounded-md overflow-hidden" style={{ maxHeight: 'calc(100vh - 300px)' }}>
           <CustomEditor
             ref={editorRef}
             value={script}
             onChange={setScript}
-            className="h-full"
+            className="h-full overflow-y-auto"
           />
         </div>
 
         {/* Bottom: Control Buttons */}
         <div className="flex justify-center mt-auto">
-          <div className="flex items-center gap-3 bg-background border rounded-full px-4 py-1.5">
+          <div className="flex items-center gap-3 bg-background border rounded-full px-4 py-1">
 
             <TimePicker
               value={timeValue}
@@ -558,9 +588,6 @@ export default function ScriptContent({
                     </PopoverContent>
                   </Popover>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>语音设置</p>
-                </TooltipContent>
               </Tooltip>
             </TooltipProvider>
 
@@ -591,7 +618,7 @@ export default function ScriptContent({
 
         {/* 音频播放器 */}
         {scene.audioSrc && (
-          <div className="mt-4">
+          <div className="mt-1">
             <AudioPlayer
               audioUrl={scene.audioSrc}
               audioLength={scene.duration || 0}

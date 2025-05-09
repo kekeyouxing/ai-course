@@ -1,6 +1,7 @@
 // deleteProject
 import instance from "@/api/axios"
 import { Project } from "@/types/scene";
+import { toast } from "sonner";
 
 export async function getProjects(): Promise<Project[]> {
     try {
@@ -96,6 +97,27 @@ export async function createProject(
         throw new Error(response.data.msg || "项目创建失败");
     } catch (error) {
         console.error("创建项目失败:", error);
+        throw error;
+    }
+}
+
+// 添加更新项目的方法
+export async function updateProject(id: string, updates: Partial<Project>) {
+    try {
+        const response = await instance.post<{
+            code: number;
+            data: null;
+            msg: string;
+        }>(`/projects/${id}/updateSettings`, updates);
+        
+        if (response.data.code === 0) {
+            return true;
+        }else{
+            toast.error("修改配置失败")
+        }
+        
+    } catch (error) {
+        console.error("修改配置失败:", error);
         throw error;
     }
 }
