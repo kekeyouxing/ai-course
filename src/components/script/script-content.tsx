@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Play, Wand2, Bot } from "lucide-react"
+import { Play, Wand2, Bot, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import CustomEditor from "@/components/script/custom-editor"
 import TimePicker from "@/components/script/time-picker"
@@ -30,6 +30,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Slider } from "@/components/ui/slider"
+import { Label } from "@/components/ui/label"
+
+// 添加语音设置接口
+interface VoiceSettings {
+  speed: number;
+  volume: number;
+  pitch: number;
+  emotion: string;
+}
 
 interface ScriptContentProps {
   scene: Scene;  // 修改为接收完整的scene对象
@@ -57,6 +72,14 @@ export default function ScriptContent({
   // 添加动画标记状态
   const [animationMarkers, setAnimationMarkers] = useState<AnimationMarker[]>([])
   const [syncingMarkers, setSyncingMarkers] = useState(false)
+
+  // 添加语音设置状态
+  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>({
+    speed: 1.0,
+    volume: 1.0,
+    pitch: 0,
+    emotion: "neutral"
+  })
 
   const editorRef = useRef<{
     insertTimeTag: (seconds: number) => void,
@@ -240,7 +263,12 @@ export default function ScriptContent({
       const result = await textToSpeech({
         voiceId: selectedVoiceId,
         sceneId: scene.id,
-        language: language
+        language: language,
+        // 添加语音设置参数
+        speed: voiceSettings.speed,
+        volume: voiceSettings.volume,
+        pitch: voiceSettings.pitch,
+        emotion: voiceSettings.emotion
       });
 
       if (result.code === 0 && result.data) {
@@ -272,7 +300,7 @@ export default function ScriptContent({
       // 调用图像分析API生成脚本
       const result = await generateScriptFromImageAnalysis({
         sceneId: scene.id,
-        language: language
+        language: language,
       });
 
       if (result.code === 0 && result.data?.result) {
@@ -287,6 +315,14 @@ export default function ScriptContent({
     } finally {
       setAiGenerating(false);
     }
+  };
+
+  // 处理语音设置更改
+  const handleVoiceSettingChange = (setting: keyof VoiceSettings, value: any) => {
+    setVoiceSettings(prev => ({
+      ...prev,
+      [setting]: value
+    }));
   };
 
   // 修改语言选择的处理函数，同时更新scene
@@ -430,6 +466,103 @@ export default function ScriptContent({
             </TooltipProvider>
 
             <div className="h-5 w-px bg-border" />
+
+            {/* 设置按钮及弹出框 */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Popover>
+                    <PopoverTrigger>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-full hover:bg-primary/10 h-8 w-8 p-0"
+                      >
+                        <Settings className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                      <div className="space-y-4">
+                        <h4 className="font-medium">语音设置</h4>
+                        
+                        {/* 语速设置 */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <Label htmlFor="speed">语速</Label>
+                            <span className="text-xs text-muted-foreground">{voiceSettings.speed.toFixed(1)}</span>
+                          </div>
+                          <Slider
+                            id="speed"
+                            min={0.5}
+                            max={2}
+                            step={0.1}
+                            value={[voiceSettings.speed]}
+                            onValueChange={(values) => handleVoiceSettingChange('speed', values[0])}
+                          />
+                        </div>
+                        
+                        {/* 音量设置 */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <Label htmlFor="volume">音量</Label>
+                            <span className="text-xs text-muted-foreground">{voiceSettings.volume.toFixed(1)}</span>
+                          </div>
+                          <Slider
+                            id="volume"
+                            min={0.1}
+                            max={10}
+                            step={0.1}
+                            value={[voiceSettings.volume]}
+                            onValueChange={(values) => handleVoiceSettingChange('volume', values[0])}
+                          />
+                        </div>
+                        
+                        {/* 音调设置 */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <Label htmlFor="pitch">音调</Label>
+                            <span className="text-xs text-muted-foreground">{voiceSettings.pitch}</span>
+                          </div>
+                          <Slider
+                            id="pitch"
+                            min={-12}
+                            max={12}
+                            step={1}
+                            value={[voiceSettings.pitch]}
+                            onValueChange={(values) => handleVoiceSettingChange('pitch', values[0])}
+                          />
+                        </div>
+                        
+                        {/* 情绪选择 */}
+                        <div className="space-y-2">
+                          <Label htmlFor="emotion">情绪</Label>
+                          <Select 
+                            value={voiceSettings.emotion} 
+                            onValueChange={(value) => handleVoiceSettingChange('emotion', value)}
+                          >
+                            <SelectTrigger id="emotion">
+                              <SelectValue placeholder="选择情绪" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="happy">高兴</SelectItem>
+                              <SelectItem value="sad">悲伤</SelectItem>
+                              <SelectItem value="angry">愤怒</SelectItem>
+                              <SelectItem value="fearful">害怕</SelectItem>
+                              <SelectItem value="disgusted">厌恶</SelectItem>
+                              <SelectItem value="surprised">惊讶</SelectItem>
+                              <SelectItem value="neutral">中性</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>语音设置</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
             <TooltipProvider>
               <Tooltip>

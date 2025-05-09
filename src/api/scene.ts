@@ -6,6 +6,10 @@ export interface TextToSpeechRequest {
     voiceId: string;  // 声音ID
     sceneId: string;  // 场景ID
     language?: "zh" | "en";  // 可选的语言参数
+    speed?: number;   // 语速 范围[0.5,2]
+    volume?: number;  // 音量 范围(0,10]
+    pitch?: number;   // 音调 范围[-12,12]
+    emotion?: string; // 情绪 可选值["", "happy", "sad", "angry", "fearful", "disgusted", "surprised", "neutral"]
 }
 
 // 文本转语音响应接口
