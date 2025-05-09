@@ -408,7 +408,7 @@ export default function VideoEditor() {
                 return <div>Content for {activeTab}</div>
         }
     }
-    // 在 useEffect 中添加复制粘贴的键盘事件监听
+    // 在 useEffect 中修改粘贴事件处理
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             // 检查是否在输入框中
@@ -431,9 +431,16 @@ export default function VideoEditor() {
                 e.preventDefault();
                 handleCopyElement();
             } else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
-                // 粘贴元素
-                e.preventDefault();
-                handlePasteElement();
+                // 检查当前焦点是否在编辑器内
+                const isEditorActive = document.activeElement?.closest('.custom-editor-container');
+                
+                // 只有在不是编辑器内时才执行元素粘贴操作
+                console.log("isEditorActive", isEditorActive)
+                if (!isEditorActive) {
+                    e.preventDefault();
+                    handlePasteElement();
+                }
+                // 如果当前在编辑器内，不需要做任何处理，让浏览器默认行为处理文本粘贴
             }
         }
 

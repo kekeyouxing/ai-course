@@ -456,7 +456,7 @@ export default function ScriptContent({
         </div>
 
         {/* Middle: Script Input Area - 使用自定义编辑器 */}
-        <div className="flex-1 border rounded-md overflow-hidden" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+        <div className="flex-1 border rounded-md overflow-hidden custom-editor-container" style={{ maxHeight: 'calc(100vh - 300px)' }}>
           <CustomEditor
             ref={editorRef}
             value={script}

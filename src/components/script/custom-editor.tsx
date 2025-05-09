@@ -313,7 +313,6 @@ function EditorContainer({
       <OnChangePlugin
         onChange={editorState => {
           const newText = serialize(editorState);
-          console.log(newText);
           onChange(newText);
         }}
       />
