@@ -112,8 +112,6 @@ export async function updateProject(id: string, updates: Partial<Project>) {
         
         if (response.data.code === 0) {
             return true;
-        }else{
-            toast.error("修改配置失败")
         }
         
     } catch (error) {

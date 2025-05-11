@@ -336,7 +336,6 @@ export default function VideoEditor() {
                 });
             }
         } catch (error) {
-            console.error("更新项目失败:", error);
             toast.error("更新项目失败，请重试");
         }
     }, [projectId, projectData]);

@@ -423,6 +423,7 @@ export function VideoHeader({
                 errorMessages={errorMessages}
                 hasErrors={hasErrors}
                 onConfirm={handleGenerate}
+                isGenerating={isGenerating}
             />
             
             <SubscriptionModal 

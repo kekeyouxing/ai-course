@@ -18,6 +18,7 @@ interface ValidationModalProps {
   errorMessages: string[]
   hasErrors: boolean
   onConfirm: () => void
+  isGenerating?: boolean
 }
 
 export default function ValidationModal({
@@ -25,11 +26,12 @@ export default function ValidationModal({
   onOpenChange,
   errorMessages,
   hasErrors,
-  onConfirm
+  onConfirm,
+  isGenerating = false
 }: ValidationModalProps) {
   const [isLoading, setIsLoading] = useState(true)
   
-  // 模拟加载效果
+  // 模拟加载效果 - 仅用于初始检查
   useEffect(() => {
     if (open) {
       setIsLoading(true)
@@ -40,19 +42,22 @@ export default function ValidationModal({
     }
   }, [open])
 
+  // 合并状态进行显示 - 初始检查中或者生成中都显示加载状态
+  const isInLoadingState = isLoading || isGenerating
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-lg font-medium">
-            {isLoading ? (
+            {isInLoadingState ? (
               <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
             ) : hasErrors ? (
               <AlertCircle className="h-5 w-5 text-red-500" />
             ) : (
               <CheckCircle2 className="h-5 w-5 text-green-500" />
             )}
-            {isLoading ? "检查中..." : hasErrors ? "生成检查失败" : "生成检查通过"}
+            {isLoading ? "检查中..." : isGenerating ? "生成中..." : hasErrors ? "生成检查失败" : "生成检查通过"}
           </DialogTitle>
         </DialogHeader>
         
@@ -161,19 +166,19 @@ export default function ValidationModal({
           </Button>
           <Button
             onClick={onConfirm}
-            disabled={hasErrors || isLoading}
+            disabled={hasErrors || isInLoadingState}
             className={`${
-              isLoading ? "bg-blue-400" : 
+              isInLoadingState ? "bg-blue-400" : 
               hasErrors ? "bg-gray-300 cursor-not-allowed" : 
               "bg-black hover:bg-gray-800"
             }`}
           >
-            {isLoading ? (
+            {isInLoadingState ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <CheckCircle2 className="mr-2 h-4 w-4" />
             )}
-            开始生成
+            {isGenerating ? "生成中..." : "开始生成"}
           </Button>
         </DialogFooter>
       </DialogContent>
