@@ -39,7 +39,7 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
     // 从文件名提取项目名称（去掉扩展名）
     const extractProjectName = (filename: string): string => {
         // 移除文件扩展名
-        const name = filename.replace(/\.(pdf|pptx)$/i, '');
+        const name = filename.replace(/\.(pdf)$/i, '');
         return name || "未命名项目";
     };
 
@@ -48,15 +48,9 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
         clearData();
 
         const validFile = acceptedFiles.find((file) => {
-            if (fileType === "ppt") {
-                const isPPTX = file.name.endsWith('.pptx');
-                const isUnderSize = file.size <= 50 * 1024 * 1024; // 50MB
-                return isPPTX && isUnderSize;
-            } else {
-                const isPDF = file.name.endsWith('.pdf');
-                const isUnderSize = file.size <= 50 * 1024 * 1024; // 50MB
-                return isPDF && isUnderSize;
-            }
+            const isPDF = file.name.endsWith('.pdf');
+            const isUnderSize = file.size <= 50 * 1024 * 1024; // 50MB
+            return isPDF && isUnderSize;
         });
 
         if (!validFile) {
@@ -71,13 +65,11 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
         
         setFile(validFile);
         handleUpload(validFile);
-    }, [fileType]);
+    }, []);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
-        accept: fileType === "ppt" 
-            ? { 'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'] }
-            : { 'application/pdf': ['.pdf'] },
+        accept: { 'application/pdf': ['.pdf'] },
         maxSize: 50 * 1024 * 1024, // 50MB
     });
 
@@ -183,74 +175,91 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
                 </DialogHeader>
 
                 <div className="p-6">
-                    <Tabs defaultValue="ppt" className="mb-6" onValueChange={(value) => {
+                    <Tabs defaultValue="pdf" className="mb-6" onValueChange={(value) => {
                         setFileType(value as "ppt" | "pdf");
                         clearData();
                     }}>
                         <TabsList className="w-full grid grid-cols-2">
-                            <TabsTrigger value="ppt">PPT导入</TabsTrigger>
+                            <TabsTrigger value="ppt">PPT转换指南</TabsTrigger>
                             <TabsTrigger value="pdf">PDF导入</TabsTrigger>
                         </TabsList>
                         <TabsContent value="ppt" className="mt-4">
-                            <p className="text-sm text-gray-500 mb-2">从PPT文件创建项目，仅支持.pptx格式，最大50MB</p>
+                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                <h3 className="text-blue-700 font-medium mb-2">如何将PPT转换为PDF</h3>
+                                <p className="text-sm text-gray-700 mb-3">为获得最佳效果，请先将PPT转换为PDF格式后再上传：</p>
+                                <div className="space-y-2 text-sm text-gray-600">
+                                    <div className="flex items-start">
+                                        <span className="bg-blue-100 text-blue-700 rounded-full w-5 h-5 flex items-center justify-center mr-2 flex-shrink-0">1</span>
+                                        <p>在WPS或Office中打开您的PPT文件</p>
+                                    </div>
+                                    <div className="flex items-start">
+                                        <span className="bg-blue-100 text-blue-700 rounded-full w-5 h-5 flex items-center justify-center mr-2 flex-shrink-0">2</span>
+                                        <p>选择"文件" &gt; "导出" 或 "另存为" &gt; "PDF格式"</p>
+                                    </div>
+                                    <div className="flex items-start">
+                                        <span className="bg-blue-100 text-blue-700 rounded-full w-5 h-5 flex items-center justify-center mr-2 flex-shrink-0">3</span>
+                                        <p>选择保存位置并点击"保存"</p>
+                                    </div>
+                                    <div className="flex items-start">
+                                        <span className="bg-blue-100 text-blue-700 rounded-full w-5 h-5 flex items-center justify-center mr-2 flex-shrink-0">4</span>
+                                        <p>完成后切换到"PDF导入"标签页上传转换后的文件</p>
+                                    </div>
+                                </div>
+                            </div>
                         </TabsContent>
                         <TabsContent value="pdf" className="mt-4">
                             <p className="text-sm text-gray-500 mb-2">从PDF文件创建项目，仅支持.pdf格式，最大50MB</p>
-                        </TabsContent>
-                    </Tabs>
-                    
-                    {/* 上传文档区域 */}
-                    <div
-                        {...getRootProps()}
-                        className={`
-                        bg-white rounded-lg p-6 
-                        flex flex-col items-center justify-center 
-                        border-2 ${isDragActive ? "border-blue-500" : "border-dashed border-gray-300"} 
-                        cursor-pointer transition-colors
-                        ${isDragActive ? "bg-blue-50" : ""}
-                        h-64 mb-6
-                      `}
-                    >
-                        <input {...getInputProps()} />
-                        <UploadCloud className={`w-12 h-12 mb-4 ${file ? "text-blue-500" : "text-gray-400"}`} />
-                        <div className="text-center">
-                            <p className={`font-medium ${file ? "text-blue-600" : "text-gray-600"}`}>上传{fileType.toUpperCase()}文件</p>
-                            <p className="text-gray-600 mt-2">点击上传或拖放文件到此处</p>
-                            <p className="text-sm text-gray-500 mt-1">
-                                {fileType === "ppt" 
-                                    ? "仅支持.pptx格式，最大50MB" 
-                                    : "仅支持.pdf格式，最大50MB"}
-                            </p>
-                        </div>
-
-                        {file && (
-                            <div className="w-full mt-4 space-y-2">
-                                <div
-                                    className={`flex items-center justify-between p-3 rounded-lg ${uploadComplete ? 'bg-green-50' : 'bg-gray-50'}`}>
-                                    <div className="flex items-center gap-2">
-                                        {uploadComplete ? <CheckCircle className="w-4 h-4 text-green-500" /> :
-                                            <FileIcon className="w-4 h-4 text-gray-400" />}
-                                        <span
-                                            className={`text-sm ${uploadComplete ? 'text-green-600' : 'text-gray-600'}`}>{file.name}</span>
-                                    </div>
-                                    <span
-                                        className="text-xs text-gray-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</span>
+                            
+                            {/* 上传文档区域 */}
+                            <div
+                                {...getRootProps()}
+                                className={`
+                                bg-white rounded-lg p-6 
+                                flex flex-col items-center justify-center 
+                                border-2 ${isDragActive ? "border-blue-500" : "border-dashed border-gray-300"} 
+                                cursor-pointer transition-colors
+                                ${isDragActive ? "bg-blue-50" : ""}
+                                h-64 mb-6
+                              `}
+                            >
+                                <input {...getInputProps()} />
+                                <UploadCloud className={`w-12 h-12 mb-4 ${file ? "text-blue-500" : "text-gray-400"}`} />
+                                <div className="text-center">
+                                    <p className={`font-medium ${file ? "text-blue-600" : "text-gray-600"}`}>上传PDF文件</p>
+                                    <p className="text-gray-600 mt-2">点击上传或拖放文件到此处</p>
+                                    <p className="text-sm text-gray-500 mt-1">仅支持.pdf格式，最大50MB</p>
                                 </div>
-                                {!uploadComplete && (
-                                    <div className="w-full bg-gray-200 rounded-full h-2">
-                                        <div className="bg-blue-600 h-2 rounded-full"
-                                            style={{ width: `${uploadProgress}%` }}></div>
+
+                                {file && (
+                                    <div className="w-full mt-4 space-y-2">
+                                        <div
+                                            className={`flex items-center justify-between p-3 rounded-lg ${uploadComplete ? 'bg-green-50' : 'bg-gray-50'}`}>
+                                            <div className="flex items-center gap-2">
+                                                {uploadComplete ? <CheckCircle className="w-4 h-4 text-green-500" /> :
+                                                    <FileIcon className="w-4 h-4 text-gray-400" />}
+                                                <span
+                                                    className={`text-sm ${uploadComplete ? 'text-green-600' : 'text-gray-600'}`}>{file.name}</span>
+                                            </div>
+                                            <span
+                                                className="text-xs text-gray-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</span>
+                                        </div>
+                                        {!uploadComplete && (
+                                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                                <div className="bg-blue-600 h-2 rounded-full"
+                                                    style={{ width: `${uploadProgress}%` }}></div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
-                        )}
-                    </div>
+                        </TabsContent>
+                    </Tabs>
                     
                     {/* 底部按钮区域 */}
                     <div className="flex justify-end">
                         <Button
                             onClick={handleCreate}
-                            disabled={isProcessing || !file || !uploadComplete}
+                            disabled={isProcessing || !file || !uploadComplete || fileType === "ppt"}
                             className="min-w-[100px]"
                         >
                             {isProcessing ? (
