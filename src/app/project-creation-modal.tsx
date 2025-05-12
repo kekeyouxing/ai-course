@@ -259,7 +259,7 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
                     <div className="flex justify-end">
                         <Button
                             onClick={handleCreate}
-                            disabled={isProcessing || !file || !uploadComplete || fileType === "ppt"}
+                            disabled={isProcessing || !file || !uploadComplete}
                             className="min-w-[100px]"
                         >
                             {isProcessing ? (
