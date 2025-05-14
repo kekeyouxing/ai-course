@@ -48,9 +48,9 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
         clearData();
 
         const validFile = acceptedFiles.find((file) => {
-            const isPDF = file.name.endsWith('.pdf');
-            const isUnderSize = file.size <= 50 * 1024 * 1024; // 50MB
-            return isPDF && isUnderSize;
+                const isPDF = file.name.endsWith('.pdf');
+                const isUnderSize = file.size <= 50 * 1024 * 1024; // 50MB
+                return isPDF && isUnderSize;
         });
 
         if (!validFile) {
@@ -209,49 +209,49 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
                         </TabsContent>
                         <TabsContent value="pdf" className="mt-4">
                             <p className="text-sm text-gray-500 mb-2">从PDF文件创建项目，仅支持.pdf格式，最大50MB</p>
-                            
-                            {/* 上传文档区域 */}
-                            <div
-                                {...getRootProps()}
-                                className={`
-                                bg-white rounded-lg p-6 
-                                flex flex-col items-center justify-center 
-                                border-2 ${isDragActive ? "border-blue-500" : "border-dashed border-gray-300"} 
-                                cursor-pointer transition-colors
-                                ${isDragActive ? "bg-blue-50" : ""}
-                                h-64 mb-6
-                              `}
-                            >
-                                <input {...getInputProps()} />
-                                <UploadCloud className={`w-12 h-12 mb-4 ${file ? "text-blue-500" : "text-gray-400"}`} />
-                                <div className="text-center">
+                    
+                    {/* 上传文档区域 */}
+                    <div
+                        {...getRootProps()}
+                        className={`
+                        bg-white rounded-lg p-6 
+                        flex flex-col items-center justify-center 
+                        border-2 ${isDragActive ? "border-blue-500" : "border-dashed border-gray-300"} 
+                        cursor-pointer transition-colors
+                        ${isDragActive ? "bg-blue-50" : ""}
+                        h-64 mb-6
+                      `}
+                    >
+                        <input {...getInputProps()} />
+                        <UploadCloud className={`w-12 h-12 mb-4 ${file ? "text-blue-500" : "text-gray-400"}`} />
+                        <div className="text-center">
                                     <p className={`font-medium ${file ? "text-blue-600" : "text-gray-600"}`}>上传PDF文件</p>
-                                    <p className="text-gray-600 mt-2">点击上传或拖放文件到此处</p>
+                            <p className="text-gray-600 mt-2">点击上传或拖放文件到此处</p>
                                     <p className="text-sm text-gray-500 mt-1">仅支持.pdf格式，最大50MB</p>
-                                </div>
+                        </div>
 
-                                {file && (
-                                    <div className="w-full mt-4 space-y-2">
-                                        <div
-                                            className={`flex items-center justify-between p-3 rounded-lg ${uploadComplete ? 'bg-green-50' : 'bg-gray-50'}`}>
-                                            <div className="flex items-center gap-2">
-                                                {uploadComplete ? <CheckCircle className="w-4 h-4 text-green-500" /> :
-                                                    <FileIcon className="w-4 h-4 text-gray-400" />}
-                                                <span
-                                                    className={`text-sm ${uploadComplete ? 'text-green-600' : 'text-gray-600'}`}>{file.name}</span>
-                                            </div>
-                                            <span
-                                                className="text-xs text-gray-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</span>
-                                        </div>
-                                        {!uploadComplete && (
-                                            <div className="w-full bg-gray-200 rounded-full h-2">
-                                                <div className="bg-blue-600 h-2 rounded-full"
-                                                    style={{ width: `${uploadProgress}%` }}></div>
-                                            </div>
-                                        )}
+                        {file && (
+                            <div className="w-full mt-4 space-y-2">
+                                <div
+                                    className={`flex items-center justify-between p-3 rounded-lg ${uploadComplete ? 'bg-green-50' : 'bg-gray-50'}`}>
+                                    <div className="flex items-center gap-2">
+                                        {uploadComplete ? <CheckCircle className="w-4 h-4 text-green-500" /> :
+                                            <FileIcon className="w-4 h-4 text-gray-400" />}
+                                        <span
+                                            className={`text-sm ${uploadComplete ? 'text-green-600' : 'text-gray-600'}`}>{file.name}</span>
+                                    </div>
+                                    <span
+                                        className="text-xs text-gray-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</span>
+                                </div>
+                                {!uploadComplete && (
+                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                        <div className="bg-blue-600 h-2 rounded-full"
+                                            style={{ width: `${uploadProgress}%` }}></div>
                                     </div>
                                 )}
                             </div>
+                        )}
+                    </div>
                         </TabsContent>
                     </Tabs>
                     

@@ -1114,7 +1114,6 @@ export default function PreviewModal({
                                                     imageMedia.element.animationBehavior
                                                 );
                                             
-                                                
                                                 // 如果不可见则跳过渲染
                                                 if (!isVisible && isPlaying) {
                                                     return null;

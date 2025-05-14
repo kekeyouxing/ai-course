@@ -407,71 +407,56 @@ export default function ProjectCollectionPage() {
                         ) : (
                             <Suspense fallback={<div>Loading videos...</div>}>
                                 {progressList.map((progress) => {
-                                    const { bgColor, textColor } = getProgressStatusClass(progress.status);
                                     return (
                                         <div 
-                                            key={progress.id}
+                                            key={progress.projectId}
                                             className="rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg hover:border-gray-300 transition-all duration-300 cursor-pointer relative"
                                             onClick={() => {
-                                                if (progress.status === 'SUCCEEDED' && progress.url) {
-                                                    window.open(progress.url, '_blank');
-                                                }
+                                                // Navigate to the video detail page using projectId and pass the progress data
+                                                navigate(`/app/videos/${progress.projectId}`, { 
+                                                    state: { progress } 
+                                                });
                                             }}
                                         >
                                             {/* 视频缩略图/状态显示区域 */}
-                                            <div className="h-40 bg-gray-100 flex items-center justify-center relative">
-                                                {progress.status === 'SUCCEEDED' && progress.url ? (
-                                                    <>
-                                                        <div className="bg-black h-full w-full flex items-center justify-center">
-                                                            <FileCheck className="h-12 w-12 text-white opacity-50" />
-                                                        </div>
-                                                        <div className="absolute inset-0 flex items-center justify-center">
-                                                            <div className="bg-black/30 rounded-full p-4">
-                                                                <Play className="h-10 w-10 text-white" />
-                                                            </div>
-                                                        </div>
-                                                    </>
-                                                ) : progress.status === 'PENDING' ? (
-                                                    <div className="flex flex-col items-center">
-                                                        {/* <Loader2 className="h-12 w-12 text-blue-500 animate-spin mb-2" /> */}
-                                                        <p className="text-blue-600 font-medium">视频生成耗时较长，请耐心等待...</p>
-                                                    </div>
-                                                ) : progress.status === 'FAILED' ? (
-                                                    <div className="flex flex-col items-center">
-                                                        <AlertTriangle className="h-12 w-12 text-red-500 mb-2" />
-                                                        <p className="text-red-600 font-medium">生成失败</p>
+                                            <div className="h-40 bg-gray-100 overflow-hidden relative">
+                                                {/* Show thumbnail image */}
+                                                {progress.thumbnailUrl ? (
+                                                    <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                                                        <img 
+                                                            src={progress.thumbnailUrl} 
+                                                            alt={progress.projectName}
+                                                            className="w-auto h-auto max-w-full max-h-full object-contain"
+                                                        />
                                                     </div>
                                                 ) : (
-                                                    <div className="flex flex-col items-center">
-                                                        <Clock className="h-12 w-12 text-gray-400 mb-2" />
-                                                        <p className="text-gray-500 font-medium">等待处理</p>
+                                                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                                                        <p className="text-gray-500">暂无缩略图</p>
                                                     </div>
                                                 )}
                                                 
-                                                {/* 状态标签 */}
+                                                {/* Status overlay */}
+                                                {progress.status === 'PENDING' && (
+                                                    <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
+                                                        <p className="text-blue-700 font-medium bg-blue-100 px-3 py-1 rounded-full">视频生成耗时较长，请您耐心等待...</p>
+                                                    </div>
+                                                )}
+                                                
+                                                {progress.status === 'FAILED' && (
+                                                    <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
+                                                        <p className="text-red-700 font-medium bg-red-100 px-3 py-1 rounded-full">处理失败</p>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Status label */}
                                                 <div className="absolute top-2 right-2">
-                                                    <span className={`px-2 py-1 text-xs leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}>
-                                                        {progress.status === 'PENDING' ? (
-                                                            <div className="flex items-center gap-1">
-                                                                <Loader2 className="h-3 w-3 animate-spin" />
-                                                                {getProgressStatusText(progress.status)}
-                                                            </div>
-                                                        ) : progress.status === 'SUCCEEDED' ? (
-                                                            <div className="flex items-center gap-1">
-                                                                <FileCheck className="h-3 w-3" />
-                                                                {getProgressStatusText(progress.status)}
-                                                            </div>
-                                                        ) : progress.status === 'FAILED' ? (
-                                                            <div className="flex items-center gap-1">
-                                                                <AlertTriangle className="h-3 w-3" />
-                                                                {getProgressStatusText(progress.status)}
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex items-center gap-1">
-                                                                <Clock className="h-3 w-3" />
-                                                                {getProgressStatusText(progress.status)}
-                                                            </div>
-                                                        )}
+                                                    <span className={`px-2 py-1 text-xs leading-5 font-semibold rounded-full ${
+                                                        progress.status === 'SUCCEEDED' ? 'bg-green-100 text-green-800' :
+                                                        progress.status === 'PENDING' ? 'bg-blue-100 text-blue-800' :
+                                                        progress.status === 'FAILED' ? 'bg-red-100 text-red-800' :
+                                                        'bg-gray-100 text-gray-800'
+                                                    }`}>
+                                                        {progress.status}
                                                     </span>
                                                 </div>
                                             </div>
@@ -483,21 +468,6 @@ export default function ProjectCollectionPage() {
                                                     <div className="text-sm text-gray-500">
                                                         {formatDateTime(progress.createdAt)}
                                                     </div>
-                                                    
-                                                    {progress.status === 'SUCCEEDED' && progress.url && (
-                                                        <Button 
-                                                            variant="outline" 
-                                                            size="sm"
-                                                            className="h-7 px-2 bg-green-50 text-green-600 border-green-100 hover:bg-green-100"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleDownloadVideo(progress.url || '');
-                                                            }}
-                                                        >
-                                                            <Download className="h-3.5 w-3.5 mr-1" />
-                                                            下载
-                                                        </Button>
-                                                    )}
                                                     
                                                     {progress.status === 'FAILED' && (
                                                         <div className="text-xs text-red-500 line-clamp-1 max-w-[180px]">

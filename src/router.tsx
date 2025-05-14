@@ -16,6 +16,7 @@ import AppPricePage from "@/app/app-price-page";
 import AboutPage from "@/app/about-page";
 import ContactPage from "@/app/contact-page";
 import TermsPage from "@/app/terms-page";
+import VideoDetail from "@/components/workspace/video-detail";
 
 export const routes: RouteObject[] = [
     {
@@ -87,6 +88,10 @@ export const routes: RouteObject[] = [
                 }
             },
         ]
+    },
+    {
+        path: "/app/videos/:id",
+        element: <AuthRoute key={Date.now()}><VideoDetail/></AuthRoute>,
     },
     {
         path: "/app/projects/:id", // 独立路径

@@ -19,6 +19,7 @@ export interface ProjectProgress {
   errorMessage?: string;
   createdAt: string;
   updatedAt: string;
+  thumbnailUrl: string;
 }
 
 // 分页信息
@@ -96,5 +97,20 @@ export function getProgressStatusClass(status: ProjectProgressStatus): {bgColor:
       return { bgColor: 'bg-red-50', textColor: 'text-red-600' };
     default:
       return { bgColor: 'bg-gray-100', textColor: 'text-gray-600' };
+  }
+}
+
+/**
+ * 通过项目ID获取项目进度
+ * @param projectId 项目ID
+ * @returns 项目进度数据
+ */
+export async function getProjectProgressByProjectId(projectId: string): Promise<ProjectProgress | null> {
+  try {
+    const response = await instance.get<ApiResponse<ProjectProgress>>(`/project-progress/${projectId}`);
+    return response.data.data;
+  } catch (error) {
+    console.error('获取项目进度失败:', error);
+    return null;
   }
 } 
