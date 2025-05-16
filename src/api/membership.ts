@@ -70,22 +70,51 @@ export async function getMembershipFeatures(): Promise<MembershipFeature[]> {
   }
 }
 
-// 将后端会员数据转换为前端展示格式
-export function convertFeaturesToDisplay(features: MembershipFeature[]): TierDisplay[] {
-  // 会员等级名称映射
-  const tierNames: Record<MembershipTier, string> = {
-    Free: "免费用户",
-    Basic: "基础会员",
-    Advanced: "高级会员",
-    Super: "超级会员"
+// 根据会员等级获取每个项目可添加的最大角色数量
+export function getMaxAvatarsPerProject(tier: MembershipTier): number {
+  const maxAvatarsMap: Record<MembershipTier, number> = {
+    Free: 1,
+    Basic: 3,
+    Advanced: 4,
+    Super: 5
   };
   
+  return maxAvatarsMap[tier] || 1; // 默认返回免费级别限制
+}
+
+// 检查用户是否可以在项目中添加更多角色
+export function canAddMoreAvatarsToProject(
+  tier: MembershipTier,
+  currentAvatarCount: number
+): { allowed: boolean; maxAllowed: number; message?: string } {
+  const maxAllowed = getMaxAvatarsPerProject(tier);
+  const allowed = currentAvatarCount < maxAllowed;
+  
+  return {
+    allowed,
+    maxAllowed,
+    message: allowed 
+      ? undefined 
+      : `您当前的${tierNames[tier]}套餐最多可添加${maxAllowed}个角色。升级会员可添加更多角色。`
+  };
+}
+
+// 会员等级名称映射 - 移到外部以便其他函数使用
+export const tierNames: Record<MembershipTier, string> = {
+  Free: "免费用户",
+  Basic: "基础会员",
+  Advanced: "高级会员",
+  Super: "超级会员"
+};
+
+// 将后端会员数据转换为前端展示格式
+export function convertFeaturesToDisplay(features: MembershipFeature[]): TierDisplay[] {
   // 会员等级描述映射
   const tierDescriptions: Record<MembershipTier, string> = {
-    Free: "免费体验基本功能，限时一个月",
-    Basic: "适合个人用户的基础功能",
-    Advanced: "适合专业用户的高级套餐",
-    Super: "适合企业用户的全功能套餐"
+    Free: "体验基础功能，开启AI视频创作之旅",
+    Basic: "满足个人创作需求的实用套餐",
+    Advanced: "专业创作者的理想选择，功能更强大",
+    Super: "企业级全功能套餐，无限创意表达"
   };
   
   return features.map(feature => {
@@ -93,29 +122,27 @@ export function convertFeaturesToDisplay(features: MembershipFeature[]): TierDis
     const priceInYuan = feature.monthlyPrice;
     const priceString = feature.tier === "Free" ? "免费" : `¥${priceInYuan}`;
     
+    // 获取该会员等级的项目最大角色数量
+    const maxAvatarsPerProject = getMaxAvatarsPerProject(feature.tier);
+    
     // 构建特性列表
     const featureList = [
       { 
-        name: `最多${feature.maxCharacters}个自定义角色（永久拥有）`, 
+        name: `拥有${feature.maxCharacters}个自定义角色（永久拥有）`,
         included: feature.maxCharacters > 0 
       },
+      {
+        name: `每个项目可使用${maxAvatarsPerProject}个角色`,
+        included: true
+      },
       { 
-        name: `视频总时长上限${Math.floor(feature.maxVideoDuration / 60)}分钟`, 
+        name: `视频时长上限${Math.floor(feature.maxVideoDuration / 60)}分钟`, 
         included: true 
       },
       { 
-        name: `脚本文本上限${feature.maxTextLength}字符`, 
+        name: `单场景文本上限${feature.maxTextLength}字符`, 
         included: true 
       },
-      // 根据等级添加额外特性
-      { 
-        name: "优先客户支持", 
-        included: ["Advanced", "Super"].includes(feature.tier) 
-      },
-      { 
-        name: "高级AI生成功能", 
-        included: ["Advanced", "Super"].includes(feature.tier) 
-      }
     ];
     
     return {

@@ -219,7 +219,7 @@ export default function SubscriptionModal({
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-center">选择您的会员方案</DialogTitle>
             <DialogDescription className="text-center text-base">
-              选择最适合您需求的会员等级，随时可以升级
+              选择最适合您需求的会员等级，随时可以升级，有效期为一个月
             </DialogDescription>
           </DialogHeader>
 

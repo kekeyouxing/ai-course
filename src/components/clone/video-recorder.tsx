@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useRef, useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, CirclePlay, Trash, X, FileIcon, Mic} from "lucide-react"
 import { toast } from "sonner";
@@ -20,12 +20,15 @@ export function VideoRecorder() {
     const [countdown, setCountdown] = useState(4);
     const countdownIntervalRef = useRef<NodeJS.Timeout>(null);
     const [isPopupVisible, setIsPopupVisible] = useState(false);
-    // 添加上传和音频提取相关状态
-    const { setAudioUrl } = useVoiceCloning();
+    
+    // 直接使用VoiceCloning上下文
+    const { setAudioUrl, setVoiceId, setFileId, audioUrl } = useVoiceCloning();
+    
     const [uploadProgress, setUploadProgress] = useState<number>(0);
     const [uploadComplete, setUploadComplete] = useState<boolean>(false);
-    const [audioUrl, setLocalAudioUrl] = useState<string | null>(null);
     const [audioSize, setAudioSize] = useState<number>(0);
+    const [isCloning, setIsCloning] = useState<boolean>(false);
+    const [processing, setProcessing] = useState<boolean>(false);
     
     const closePopup = () => {
         setIsPopupVisible(false);
@@ -46,12 +49,15 @@ export function VideoRecorder() {
     
     // 添加重置状态的函数
     const resetStates = () => {
-        setLocalAudioUrl(null);
         setAudioUrl(null);
+        setVoiceId("");
+        setFileId(0);
         setUploadProgress(0);
         setUploadComplete(false);
         setAudioSize(0);
         setRecordingDuration(0);
+        setIsCloning(false);
+        setProcessing(false);
         recordedChunks.current = [];
     };
 
@@ -89,10 +95,22 @@ export function VideoRecorder() {
     const startRecording = async (stream: MediaStream) => {
         try {
             setIsCountingDown(true);
-            // 初始化媒体录制器
-            const mediaRecorder = new MediaRecorder(stream, {
-                mimeType: "audio/webm"
-            });
+            // 初始化媒体录制器，优先尝试mp3格式
+            let options = {};
+            
+            // 检查浏览器支持的格式
+            if (MediaRecorder.isTypeSupported('audio/webm')) {
+                options = { mimeType: 'audio/webm' };
+                console.log("使用webm格式录音");
+            } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+                options = { mimeType: 'audio/ogg' };
+                console.log("使用ogg格式录音");
+            } else {
+                console.log("使用默认格式录音");
+            }
+            
+            const mediaRecorder = new MediaRecorder(stream, options);
+            console.log("最终使用的录音格式:", mediaRecorder.mimeType);
 
             mediaRecorderRef.current = mediaRecorder;
             recordedChunks.current = [];
@@ -101,11 +119,13 @@ export function VideoRecorder() {
             mediaRecorder.onstart = () => {
                 setIsRecording(true);
                 // 确保在录制开始时清除之前的录制结果
-                setLocalAudioUrl(null);
                 setAudioUrl(null);
+                setVoiceId("");
+                setFileId(0);
                 setUploadProgress(0);
                 setUploadComplete(false);
                 setAudioSize(0);
+                setIsCloning(false);
                 
                 startTimeRef.current = Date.now();
                 intervalRef.current = setInterval(() => {
@@ -157,6 +177,102 @@ export function VideoRecorder() {
                 }
             };
             
+            // 处理音频转换 - 使用FFmpeg.wasm库转换为mp3格式
+            const convertAudioToMp3 = async (audioBlob: Blob): Promise<Blob> => {
+                // 创建一个空的音频上下文
+                const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                
+                // 读取音频数据
+                const arrayBuffer = await audioBlob.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                // 创建离线音频上下文以重新编码
+                const offlineAudioContext = new OfflineAudioContext({
+                    numberOfChannels: audioBuffer.numberOfChannels,
+                    length: audioBuffer.length,
+                    sampleRate: audioBuffer.sampleRate
+                });
+                
+                // 创建音频源
+                const source = offlineAudioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(offlineAudioContext.destination);
+                source.start();
+                
+                // 渲染音频
+                const renderedBuffer = await offlineAudioContext.startRendering();
+                
+                // 将渲染的音频转换为wav格式
+                const wavBlob = audioBufferToWav(renderedBuffer);
+                
+                console.log("音频已转换为WAV格式，大小:", wavBlob.size);
+                return wavBlob;
+            };
+            
+            // AudioBuffer转WAV格式
+            const audioBufferToWav = (buffer: AudioBuffer): Blob => {
+                const numOfChannels = buffer.numberOfChannels;
+                const length = buffer.length * numOfChannels * 2;
+                const sampleRate = buffer.sampleRate;
+                
+                // 创建ArrayBuffer
+                const arrayBuffer = new ArrayBuffer(44 + length);
+                const view = new DataView(arrayBuffer);
+                
+                // 写入WAV头部
+                // "RIFF"
+                writeString(view, 0, 'RIFF');
+                // 文件大小
+                view.setUint32(4, 36 + length, true);
+                // "WAVE"
+                writeString(view, 8, 'WAVE');
+                // "fmt "
+                writeString(view, 12, 'fmt ');
+                // 16字节格式块长度
+                view.setUint32(16, 16, true);
+                // PCM格式 = 1
+                view.setUint16(20, 1, true);
+                // 通道数
+                view.setUint16(22, numOfChannels, true);
+                // 采样率
+                view.setUint32(24, sampleRate, true);
+                // 字节率 = 采样率 * 通道数 * 2
+                view.setUint32(28, sampleRate * numOfChannels * 2, true);
+                // 块对齐 = 通道数 * 2
+                view.setUint16(32, numOfChannels * 2, true);
+                // 每个样本的位数
+                view.setUint16(34, 16, true);
+                // "data"
+                writeString(view, 36, 'data');
+                // 数据长度
+                view.setUint32(40, length, true);
+                
+                // 写入PCM样本数据
+                const channels = [];
+                for (let i = 0; i < numOfChannels; i++) {
+                    channels.push(buffer.getChannelData(i));
+                }
+                
+                let offset = 44;
+                for (let i = 0; i < buffer.length; i++) {
+                    for (let channel = 0; channel < numOfChannels; channel++) {
+                        const sample = Math.max(-1, Math.min(1, channels[channel][i]));
+                        const sample16 = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                        view.setInt16(offset, sample16, true);
+                        offset += 2;
+                    }
+                }
+                
+                return new Blob([view], { type: 'audio/wav' });
+            };
+            
+            // 写入字符串到DataView
+            const writeString = (view: DataView, offset: number, string: string) => {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            };
+            
             // 处理上传
             const handleUpload = async (audioBlob: Blob) => {
                 if (!audioBlob) {
@@ -164,23 +280,67 @@ export function VideoRecorder() {
                     return;
                 }
                 try {
-                    // 上传音频文件，添加文件扩展名到 objectKey
-                    const fileExtension = audioBlob.type.split('/').pop() || 'mp3';
-                    const objectKey = `audio-${uuidv4()}.${fileExtension}`; // 生成唯一的objectKey并添加文件扩展名
-                    const presignedURL = await generatePresignedURL(objectKey);
-                
-                    await uploadToTencentCloud(audioBlob, presignedURL.data, 'audio/mp3');
-                    setUploadComplete(true);
+                    // 设置处理状态，禁用按钮
+                    setProcessing(true);
+                    // 转换音频格式为WAV
+                    let processedBlob;
+                    try {
+                        processedBlob = await convertAudioToMp3(audioBlob);
+                    } catch (error) {
+                        console.error("音频转换失败:", error);
+                        toast.error("音频转换失败，请重试");
+                        setProcessing(false);
+                        return;
+                    }
                     
+                    // 使用wav扩展名，符合服务器要求
+                    const fileExtension = 'wav';
+                    const objectKey = `audio-${uuidv4()}.${fileExtension}`;
+                    
+                    toast.info("正在上传音频...");
+                    const presignedURL = await generatePresignedURL(objectKey);
+                    
+                    // 上传转换后的音频
+                    await uploadToTencentCloud(processedBlob, presignedURL.data, 'audio/wav');
+                    
+                    // 设置音频URL
                     const audioUrlTemp = `https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/${objectKey}`;
                     setAudioUrl(audioUrlTemp);
+                    console.log(audioUrlTemp);
                     toast.success('音频上传成功!');
+                    
+                    // 调用声音克隆接口
+                    setIsCloning(true);
+                    try {
+                        const response = await instance.post('/characters/uploadCharacterVoice', { audioUrl: audioUrlTemp });
+                        
+                        // 判断返回结果
+                        if (response.data && response.data.data) {
+                            toast.success('声音克隆成功!');
+                            setVoiceId(response.data.data.voiceId);
+                            setFileId(response.data.data.fileId);
+                            setAudioUrl(audioUrlTemp);
+                            setUploadComplete(true); // 完成所有流程
+                        } else {
+                            // 如果后端返回了错误信息，则显示该信息
+                            const errorMessage = response.data?.msg || '声音克隆失败，请重试!';
+                            console.error('声音克隆失败:', errorMessage);
+                            toast.error(errorMessage);
+                        }
+                    } catch (error) {
+                        console.error('声音克隆失败:', error);
+                        toast.error('声音克隆失败，请重试!');
+                    } finally {
+                        setIsCloning(false);
+                        setProcessing(false);
+                    }
                 } catch (error) {
                     console.error('上传失败:', error);
                     toast.error('音频上传失败!');
+                    setProcessing(false);
                 }
             };
-
+            
             // 录制结束事件
             mediaRecorder.onstop = () => {
                 const duration = Math.floor((Date.now() - startTimeRef.current!) / 1000);
@@ -194,11 +354,12 @@ export function VideoRecorder() {
                     return;
                 }
                 
+                // 创建录制的Blob
+                console.log("录制完成，格式:", mediaRecorder.mimeType);
                 const audioBlob = new Blob(recordedChunks.current, {
-                    type: "audio/mp3"
+                    type: mediaRecorder.mimeType // 保持原始录制格式
                 });
                 const url = URL.createObjectURL(audioBlob);
-                setLocalAudioUrl(url);
 
                 // 清理资源
                 stream.getTracks().forEach(track => track.stop());
@@ -264,16 +425,18 @@ export function VideoRecorder() {
                         </div>
                         <div className="flex space-x-10">
                             <CirclePlay 
-                                className="w-6 h-6 cursor-pointer"
-                                onClick={openPopup}
+                                className={`w-6 h-6 ${processing ? 'text-gray-400' : 'cursor-pointer'}`}
+                                onClick={() => !processing && openPopup()}
                             >
                                 播放
                             </CirclePlay>
                             <Trash 
-                                className="w-6 h-6 cursor-pointer" 
+                                className={`w-6 h-6 ${processing ? 'text-gray-400' : 'cursor-pointer'}`}
                                 onClick={() => {
-                                    resetStates();
-                                    setCountdown(4);
+                                    if (!processing) {
+                                        resetStates();
+                                        setCountdown(4);
+                                    }
                                 }}
                             />
                         </div>
@@ -291,7 +454,7 @@ export function VideoRecorder() {
                                             <FileIcon className="w-4 h-4 text-gray-400" />
                                         }
                                         <span className={`text-sm ${uploadComplete ? 'text-green-600' : 'text-gray-600'}`}>
-                                            音频文件
+                                            {isCloning ? '正在克隆声音...' : uploadComplete ? '声音克隆成功' : '音频文件'}
                                         </span>
                                     </div>
                                     <span className="text-sm text-gray-500">
@@ -303,7 +466,7 @@ export function VideoRecorder() {
                                     <div className="w-full bg-gray-200 rounded-full h-2.5">
                                         <div 
                                             className="bg-blue-600 h-2.5 rounded-full"
-                                            style={{ width: `${uploadProgress}%` }}
+                                            style={{ width: `${isCloning ? '100' : uploadProgress}%` }}
                                         />
                                     </div>
                                 )}
@@ -320,6 +483,7 @@ export function VideoRecorder() {
                         }}
                         onClick={stopRecording} 
                         variant="destructive"
+                        disabled={processing}
                     >
                         结束录音
                     </Button>
@@ -334,7 +498,7 @@ export function VideoRecorder() {
                             <X onClick={closePopup} className="cursor-pointer" />
                         </div>
                         <audio controls className="mt-4 w-80 h-20">
-                            <source src={audioUrl} type="audio/mp3" />
+                            <source src={audioUrl} type={mediaRecorderRef.current?.mimeType || 'audio/webm'} />
                             您的浏览器不支持音频标签。
                         </audio>
                     </div>

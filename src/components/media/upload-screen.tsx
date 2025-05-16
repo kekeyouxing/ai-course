@@ -111,9 +111,6 @@ export default function UploadScreen({ onBack }: { onBack: () => void }) {
 
             const audioUrlTemp = `https://videos-1256301913.cos.ap-guangzhou.myqcloud.com/${objectKey}`;
             setAudioUrl(audioUrlTemp);
-
-            toast.success('音频上传成功!');
-
             // 调用声音克隆接口
             setIsCloning(true);
             try {

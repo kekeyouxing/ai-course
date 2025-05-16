@@ -97,7 +97,7 @@ export default function VideoPackModal({ open, onOpenChange, showActionButton = 
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-center">选择视频包</DialogTitle>
             <DialogDescription className="text-center text-base">
-              根据您的需求选择合适的视频包，立即充值获得更多创作额度
+              根据您的需求选择合适的视频包，购买的视频时长和文本额度永久有效，不会过期
             </DialogDescription>
           </DialogHeader>
 
