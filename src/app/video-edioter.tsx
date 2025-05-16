@@ -86,7 +86,7 @@ export default function VideoEditor() {
     const [videoTitle, setVideoTitle] = useState<string>("")
     const tabs: string[] = [
         "Script",
-        "Avatar",
+        // "Avatar",
         "Background",
         "Media",
         "Text",
