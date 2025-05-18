@@ -123,12 +123,12 @@ export function VideoHeader({
         
         setIsGenerating(true);
         try {
-            const success = await generateVideo(projectId);
-            if (success) {
+            const result = await generateVideo(projectId);
+            if (result.success) {
                 toast.success("视频正在生成中，请稍后查看");
                 setValidationOpen(false);
             } else {
-                toast.error("无法生成视频，请稍后再试");
+                toast.error(result.msg || "无法生成视频，请稍后再试");
             }
         } catch (error) {
             console.error("Error generating video:", error);
