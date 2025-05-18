@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Loader2 } from 'lucide-react';
+import { Play, Pause, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
@@ -22,13 +22,9 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(audioLength / 1000); // 确保将毫秒转换为秒
-  const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isBuffering, setIsBuffering] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const volumeControlRef = useRef<HTMLDivElement>(null);
-  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
   // 初始化音频
   useEffect(() => {
@@ -36,7 +32,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     
     // 设置音频属性
     audio.preload = "auto"; // 确保预加载
-    audio.volume = volume;
     
     // 添加缓冲事件监听
     const handleWaiting = () => {
@@ -109,13 +104,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
   }, [audioUrl, audioLength, onPlaybackComplete, autoPlay]);
 
-  // 当音量改变时更新音频元素的音量
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume;
-    }
-  }, [volume, isMuted]);
-
   // 处理播放/暂停
   const handlePlayPause = () => {
     if (isLoading) return;
@@ -156,34 +144,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     }
   };
 
-  // 处理音量改变
-  const handleVolumeChange = ([value]: number[]) => {
-    if (audioRef.current) {
-      audioRef.current.volume = value;
-      setVolume(value);
-      setIsMuted(value === 0);
-    }
-  };
-
-  // 处理静音切换
-  const handleMuteToggle = () => {
-    setIsMuted(!isMuted);
-  };
-
-  // 处理音量控制显示
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (volumeControlRef.current && !volumeControlRef.current.contains(event.target as Node)) {
-        setShowVolumeSlider(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
   // 格式化时间
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -223,56 +183,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         />
         
         <span className="text-xs text-muted-foreground w-10 ml-1 hidden sm:inline">{formatTime(duration)}</span>
-        
-        <div className="relative" ref={volumeControlRef}>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="rounded-full text-muted-foreground hover:text-foreground hover:bg-accent h-8 w-8 p-0"
-            onClick={handleMuteToggle}
-            onMouseEnter={() => setShowVolumeSlider(true)}
-          >
-            {isMuted ? (
-              <VolumeX className="h-4 w-4" />
-            ) : (
-              <Volume2 className="h-4 w-4" />
-            )}
-          </Button>
-          
-          {showVolumeSlider && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 bg-background border border-border rounded-md shadow-md z-10 w-32">
-              <Slider
-                min={0}
-                max={1}
-                step={0.01}
-                value={[isMuted ? 0 : volume]}
-                onValueChange={handleVolumeChange}
-                className="mb-1"
-              />
-              <div className="flex justify-between items-center">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-6 w-6 p-0"
-                  onClick={() => handleVolumeChange([0])}
-                >
-                  <VolumeX className="h-3 w-3" />
-                </Button>
-                <span className="text-xs text-muted-foreground">
-                  {Math.round(volume * 100)}%
-                </span>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-6 w-6 p-0"
-                  onClick={() => handleVolumeChange([1])}
-                >
-                  <Volume2 className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

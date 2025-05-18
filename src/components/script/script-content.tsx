@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Play, Wand2, Bot, Settings } from "lucide-react"
+import { Play, Wand2, Bot, Settings, Volume2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import CustomEditor from "@/components/script/custom-editor"
 import TimePicker from "@/components/script/time-picker"
@@ -601,12 +601,12 @@ export default function ScriptContent({
                     {ttsLoading ? (
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                     ) : (
-                      <Play className="h-4 w-4 fill-primary" />
+                      <Volume2 className="h-4 w-4 fill-primary" />
                     )}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>播放语音</p>
+                  <p>生成语音，将消耗字符余额</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
