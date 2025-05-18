@@ -281,12 +281,9 @@ export default function ScriptContent({
           audioSrc: result.data.audioUrl,
           duration: result.data.audioLength
         });
-      } else {
-        toast.error(result.msg || "文本转语音失败");
       }
     } catch (error) {
       console.error("文本转语音出错:", error);
-      toast.error("文本转语音失败，请稍后再试");
     } finally {
       setTtsLoading(false);
     }
@@ -609,7 +606,7 @@ export default function ScriptContent({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>转换文本为语音</p>
+                  <p>播放语音</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

@@ -1,5 +1,6 @@
 import instance from "@/api/axios";
 import { Scene } from "@/types/scene";
+import { toast } from "sonner";
 
 // 文本转语音请求参数接口
 export interface TextToSpeechRequest {
@@ -112,6 +113,7 @@ export async function textToSpeech(request: TextToSpeechRequest): Promise<TextTo
         );
         
         if (response.data.code !== 0) {
+            toast.error(response.data.msg || "文本转语音失败");
             throw new Error(response.data.msg || "文本转语音失败");
         }
         
