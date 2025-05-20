@@ -17,6 +17,7 @@ import AboutPage from "@/app/about-page";
 import ContactPage from "@/app/contact-page";
 import TermsPage from "@/app/terms-page";
 import VideoDetail from "@/components/workspace/video-detail";
+import WechatCallbackPage from "@/app/callback.tsx";
 
 export const routes: RouteObject[] = [
     {
@@ -100,6 +101,10 @@ export const routes: RouteObject[] = [
     {
         path: "clone", // 独立路径
         element: <AuthRoute key={Date.now()}><VoiceCloningProvider><VoiceCloningUI/></VoiceCloningProvider></AuthRoute>, // 独立页面
+    },
+    {
+        path: "/auth/wechat/callback",
+        element: <WechatCallbackPage />,
     },
     {
         path: "*",

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { ArrowRight, Layers } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { ArrowRight, Layers, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
@@ -7,6 +7,26 @@ import instance from "@/api/axios";
 import { toast } from "sonner";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Link } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+// 定义微信登录所需的接口
+interface WxLoginOptions {
+  self_redirect: boolean;
+  id: string;
+  appid: string;
+  scope: string;
+  redirect_uri: string;
+  state: string;
+  style?: string;
+  href?: string;
+}
+
+// 扩展Window接口，添加WxLogin
+declare global {
+  interface Window {
+    WxLogin?: new (options: WxLoginOptions) => void;
+  }
+}
 
 // Define project type
 interface Project {
@@ -22,6 +42,8 @@ export default function LoginPage() {
   const [countdown, setCountdown] = useState(0);
   const [phoneError, setPhoneError] = useState("");
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [loginMethod, setLoginMethod] = useState<"phone" | "wechat">("wechat");
+  const wechatLoginRef = useRef<HTMLDivElement>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -144,6 +166,110 @@ export default function LoginPage() {
       });
   };
 
+  // 处理微信登录 - 初始化二维码
+  useEffect(() => {
+    // 检查是否存在code参数，如果有则说明是从微信授权页面跳转回来的
+    const searchParams = new URLSearchParams(location.search);
+    const wxCode = searchParams.get('code');
+    const wxState = searchParams.get('state');
+    
+    if (wxCode) {
+      // 有code参数，说明是从微信授权页面跳转回来的
+      handleWechatCallback(wxCode, wxState);
+    } else if (loginMethod === "wechat" && wechatLoginRef.current) {
+      // 没有code参数，初始化微信登录二维码
+      loadWechatLogin();
+    }
+  }, [loginMethod, location.search, wechatLoginRef.current]);
+
+  // 加载微信登录JS并初始化二维码
+  const loadWechatLogin = () => {
+    // 如果已经加载过微信登录JS，则直接初始化
+    if (window.WxLogin) {
+      initWechatLogin();
+      return;
+    }
+
+    // 加载微信登录JS
+    const script = document.createElement('script');
+    script.src = "https://res.wx.qq.com/connect/zh_CN/htmledition/js/wxLogin.js";
+    script.onload = () => {
+      initWechatLogin();
+    };
+    script.onerror = () => {
+      toast.error("微信登录组件加载失败");
+    };
+    document.body.appendChild(script);
+  };
+
+  // 初始化微信登录二维码
+  const initWechatLogin = () => {
+    if (!wechatLoginRef.current || !window.WxLogin) return;
+    
+    // 清空容器
+    wechatLoginRef.current.innerHTML = '';
+    
+    // 直接使用硬编码的appId，而不是从环境变量读取
+    const appId = "wx5c846b456b58fc2d"; // 确保这是您的有效微信AppID
+    
+    // 硬编码正确的重定向URL，确保是完整的URL包含https://
+    const redirectUri = encodeURIComponent("https://echoclass.cn/auth/wechat/callback");
+    
+    console.log("初始化微信登录，参数:", { appId, redirectUri });
+    
+    // 生成随机state用于防止CSRF攻击
+    const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    // 保存state到localStorage，用于回调验证
+    localStorage.setItem('wxLoginState', state);
+    
+    // 初始化微信登录二维码
+    // @ts-ignore
+    new window.WxLogin({
+      self_redirect: false,
+      id: "wechat-login-container",
+      appid: appId,
+      scope: "snsapi_login",
+      redirect_uri: redirectUri,
+      state: state,
+      style: "",
+      href: ""
+    });
+  };
+
+  // 处理微信回调
+  const handleWechatCallback = async (code: string, state: string | null) => {
+    // 验证state防止CSRF攻击
+    const savedState = localStorage.getItem('wxLoginState');
+    if (state !== savedState) {
+      toast.error("登录失败：安全验证不通过");
+      return;
+    }
+    
+    try {
+      // 清除state
+      localStorage.removeItem('wxLoginState');
+      
+      // 调用后端接口，用code换取access_token
+      const res = await instance.post("/wechat/login", { code });
+      
+      if (res.data && res.data.code === 0 && res.data.data) {
+        // 使用返回的token登录
+        await login(res.data.data.token);
+        
+        // 获取返回路径并导航
+        const returnPath = getReturnPath();
+        navigate(decodeURIComponent(returnPath));
+        
+        toast.success("微信登录成功");
+      } else {
+        toast.error(res.data.msg || "微信登录失败，请重试");
+      }
+    } catch (err) {
+      toast.error("微信登录失败，请重试");
+      console.error("微信登录错误:", err);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* 顶部导航 */}
@@ -170,47 +296,71 @@ export default function LoginPage() {
           <div className="max-w-md w-full">
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold mb-2">欢迎登录</h1>
-              <p className="text-gray-500">使用手机号验证码登录</p>
+              <p className="text-gray-500">选择登录方式</p>
             </div>
 
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Input
-                  type="tel"
-                  placeholder="请输入手机号"
-                  className={`h-12 ${phoneError ? "border-red-500" : ""}`}
-                  value={phone}
-                  onChange={handlePhoneChange}
-                />
-                {phoneError && (
-                  <p className="text-red-500 text-xs">{phoneError}</p>
-                )}
+            <Tabs defaultValue="wechat" className="w-full mb-6" onValueChange={(value) => setLoginMethod(value as "phone" | "wechat")}>
+              <div className="sticky top-0 bg-white z-10">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="phone">手机号登录</TabsTrigger>
+                  <TabsTrigger value="wechat">微信登录</TabsTrigger>
+                </TabsList>
               </div>
-              <div className="flex gap-2">
-                <Input
-                  type="text"
-                  placeholder="请输入验证码"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="h-12"
-                />
+              
+              <TabsContent value="phone" className="space-y-6 m-0">
+                <div className="space-y-2">
+                  <Input
+                    type="tel"
+                    placeholder="请输入手机号"
+                    className={`h-12 ${phoneError ? "border-red-500" : ""}`}
+                    value={phone}
+                    onChange={handlePhoneChange}
+                  />
+                  {phoneError && (
+                    <p className="text-red-500 text-xs">{phoneError}</p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    placeholder="请输入验证码"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    className="h-12"
+                  />
+                  <Button
+                    variant="outline"
+                    className="whitespace-nowrap h-12 px-4"
+                    onClick={handleGetCode}
+                    disabled={countdown > 0}
+                  >
+                    {countdown > 0 ? `${countdown}s` : "获取验证码"}
+                  </Button>
+                </div>
                 <Button
-                  variant="outline"
-                  className="whitespace-nowrap h-12 px-4"
-                  onClick={handleGetCode}
-                  disabled={countdown > 0}
+                  onClick={handleLogin}
+                  className="w-full h-12 text-lg font-medium"
                 >
-                  {countdown > 0 ? `${countdown}s` : "获取验证码"}
+                  手机号登录
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
-              </div>
-              <Button
-                onClick={handleLogin}
-                className="w-full h-12 text-lg font-medium"
-              >
-                登录
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </div>
+              </TabsContent>
+              
+              <TabsContent value="wechat" className="m-0">
+                <div 
+                  id="wechat-login-container" 
+                  ref={wechatLoginRef}
+                  className="flex justify-center items-center" 
+                  style={{ minHeight: "300px" }}
+                >
+                  {/* 微信登录二维码将在这里显示 */}
+                  <div className="text-center text-gray-500">
+                    <MessageSquare className="h-10 w-10 mx-auto mb-2 text-green-500" />
+                    加载中...
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
 
             <div className="mt-8 text-center">
               <p className="text-sm text-gray-500">登录即表示您同意我们的</p>
