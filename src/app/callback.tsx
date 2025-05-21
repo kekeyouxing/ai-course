@@ -44,35 +44,33 @@ export default function WechatCallbackPage() {
         // 清除state
         localStorage.removeItem('wxLoginState');
         
-        // 获取登录环境
-        const loginEnvironment = localStorage.getItem('wxLoginEnvironment') || 'production';
-        localStorage.removeItem('wxLoginEnvironment');
         
-        // 调用后端接口，用code换取access_token
-        console.log("开始请求后端获取token, 环境:", loginEnvironment);
-        
-        // 根据环境选择不同的API路径
-        const apiPath = loginEnvironment === 'development' 
-          ? "https://echoclass.cn/api/auth/wechat" // 开发环境可能需要使用线上API
-          : "/api/auth/wechat"; // 生产环境使用相对路径
-        
-        const res = await instance.post(apiPath, { 
-          code,
-          environment: loginEnvironment // 将环境信息传递给后端，以便后端做相应处理
-        });
-        
-        console.log("后端返回:", res.data);
+        const res = await instance.post("/api/wechat/login", { code });
         
         if (res.data && res.data.code === 0 && res.data.data) {
-          // 使用返回的token登录
-          await login(res.data.data.token);
-          
-          // 获取微信登录前的路径或默认跳转到home
-          const returnTo = localStorage.getItem('returnTo') || "/app/home";
-          localStorage.removeItem('returnTo');
-          
-          toast.success("微信登录成功");
-          navigate(returnTo);
+          // 检查用户是否需要绑定手机号
+          if (res.data.data.needBind) {
+            // 需要绑定手机号，将openID存储到localStorage，用于后续绑定
+            localStorage.setItem('wechatOpenID', res.data.data.openID);
+            // 跳转到绑定手机号页面
+            navigate("/bind-phone");
+            toast.info("请绑定手机号完成注册");
+          } else if (res.data.data.token) {
+            // 已经绑定手机号，直接登录成功
+            await login(res.data.data.token);
+            
+            // 获取微信登录前的路径或默认跳转到home
+            const returnTo = localStorage.getItem('returnTo') || "/app/home";
+            localStorage.removeItem('returnTo');
+            
+            toast.success("微信登录成功");
+            navigate(returnTo);
+          } else {
+            // 未找到token，可能是API结构有变化
+            setError("登录失败，服务器返回数据格式异常");
+            toast.error("登录失败，服务器返回数据格式异常");
+            setTimeout(() => navigate("/login"), 2000);
+          }
         } else {
           setError(res.data?.msg || "微信登录失败，请重试");
           toast.error(res.data?.msg || "微信登录失败，请重试");

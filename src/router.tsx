@@ -18,6 +18,7 @@ import ContactPage from "@/app/contact-page";
 import TermsPage from "@/app/terms-page";
 import VideoDetail from "@/components/workspace/video-detail";
 import WechatCallbackPage from "@/app/callback.tsx";
+import BindPhonePage from "@/app/bind-phone.tsx";
 
 export const routes: RouteObject[] = [
     {
@@ -27,6 +28,10 @@ export const routes: RouteObject[] = [
     {
         path: "/login",
         element: <LoginPage />,
+    },
+    {
+        path: "/bind-phone",
+        element: <BindPhonePage />,
     },
     {
         path: "appprice",
