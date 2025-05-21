@@ -23,10 +23,11 @@ export default function WechatCallbackPage() {
         
         console.log("收到微信回调:", { code, state });
         
+        const delayTime = 100000
         if (!code) {
           setError("登录失败：缺少授权码");
           toast.error("登录失败：缺少授权码");
-          setTimeout(() => navigate("/login"), 2000);
+          setTimeout(() => navigate("/login"), delayTime);
           return;
         }
         
@@ -37,7 +38,7 @@ export default function WechatCallbackPage() {
         if (state !== savedState) {
           setError("登录失败：安全验证不通过");
           toast.error("登录失败：安全验证不通过");
-          setTimeout(() => navigate("/login"), 2000);
+          setTimeout(() => navigate("/login"), delayTime);
           return;
         }
         
@@ -69,18 +70,18 @@ export default function WechatCallbackPage() {
             // 未找到token，可能是API结构有变化
             setError("登录失败，服务器返回数据格式异常");
             toast.error("登录失败，服务器返回数据格式异常");
-            setTimeout(() => navigate("/login"), 2000);
+            setTimeout(() => navigate("/login"), delayTime);
           }
         } else {
           setError(res.data?.msg || "微信登录失败，请重试");
           toast.error(res.data?.msg || "微信登录失败，请重试");
-          setTimeout(() => navigate("/login"), 2000);
+          setTimeout(() => navigate("/login"), delayTime);
         }
       } catch (err) {
         console.error("微信登录回调处理错误:", err);
         setError("登录失败，请重试");
         toast.error("登录失败，请重试");
-        setTimeout(() => navigate("/login"), 2000);
+        setTimeout(() => navigate("/login"), 100000);
       } finally {
         setLoading(false);
       }
