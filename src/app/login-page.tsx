@@ -280,7 +280,7 @@ export default function LoginPage() {
               </div>
               
               {/* 固定高度的容器，确保两个标签页内容高度一致 */}
-              <div className="h-[350px] relative">
+              <div className="h-[400px] relative">
                 <TabsContent value="wechat" className="absolute inset-0 m-0 flex items-center justify-center">
                   <div 
                     id="wechat-login-container" 
@@ -295,7 +295,7 @@ export default function LoginPage() {
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="phone" className="absolute inset-0 m-0 flex flex-col justify-center">
+                <TabsContent value="phone" className="absolute inset-0 m-0 flex flex-col justify-start pt-8">
                   <div className="space-y-6 w-full">
                     <div className="space-y-2">
                       <Input
@@ -340,7 +340,7 @@ export default function LoginPage() {
               </div>
             </Tabs>
 
-            <div className="mt-8 text-center">
+            <div className="mt-4 text-center">
               <p className="text-sm text-gray-500">登录即表示您同意我们的</p>
               <p className="text-sm text-gray-500">
                 <Link to="/terms" className="text-blue-500 hover:underline">
