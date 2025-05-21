@@ -98,7 +98,7 @@ export default function BindPhonePage() {
       }
 
       // 调用绑定手机号接口
-      const res = await instance.post("/api/wechat/bind", { 
+      const res = await instance.post("/wechat/bind", { 
         open_id: openID,
         phone, 
         code

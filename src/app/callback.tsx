@@ -23,7 +23,7 @@ export default function WechatCallbackPage() {
         
         console.log("收到微信回调:", { code, state });
         
-        const delayTime = 100000
+        const delayTime = 2000
         if (!code) {
           setError("登录失败：缺少授权码");
           toast.error("登录失败：缺少授权码");
@@ -46,7 +46,7 @@ export default function WechatCallbackPage() {
         localStorage.removeItem('wxLoginState');
         
         
-        const res = await instance.post("/api/wechat/login", { code });
+        const res = await instance.post("/wechat/login", { code });
         
         if (res.data && res.data.code === 0 && res.data.data) {
           // 检查用户是否需要绑定手机号
@@ -81,7 +81,7 @@ export default function WechatCallbackPage() {
         console.error("微信登录回调处理错误:", err);
         setError("登录失败，请重试");
         toast.error("登录失败，请重试");
-        setTimeout(() => navigate("/login"), 100000);
+        setTimeout(() => navigate("/login"), 2000);
       } finally {
         setLoading(false);
       }
