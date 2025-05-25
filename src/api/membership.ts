@@ -136,11 +136,11 @@ export function convertFeaturesToDisplay(features: MembershipFeature[]): TierDis
         included: true
       },
       { 
-        name: `视频时长上限${Math.floor(feature.maxVideoDuration / 60)}分钟`, 
+        name: `视频时长额度${Math.floor(feature.maxVideoDuration / 60)}分钟`, 
         included: true 
       },
       { 
-        name: `单场景文本上限${feature.maxTextLength}字符`, 
+        name: `单场景文本额度${feature.maxTextLength}字符`, 
         included: true 
       },
     ];

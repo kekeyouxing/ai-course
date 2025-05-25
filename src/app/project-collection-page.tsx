@@ -320,7 +320,7 @@ export default function ProjectCollectionPage() {
                                     >
                                         {/* 操作菜单 */}
                                         <div
-                                            className="absolute top-2 right-2 z-10 border-0 outline-none ring-0 focus:outline-none focus:ring-0"
+                                            className="absolute top-2 right-2 z-50 border-0 outline-none ring-0 focus:outline-none focus:ring-0"
                                             onClick={stopPropagation}
                                         >
                                             <DropdownMenu>
@@ -329,8 +329,7 @@ export default function ProjectCollectionPage() {
                                                         <MoreVertical className="h-4 w-4" />
                                                     </div>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    {/* 下拉菜单内容保持不变 */}
+                                                <DropdownMenuContent align="end" className="z-50">
                                                     <DropdownMenuItem className="cursor-pointer" onClick={() => {
                                                         setSelectedProject(project);
                                                         setNewProjectName(project.name);

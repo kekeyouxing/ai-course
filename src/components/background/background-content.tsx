@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Play, Trash2, Upload, Search, MoreHorizontal, Edit, X, Check } from "lucide-react"
-import { HexColorPicker } from "react-colorful"
+import { HexColorPicker, RgbaColor, RgbaColorPicker } from "react-colorful"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -45,6 +45,18 @@ const colorPresets = [
   "#FFF3CD", // 黄色
   "#D1ECF1", // 青色
   "#E2E3E5", // 灰色
+  "#FF0000", // 红色
+  "#00FF00", // 绿色
+  "#0000FF", // 蓝色
+  "#FFFF00", // 黄色
+  "#FF00FF", // 洋红
+  "#00FFFF", // 青色
+  "#FFA500", // 橙色
+  "#800080", // 紫色
+  "#008000", // 深绿
+  "#800000", // 深红
+  "#008080", // 深青
+  "#000080", // 深蓝
 ]
 
 export function BackgroundContent({ currentBackground, onBackgroundChange }: BackgroundContentProps) {
@@ -82,6 +94,48 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
     }
   }, [currentBackground]);
 
+  // 将rgba对象转换为hex字符串
+  const rgbaToHex = (rgba: RgbaColor): string => {
+    const toHex = (n: number) => {
+      const hex = Math.round(n).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    return `#${toHex(rgba.r)}${toHex(rgba.g)}${toHex(rgba.b)}`;
+  };
+
+  // 解析RGBA字符串为对象（保留用于颜色选择器）
+  const parseRgbaString = (color: string): RgbaColor => {
+    // 默认值
+    const defaultColor: RgbaColor = { r: 255, g: 255, b: 255, a: 1 };
+
+    // 如果是hex格式，转换为rgba
+    if (color.startsWith('#')) {
+      const hex = color.slice(1);
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      return { r, g, b, a: 1 };
+    }
+
+    // 如果不是rgba格式，返回默认白色
+    if (!color.startsWith('rgba(')) {
+      return defaultColor;
+    }
+
+    // 提取rgba值
+    const values = color.replace('rgba(', '').replace(')', '').split(',');
+    if (values.length !== 4) {
+      return defaultColor;
+    }
+
+    return {
+      r: parseInt(values[0].trim()),
+      g: parseInt(values[1].trim()),
+      b: parseInt(values[2].trim()),
+      a: parseFloat(values[3].trim())
+    };
+  };
+
   // 添加格式化时间函数
   const formatDuration = (seconds: number): string => {
     if (!seconds) return "00:00";
@@ -91,12 +145,21 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
   };
 
   // 处理颜色选择
-  const handleColorSelect = (color: string) => {
-    setSelectedColor(color)
+  const handleColorSelect = (color: string | RgbaColor) => {
+    let colorString: string;
+    
+    // 如果是rgba对象，转换为hex字符串
+    if (typeof color === 'object' && color.r !== undefined) {
+      colorString = rgbaToHex(color);
+    } else {
+      colorString = color as string;
+    }
+
+    setSelectedColor(colorString)
     if (onBackgroundChange) {
       onBackgroundChange({
         type: "color",
-        color: color
+        color: colorString
       });
     }
   }
@@ -586,40 +649,82 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
         </div>
         <div className="flex items-center gap-3 mb-4">
           <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-12 h-12 p-0 border-2"
-                style={{ backgroundColor: selectedColor }}
-              />
+            <PopoverTrigger>
+              <div className="flex items-center gap-3 cursor-pointer group">
+                <Button
+                  variant="outline"
+                  className="w-12 h-12 p-0 border-2 relative overflow-hidden cursor-pointer hover:border-gray-400 hover:shadow-md transition-all duration-200 group-hover:border-gray-400 group-hover:shadow-md"
+                  style={{ backgroundColor: selectedColor }}
+                >
+                  {/* 编辑图标提示 */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="14" 
+                      height="14" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                      className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 drop-shadow-sm"
+                    >
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                  </div>
+                </Button>
+                <div className="group-hover:text-gray-700 transition-colors duration-200">
+                  <p className="text-sm text-gray-600 font-medium group-hover:text-gray-800 transition-colors duration-200">自定义背景色</p>
+                  <p className="text-xs text-gray-500 group-hover:text-gray-600 transition-colors duration-200">{selectedColor}</p>
+                </div>
+              </div>
             </PopoverTrigger>
             <PopoverContent className="w-64 p-3" align="start">
               <div className="mb-3 custom-color-picker">
-                <HexColorPicker color={selectedColor} onChange={handleColorSelect} />
+                <RgbaColorPicker color={parseRgbaString(selectedColor)} onChange={handleColorSelect} />
               </div>
               <div className="grid grid-cols-5 gap-2 mb-3">
-                {colorPresets.map((color, index) => (
+                {colorPresets.slice(0, 12).map((color, index) => (
                   <div
                     key={`color-${index}`}
-                    className="aspect-video rounded-lg overflow-hidden cursor-pointer border border-gray-200"
+                    className="aspect-square rounded-lg overflow-hidden cursor-pointer border border-gray-200"
                     style={{ backgroundColor: color }}
                     onClick={() => handleColorSelect(color)}
-                  >
-                  </div>
+                  />
                 ))}
               </div>
               <div className="flex items-center justify-between">
-                <div className="text-sm font-medium">Hex</div>
-                <div className="flex h-8 w-24 rounded-md border border-input bg-background px-3 py-1 text-sm items-center">
-                  {selectedColor}
-                </div>
+                <div className="text-sm font-medium">Color</div>
+                <input
+                  type="text"
+                  value={selectedColor}
+                  onChange={(e) => handleColorSelect(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  onBlur={(e) => {
+                    try {
+                      // 验证hex颜色格式
+                      const isValidHex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(e.target.value);
+                      
+                      if (!isValidHex) {
+                        // 重置为之前的有效颜色
+                        handleColorSelect(selectedColor);
+                      }
+                    } catch (error) {
+                      // 如果解析失败，重置为之前的值
+                      handleColorSelect(selectedColor);
+                    }
+                  }}
+                  className="flex h-8 w-46 rounded-md border border-input bg-background px-3 py-1 text-sm items-center"
+                />
               </div>
             </PopoverContent>
           </Popover>
-          <div>
-            <p className="text-sm text-gray-600 font-medium">自定义背景色</p>
-            <p className="text-xs text-gray-500">{selectedColor}</p>
-          </div>
         </div>
       </div>
 
@@ -631,8 +736,7 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
             className="aspect-video rounded-lg overflow-hidden cursor-pointer border border-gray-200"
             style={{ backgroundColor: color }}
             onClick={() => handleColorSelect(color)}
-          >
-          </div>
+          />
         ))}
       </div>
     </div>
@@ -650,7 +754,7 @@ export function BackgroundContent({ currentBackground, onBackgroundChange }: Bac
                 switch (currentBackground.type) {
                   case "color":
                     return (
-                      <div
+                      <div 
                         className="w-12 h-12 rounded"
                         style={{ backgroundColor: (currentBackground as ColorBackground).color }}
                       />

@@ -70,9 +70,9 @@ function TextTypeSelector({
 
 // 封装形状类型选择组件
 function ShapeTypeSelector({
-    onOpenChange, 
+    onOpenChange,
     onSelectType 
-}: { 
+}: {
     isOpen: boolean; 
     onOpenChange: (open: boolean) => void; 
     onSelectType: (type: ShapeType) => void 
@@ -162,17 +162,6 @@ function ShapeTypeSelector({
                 </svg>
             )
         },
-        
-        // 特殊形状
-        { 
-            type: "pacman", 
-            label: "吃豆人",
-            icon: (
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="currentColor">
-                    <path d="M20,5 A15,15 0 1 1 20,35 L20,20 Z" />
-                </svg>
-            )
-        },
         { 
             type: "quarterCircle", 
             label: "四分之一圆",
@@ -238,41 +227,12 @@ function ShapeTypeSelector({
                 </svg>
             )
         },
-        
-        // 特殊图形
-        { 
-            type: "heart", 
-            label: "心形",
-            icon: (
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="currentColor">
-                    <path d="M20,35 L18,33 C8,24 2,18 2,11 C2,5 7,1 12,1 C15,1 18,2.5 20,5 C22,2.5 25,1 28,1 C33,1 38,5 38,11 C38,18 32,24 22,33 L20,35 Z" />
-                </svg>
-            )
-        },
         { 
             type: "arrow", 
             label: "箭头",
             icon: (
                 <svg width="40" height="40" viewBox="0 0 40 40" fill="currentColor">
                     <polygon points="5,15 20,15 20,5 35,20 20,35 20,25 5,25" />
-                </svg>
-            )
-        },
-        { 
-            type: "rightArrow", 
-            label: "右箭头",
-            icon: (
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="currentColor">
-                    <path d="M5,20 H30 M25,10 L35,20 L25,30" stroke="currentColor" strokeWidth="4" fill="none" />
-                </svg>
-            )
-        },
-        { 
-            type: "line", 
-            label: "直线",
-            icon: (
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="3">
-                    <line x1="5" y1="20" x2="35" y2="20" />
                 </svg>
             )
         }

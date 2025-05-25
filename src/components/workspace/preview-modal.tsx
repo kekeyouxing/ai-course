@@ -17,6 +17,7 @@ import { Scene, ImageMedia, VideoMedia, AspectRatioType } from "@/types/scene"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AnimationMarker } from "@/types/animation"
 import { getSceneAnimationMarkers } from "@/api/animation"
+import { renderShape, getShapeAspectRatio } from '@/types/shapes'
 
 // 修改组件接口，添加场景数据
 interface PreviewModalProps {
@@ -47,7 +48,6 @@ export default function PreviewModal({
     const [duration, setDuration] = useState(60) // 默认60秒，但会被场景的duration覆盖
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [isFullscreen, setIsFullscreen] = useState(false)
     const [currentSceneIndex, setCurrentSceneIndex] = useState(activeSceneIndex)
     const [sceneDataLoaded, setSceneDataLoaded] = useState(false);
     // 引用
@@ -852,109 +852,6 @@ export default function PreviewModal({
         };
     };
 
-    // 渲染不同形状的SVG
-    const ShapeRenderer = ({ 
-        type, 
-        fill, 
-        stroke, 
-        strokeWidth, 
-        borderRadius = 0,
-        scale = 1
-    }: {
-        type: string;
-        fill: string;
-        stroke: string;
-        strokeWidth: number;
-        borderRadius?: number;
-        scale?: number;
-    }) => {
-        // 计算缩放后的描边宽度（不设置最小值）
-        const scaledStrokeWidth = strokeWidth * scale;
-        
-        const style = {
-            fill,
-            stroke,
-            strokeWidth: scaledStrokeWidth,
-            width: '100%',
-            height: '100%',
-        };
-
-        // 空心形状的样式
-        const hollowStyle = {
-            fill: 'none',
-            stroke,
-            strokeWidth: scaledStrokeWidth,
-            width: '100%',
-            height: '100%',
-        };
-        
-        // 注意：borderRadius不需要缩放，直接使用原始值
-        // 在SVG中rx/ry被解释为百分比值
-
-        switch (type) {
-            // 基础实心形状
-            case 'rectangle':
-                return <rect width="100%" height="100%" rx={borderRadius} ry={borderRadius} style={style} />;
-            case 'circle':
-                return <circle cx="50%" cy="50%" r="45%" style={style} />;
-            case 'triangle':
-                return <polygon points={`50%,10% 10%,90% 90%,90%`} style={style} />;
-            case 'diamond':
-            case 'rhombus':
-                return <polygon points={`50%,10% 90%,50% 50%,90% 10%,50%`} style={style} />;
-            case 'star':
-                return <polygon points="50,5 63,38 100,38 69,59 82,95 50,75 18,95 31,59 0,38 37,38" style={{ ...style, transform: 'scale(0.9)' }} />;
-            
-            // 基础空心形状
-            case 'hollowRectangle':
-                return <rect width="100%" height="100%" rx={borderRadius} ry={borderRadius} style={hollowStyle} />;
-            case 'hollowCircle':
-                return <circle cx="50%" cy="50%" r="45%" style={hollowStyle} />;
-            case 'hollowTriangle':
-                return <polygon points={`50%,10% 10%,90% 90%,90%`} style={hollowStyle} />;
-            case 'hollowStar':
-                return <polygon points="50,5 63,38 100,38 69,59 82,95 50,75 18,95 31,59 0,38 37,38" style={{ ...hollowStyle, transform: 'scale(0.9)' }} />;
-            
-            // 特殊形状
-            case 'pacman':
-                return <path d="M50,20 A30,30 0 1 0 50,80 L50,50 Z" style={style} />;
-            case 'quarterCircle':
-                return <path d="M10,90 L10,10 L90,10 A80,80 0 0 1 10,90 Z" style={style} />;
-            case 'halfCircle':
-                return <path d="M10,50 A40,40 0 0 1 90,50 L10,50 Z" style={style} />;
-            case 'cross':
-                return <path d="M35,10 H65 V35 H90 V65 H65 V90 H35 V65 H10 V35 H35 Z" style={style} />;
-            
-            // 多边形
-            case 'pentagon':
-                return <polygon points="50,5 95,35 80,90 20,90 5,35" style={{ ...style, transform: 'scale(0.9)' }} />;
-            case 'hexagon':
-                return <polygon points="50,5 90,25 90,75 50,95 10,75 10,25" style={{ ...style, transform: 'scale(0.9)' }} />;
-            case 'trapezoid':
-                return <polygon points="20,20 80,20 95,80 5,80" style={style} />;
-            case 'parallelogram':
-                return <polygon points="25,20 95,20 75,80 5,80" style={style} />;
-            
-            // 特殊图形
-            case 'heart':
-                return <path d="M50,90 C100,65 100,25 75,15 C55,8 50,25 50,25 C50,25 45,8 25,15 C0,25 0,65 50,90 Z" style={{ ...style, transform: 'scale(0.9)' }} />;
-            case 'arrow':
-                return <polygon points="0,40 70,40 70,20 100,50 70,80 70,60 0,60" style={{ ...style, transform: 'scale(0.9)' }} />;
-            case 'rightArrow':
-                return (
-                    <g style={{ transform: 'scale(0.9)' }}>
-                        <line x1="10" y1="50" x2="70" y2="50" style={{ ...hollowStyle, strokeWidth: scaledStrokeWidth * 2 }} />
-                        <polyline points="50,20 80,50 50,80" style={{ ...hollowStyle, strokeWidth: scaledStrokeWidth * 2, fill: 'none' }} />
-                    </g>
-                );
-            case 'line':
-                return <line x1="10%" y1="50%" x2="90%" y2="50%" style={{ ...hollowStyle, strokeWidth: scaledStrokeWidth * 2 }} />;
-            
-            default:
-                return <rect width="100%" height="100%" style={style} />;
-        }
-    };
-
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent
@@ -992,9 +889,12 @@ export default function PreviewModal({
                             <>
                                 {/* 根据场景的宽高比例设置容器 */}
                                 {/* 预览模式水印 */}
-                                <div className="absolute bottom-20 right-6 z-30 opacity-70 pointer-events-none">
-                                    <div className="bg-black/40 text-white text-xs px-2 py-1 rounded">
-                                        预览模式 · 无嘴唇和表情同步
+                                <div className="absolute top-3 left-3 z-30 pointer-events-none">
+                                    <div className="flex items-center gap-2 bg-black/80 backdrop-blur-sm text-white text-sm px-3 py-2 rounded-lg shadow-lg border border-white/10">
+                                        <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse shadow-sm"></div>
+                                        <span className="font-semibold">预览模式</span>
+                                        <span className="text-gray-200">•</span>
+                                        <span className="opacity-90">无嘴唇同步</span>
                                     </div>
                                 </div>
                                 <div
@@ -1078,7 +978,7 @@ export default function PreviewModal({
                                                             textAlign: (textElement.alignment as any) || 'center',
                                                             display: 'flex',
                                                             flexDirection: 'column',
-                                                            alignItems: textElement.alignment === 'left' ? 'flex-start' : textElement.alignment === 'right' ? 'flex-end' : 'center',
+                                                            alignItems: textElement.alignment === 'left' || textElement.alignment === 'justify' ? 'flex-start' : textElement.alignment === 'right' ? 'flex-end' : 'center',
                                                             justifyContent: 'center',
                                                             height: '100%',
                                                             width: '100%',
@@ -1138,7 +1038,7 @@ export default function PreviewModal({
                                                     >
                                                         <img
                                                             src={imageMedia.element.src}
-                                                            className="w-full h-full object-cover"
+                                                            className="w-full h-full object-contain"
                                                             alt=""
                                                             style={{
                                                                 opacity: animationStyle.opacity,
@@ -1279,6 +1179,32 @@ export default function PreviewModal({
                                             
                                             const scale = Math.min(containerWidth / originalWidth, containerHeight / originalHeight);
                                             
+                                            // 获取形状的理想viewBox
+                                            const { viewBox } = getShapeAspectRatio(shape.type);
+                                            
+                                            // 为空心矩形动态计算viewBox以匹配实际宽高比
+                                            let finalViewBox = viewBox;
+                                            if (shape.type === 'hollowRectangle') {
+                                                const actualAspectRatio = shape.width / shape.height;
+                                                if (actualAspectRatio > 1) {
+                                                    // 宽矩形：保持高度100，调整宽度
+                                                    finalViewBox = `0 0 ${100 * actualAspectRatio} 100`;
+                                                } else {
+                                                    // 高矩形：保持宽度100，调整高度
+                                                    finalViewBox = `0 0 100 ${100 / actualAspectRatio}`;
+                                                }
+                                            }
+                                            
+                                            // 决定形状的preserveAspectRatio属性
+                                            const getPreserveAspectRatio = () => {
+                                                // 对于可自由调整尺寸的形状，不保持宽高比
+                                                if (shape.type === 'rectangle' || shape.type === 'hollowRectangle' || shape.type === 'arrow') {
+                                                    return "none";
+                                                }
+                                                // 对于其他形状，保持宽高比并居中
+                                                return "xMidYMid meet";
+                                            };
+                                            
                                             // 检查形状元素是否应该可见（基于动画标记）
                                             const isVisible = isElementVisible(
                                                 shape.startAnimationMarkerId,
@@ -1317,17 +1243,24 @@ export default function PreviewModal({
                                                     <svg 
                                                         width="100%" 
                                                         height="100%" 
-                                                        viewBox="0 0 100 100" 
-                                                        preserveAspectRatio="none"
+                                                        viewBox={finalViewBox}
+                                                        preserveAspectRatio={getPreserveAspectRatio()}
                                                     >
-                                                        <ShapeRenderer 
-                                                            type={shape.type}
-                                                            fill={shape.fill}
-                                                            stroke={shape.stroke}
-                                                            strokeWidth={shape.strokeWidth}
-                                                            borderRadius={shape.borderRadius}
-                                                            scale={scale}
-                                                        />
+                                                        {renderShape({
+                                                            type: shape.type as any,
+                                                            fill: shape.fill,
+                                                            stroke: shape.stroke,
+                                                            strokeWidth: shape.strokeWidth,
+                                                            borderRadius: shape.borderRadius,
+                                                            scale: scale,
+                                                            // 为空心矩形传递动态viewBox尺寸
+                                                            viewBoxWidth: shape.type === 'hollowRectangle' 
+                                                                ? (shape.width / shape.height > 1 ? 100 * (shape.width / shape.height) : 100)
+                                                                : 100,
+                                                            viewBoxHeight: shape.type === 'hollowRectangle'
+                                                                ? (shape.width / shape.height > 1 ? 100 : 100 / (shape.width / shape.height))
+                                                                : 100,
+                                                        })}
                                                     </svg>
                                                 </div>
                                             );

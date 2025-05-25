@@ -45,6 +45,7 @@ export function ResizableImage({
     // State for alignment guides                            
     const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuide[]>([]);
     const [isDragging, setIsDragging] = useState(false);
+    const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
 
     // Calculate scale for responsive display
     const scaleX = (containerWidth || canvasWidth) / canvasWidth;
@@ -57,6 +58,16 @@ export function ResizableImage({
     const displayWidth = width * scaleX;
     const displayHeight = height * scaleY;
     
+    // 获取图片的原始宽高比
+    useEffect(() => {
+        const img = new Image();
+        img.onload = () => {
+            const aspectRatio = img.naturalWidth / img.naturalHeight;
+            setImageAspectRatio(aspectRatio);
+        };
+        img.src = src;
+    }, [src]);
+
     const handleResizeStop = useCallback(
         (
             e: MouseEvent | TouchEvent,
@@ -66,14 +77,32 @@ export function ResizableImage({
             position: { x: number; y: number },
         ) => {
             // 获取新尺寸，转换为标准尺寸
-            const newWidth = Math.round(Number.parseInt(ref.style.width) / scaleX);
-            const newHeight = Math.round(Number.parseInt(ref.style.height) / scaleY);
+            let newWidth = Math.round(Number.parseInt(ref.style.width) / scaleX);
+            let newHeight = Math.round(Number.parseInt(ref.style.height) / scaleY);
+            
+            // 如果有图片宽高比，调整容器尺寸以匹配图片比例
+            if (imageAspectRatio) {
+                // 计算应该保持的尺寸，取较大的一个作为基准
+                const widthByHeight = newHeight * imageAspectRatio;
+                const heightByWidth = newWidth / imageAspectRatio;
+                
+                // 使用对角线长度作为参考，选择更接近用户拖拽意图的尺寸
+                const currentDiagonal = Math.sqrt(newWidth * newWidth + newHeight * newHeight);
+                const diagonal1 = Math.sqrt(widthByHeight * widthByHeight + newHeight * newHeight);
+                const diagonal2 = Math.sqrt(newWidth * newWidth + heightByWidth * heightByWidth);
+                
+                if (Math.abs(diagonal1 - currentDiagonal) < Math.abs(diagonal2 - currentDiagonal)) {
+                    newWidth = Math.round(widthByHeight);
+                } else {
+                    newHeight = Math.round(heightByWidth);
+                }
+            }
             
             // 获取新位置
             const newX = Math.round(position.x / scaleX);
             const newY = Math.round(position.y / scaleY);
             
-            // 应用等比例缩放后的尺寸和位置
+            // 应用调整后的尺寸和位置
             onResize({
                 width: newWidth,
                 height: newHeight,
@@ -84,7 +113,7 @@ export function ResizableImage({
             // Clear alignment guides after resize
             setAlignmentGuides([]);
         },
-        [onResize, scaleX, scaleY]
+        [onResize, scaleX, scaleY, imageAspectRatio]
     )
 
     // Handle drag start to set dragging state
@@ -168,7 +197,7 @@ export function ResizableImage({
                         transformOrigin: 'center center'
                     }}
                 >
-                    <img src={src} alt="Resizable element" draggable="false" className="w-full h-full object-cover" />
+                    <img src={src} alt="Resizable element" draggable="false" className="w-full h-full object-contain" />
                     {isSelected && (
                         <>
                             {/* 角落的调整点 - 用于等比例缩放 */}

@@ -161,7 +161,7 @@ export function ResizableAvatar({
                 }}
                 style={{ 
                     transform: `rotate(${rotation}deg)`,
-                    zIndex: isSelected ? 10 : zIndex
+                    zIndex: zIndex
                 }}
                 lockAspectRatio={aspectRatio}
             >

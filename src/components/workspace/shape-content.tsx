@@ -37,9 +37,7 @@ const shapeTypeNames: Record<ShapeType, string> = {
   "cross": "十字形",
   "trapezoid": "梯形",
   "parallelogram": "平行四边形",
-  "rhombus": "菱形",
-  "rightArrow": "右箭头",
-  "line": "直线"
+  "rightArrow": "右箭头"
 };
 
 // 预设颜色

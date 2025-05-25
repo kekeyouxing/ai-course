@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import { ContentMediaItem } from '@/api/media';
 import { collectAllElements } from '@/utils/layer-controls'; // Import the layer control utility
+import { getShapeDefaultSize } from '@/types/shapes'; // 导入形状默认尺寸函数
 
 /**
  * Hook for managing element operations (text, image, video, avatar)
@@ -25,7 +26,7 @@ export const useElementOperations = (
     
     // Find the maximum zIndex among all elements
     const maxZIndex = Math.max(...elements.map(el => el.zIndex));
-    return maxZIndex + 1; // Return the highest + 1 to ensure it's on top
+    return maxZIndex+1; // Return the highest + 1 to ensure it's on top
   }, [scenes, activeScene]);
   
   const handleTextChange = useCallback(
@@ -292,30 +293,30 @@ const handleTextUpdate = useCallback(
         const canvasHeight = canvasDimensions.height;
         
         // 计算合适的缩放比例，确保媒体在画布中有合适的大小
-        // 限制媒体最大宽度为画布宽度的70%，最大高度为画布高度的70%
-        const maxWidth = canvasWidth * 0.7;
-        const maxHeight = canvasHeight * 0.7;
+        // 限制媒体最大宽度为画布宽度的60%，最大高度为画布高度的60%
+        const maxWidth = canvasWidth * 0.6;
+        const maxHeight = canvasHeight * 0.6;
         
         // 保持原始宽高比
         const aspectRatio = mediaItem.width / mediaItem.height;
         
         if (aspectRatio >= 1) { // 宽图/视频
           width = Math.min(maxWidth, mediaItem.width);
-          height = width / aspectRatio;
+          height = Math.round(width / aspectRatio); // 使用Math.round确保整数
           
           // 检查高度是否超过最大值
           if (height > maxHeight) {
             height = maxHeight;
-            width = height * aspectRatio;
+            width = Math.round(height * aspectRatio); // 使用Math.round确保整数
           }
         } else { // 高图/视频
           height = Math.min(maxHeight, mediaItem.height);
-          width = height * aspectRatio;
+          width = Math.round(height * aspectRatio); // 使用Math.round确保整数
           
           // 检查宽度是否超过最大值
           if (width > maxWidth) {
             width = maxWidth;
-            height = width / aspectRatio;
+            height = Math.round(width / aspectRatio); // 使用Math.round确保整数
           }
         }
       }
@@ -406,9 +407,6 @@ const handleTextUpdate = useCallback(
   // Shape operations
   const handleAddShapeElement = useCallback(
     (shapeType: ShapeType) => {
-      const centerX = canvasDimensions.width / 2 - 100; // 居中位置
-      const centerY = canvasDimensions.height / 2 - 100;
-      
       // Get the top zIndex for the new element
       const topZIndex = getTopZIndex();
       
@@ -418,17 +416,24 @@ const handleTextUpdate = useCallback(
         newScenes[activeScene].shapes = [];
       }
       
+      // 获取形状的默认尺寸
+      const { width: shapeWidth, height: shapeHeight } = getShapeDefaultSize(shapeType);
+      
+      // 计算居中位置
+      const centerX = canvasDimensions.width / 2 - shapeWidth / 2;
+      const centerY = canvasDimensions.height / 2 - shapeHeight / 2;
+      
       // 创建新形状
       const newShape: ShapeElement = {
         type: shapeType,
-        width: 200,
-        height: 200,
+        width: shapeWidth,
+        height: shapeHeight,
         x: centerX,
         y: centerY,
         rotation: 0,
         fill: "#000000", // 默认颜色
         stroke: "#000000",
-        strokeWidth: 2,
+        strokeWidth: shapeType.startsWith('hollow') ? 8 : 0, // 空心形状使用更粗的描边
         zIndex: topZIndex // Use dynamic top zIndex
       };
       

@@ -3,6 +3,7 @@ import { ShapeElement, ShapeType } from '@/types/scene';
 import { Rnd } from 'react-rnd';
 import { AlignmentGuides } from "./alignment-guides";
 import { checkForSnapping, AlignmentGuide } from "@/utils/alignment-utils";
+import { ShapeRenderer, getShapeAspectRatio } from '@/types/shapes';
 
 interface ResizableShapeProps extends ShapeElement {
   onResize: (newSize: { width: number; height: number; x: number; y: number; rotation: number }) => void;
@@ -14,173 +15,6 @@ interface ResizableShapeProps extends ShapeElement {
   containerHeight: number;
   otherElements?: { x: number; y: number; width: number; height: number }[];
 }
-
-// 渲染不同形状的组件
-const ShapeRenderer = ({ type, fill, stroke, strokeWidth, width, height, borderRadius = 0 }: {
-  type: ShapeType;
-  fill: string;
-  stroke: string;
-  strokeWidth: number;
-  width: number;
-  height: number;
-  borderRadius?: number;
-}) => {
-  
-  const style = {
-    fill,
-    stroke,
-    strokeWidth,
-    width: '100%',
-    height: '100%',
-  };
-
-  // 空心形状的样式
-  const hollowStyle = {
-    fill: 'none',
-    stroke,
-    strokeWidth,
-    width: '100%',
-    height: '100%',
-  };
-
-  switch (type) {
-    // 基础实心形状
-    case 'rectangle':
-      return <rect width="100%" height="100%" rx={borderRadius} ry={borderRadius} style={style} />;
-    case 'circle':
-      return <circle cx="50%" cy="50%" r="45%" style={style} />;
-    case 'triangle':
-      return (
-        <polygon 
-          points="50,10 10,90 90,90"
-          style={style}
-        />
-      );
-    case 'diamond':
-    case 'rhombus':
-      return (
-        <polygon 
-          points="50,10 90,50 50,90 10,50"
-          style={style}
-        />
-      );
-    case 'star':
-      return (
-        <polygon 
-          points="50,5 63,38 100,38 69,59 82,95 50,75 18,95 31,59 0,38 37,38"
-          style={{ ...style, transform: 'scale(0.9)' }}
-        />
-      );
-    
-    // 基础空心形状
-    case 'hollowRectangle':
-      return <rect width="100%" height="100%" rx={borderRadius} ry={borderRadius} style={hollowStyle} />;
-    case 'hollowCircle':
-      return <circle cx="50%" cy="50%" r="45%" style={hollowStyle} />;
-    case 'hollowTriangle':
-      return (
-        <polygon 
-          points="50,10 10,90 90,90"
-          style={hollowStyle}
-        />
-      );
-    case 'hollowStar':
-      return (
-        <polygon 
-          points="50,5 63,38 100,38 69,59 82,95 50,75 18,95 31,59 0,38 37,38"
-          style={{ ...hollowStyle, transform: 'scale(0.9)' }}
-        />
-      );
-      
-    // 特殊形状
-    case 'pacman':
-      return (
-        <path
-          d="M50,20 A30,30 0 1 0 50,80 L50,50 Z"
-          style={style}
-        />
-      );
-    case 'quarterCircle':
-      return (
-        <path
-          d="M10,90 L10,10 L90,10 A80,80 0 0 1 10,90 Z"
-          style={style}
-        />
-      );
-    case 'halfCircle':
-      return (
-        <path
-          d="M10,50 A40,40 0 0 1 90,50 L10,50 Z"
-          style={style}
-        />
-      );
-    case 'cross':
-      return (
-        <path
-          d="M35,10 H65 V35 H90 V65 H65 V90 H35 V65 H10 V35 H35 Z"
-          style={style}
-        />
-      );
-      
-    // 多边形
-    case 'pentagon':
-      return (
-        <polygon 
-          points="50,5 95,35 80,90 20,90 5,35"
-          style={{ ...style, transform: 'scale(0.9)' }}
-        />
-      );
-    case 'hexagon':
-      return (
-        <polygon 
-          points="50,5 90,25 90,75 50,95 10,75 10,25"
-          style={{ ...style, transform: 'scale(0.9)' }}
-        />
-      );
-    case 'trapezoid':
-      return (
-        <polygon 
-          points="20,20 80,20 95,80 5,80"
-          style={style}
-        />
-      );
-    case 'parallelogram':
-      return (
-        <polygon 
-          points="25,20 95,20 75,80 5,80"
-          style={style}
-        />
-      );
-    
-    // 特殊图形
-    case 'heart':
-      return (
-        <path
-          d="M50,90 C100,65 100,25 75,15 C55,8 50,25 50,25 C50,25 45,8 25,15 C0,25 0,65 50,90 Z"
-          style={{ ...style, transform: 'scale(0.9)' }}
-        />
-      );
-    case 'arrow':
-      return (
-        <polygon 
-          points="0,40 70,40 70,20 100,50 70,80 70,60 0,60"
-          style={{ ...style, transform: 'scale(0.9)' }}
-        />
-      );
-    case 'rightArrow':
-      return (
-        <g style={{ transform: 'scale(0.9)' }}>
-          <line x1="10" y1="50" x2="70" y2="50" style={{ ...hollowStyle, strokeWidth: strokeWidth * 2 }} />
-          <polyline points="50,20 80,50 50,80" style={{ ...hollowStyle, strokeWidth: strokeWidth * 2, fill: 'none' }} />
-        </g>
-      );
-    case 'line':
-      return <line x1="10%" y1="50%" x2="90%" y2="50%" style={{ ...hollowStyle, strokeWidth: strokeWidth * 2 }} />;
-    
-    default:
-      return <rect width="100%" height="100%" style={style} />;
-  }
-};
 
 export function ResizableShape({
   type,
@@ -200,7 +34,8 @@ export function ResizableShape({
   canvasHeight,
   containerWidth,
   containerHeight,
-  otherElements
+  otherElements,
+  zIndex,
 }: ResizableShapeProps) {
   const shapeRef = useRef<Rnd>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -216,6 +51,19 @@ export function ResizableShape({
   const scaledHeight = height * scaleY;
   const scaledX = x * scaleX;
   const scaledY = y * scaleY;
+
+  // 获取形状的理想viewBox
+  const { viewBox } = getShapeAspectRatio(type);
+
+  // 决定形状的preserveAspectRatio属性
+  const getPreserveAspectRatio = () => {
+    // 对于可自由调整尺寸的形状，不保持宽高比
+    if (type === 'rectangle' || type === 'hollowRectangle' || type === 'arrow') {
+      return "none";
+    }
+    // 对于其他形状，保持宽高比并居中
+    return "xMidYMid meet";
+  };
 
   // 反向计算: 从UI尺寸转回画布尺寸
   const rescale = (uiValue: number, scale: number) => uiValue / scale;
@@ -287,6 +135,16 @@ export function ResizableShape({
     }
     return {};
   };
+  
+  // 根据形状类型确定是否需要锁定宽高比
+  const shouldLockAspectRatio = () => {
+    // 长方形和箭头可以自由调整宽高
+    if (type === 'rectangle' || type === 'hollowRectangle' || type === 'arrow') {
+      return false;
+    }
+    // 其他形状需要保持宽高比
+    return true;
+  };
 
   return (
     <>
@@ -310,7 +168,7 @@ export function ResizableShape({
         onTouchStart={onSelect}
         style={{
           touchAction: 'none',
-          zIndex: isSelected ? 1000 : undefined,
+          zIndex: zIndex,
         }}
         resizeHandleStyles={{
           bottomRight: { display: isSelected ? 'block' : 'none' },
@@ -318,7 +176,7 @@ export function ResizableShape({
           topRight: { display: isSelected ? 'block' : 'none' },
           topLeft: { display: isSelected ? 'block' : 'none' },
         }}
-        // lockAspectRatio={shouldLockAspectRatio()}
+        lockAspectRatio={shouldLockAspectRatio()}
         dragHandleClassName="drag-handle"
       >
         <div 
@@ -336,17 +194,16 @@ export function ResizableShape({
           <svg 
             width="100%" 
             height="100%" 
-            viewBox="0 0 100 100" 
-            preserveAspectRatio="none"
+            viewBox={viewBox}
+            preserveAspectRatio={getPreserveAspectRatio()}
           >
             <ShapeRenderer 
               type={type} 
-              fill={fill} 
+              fill={fill}
               stroke={stroke} 
               strokeWidth={strokeWidth}
-              width={width}
-              height={height}
               borderRadius={borderRadius}
+              scale={scale}
             />
           </svg>
           
