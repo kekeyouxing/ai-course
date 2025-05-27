@@ -6,7 +6,7 @@ import {
     SidebarHeader,
     SidebarProvider
 } from "@/components/ui/sidebar"
-import type {Slide} from "@/data/slides"
+import type {Slide} from "@/types/slides"
 
 interface AppSidebarProps {
     slides: Slide[]

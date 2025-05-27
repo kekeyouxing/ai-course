@@ -7,10 +7,11 @@ import instance from './axios';
  */
 export async function getTemplates(page: number = 1, pageSize: number = 12): Promise<TemplateListResponse> {
   try {
-    const response = await instance.get('/templates/list', {
-      params: { page, pageSize }
-    });
-    return response.data;
+    // const response = await instance.get('/templates/list', {
+    //   params: { page, pageSize }
+    // });
+    // return response.data;
+    return getMockTemplateList(page, pageSize);
   } catch (error) {
     console.error('Error fetching templates:', error);
     // 返回模拟数据作为fallback
