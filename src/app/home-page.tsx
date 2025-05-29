@@ -99,18 +99,9 @@ export default function HomePage() {
     const calculatePreviewDimensions = (template: Template, containerWidth: number) => {
         if (containerWidth === 0) return { width: 0, height: 0 };
         
-        // 使用16:9比例
-        const aspectRatio = CANVAS_DIMENSIONS["16:9"].width / CANVAS_DIMENSIONS["16:9"].height;
-        const maxWidth = containerWidth - 32; // 留出padding
-        const maxHeight = 200; // 卡片预览的最大高度
-        
-        let width = maxWidth;
-        let height = width / aspectRatio;
-        
-        if (height > maxHeight) {
-            height = maxHeight;
-            width = height * aspectRatio;
-        }
+        // 让场景填满整个容器
+        const width = containerWidth;
+        const height = containerWidth * 9 / 16; // 保持16:9比例
         
         return { width: Math.floor(width), height: Math.floor(height) };
     };
@@ -173,13 +164,14 @@ export default function HomePage() {
                 {templates.map((template) => (
                     <div
                         key={template.id}
-                        className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                        className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer overflow-hidden"
                         onClick={() => handleTemplateClick(template)}
+                        style={{ aspectRatio: '16/9' }}
                     >
                         {/*预览区域 */}
                         <div ref={(element) => {
                             handleContainerRef(template.id, element);
-                        }} className="h-40 overflow-hidden rounded-t-lg bg-gray-100">
+                        }} className="w-full h-full bg-gray-100">
                             {containerWidths[template.id] > 0 && template.previewScene ? (
                                 <ScenePreview
                                     scene={template.previewScene}
@@ -187,7 +179,7 @@ export default function HomePage() {
                                     height={calculatePreviewDimensions(template, containerWidths[template.id]).height}
                                 />
                             ) : (
-                                <div className="h-full flex items-center justify-center">
+                                <div className="w-full h-full flex items-center justify-center">
                                     <img
                                         src={template.thumbnail}
                                         alt={template.title}
@@ -195,11 +187,6 @@ export default function HomePage() {
                                     />
                                 </div>
                             )}
-                        </div>
-
-                        {/* 内容区域 */}
-                        <div className="p-4">
-                            <h3 className="font-semibold text-lg">{template.title}</h3>
                         </div>
                     </div>
                 ))}

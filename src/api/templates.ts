@@ -1,4 +1,4 @@
-import { Template, TemplateCategory, TemplateListResponse } from '@/types/template';
+import { Template, TemplateCategory, TemplateListResponse, TemplateListApiResponse, TemplateApiResponse, TemplateScenesApiResponse, TemplateCategoriesApiResponse } from '@/types/template';
 import { Scene } from '@/types/scene';
 import instance from './axios';
 
@@ -7,11 +7,18 @@ import instance from './axios';
  */
 export async function getTemplates(page: number = 1, pageSize: number = 12): Promise<TemplateListResponse> {
   try {
-    // const response = await instance.get('/templates/list', {
-    //   params: { page, pageSize }
-    // });
-    // return response.data;
-    return getMockTemplateList(page, pageSize);
+    const response = await instance.get<TemplateListApiResponse>('/templates/list', {
+      params: { page, pageSize }
+    });
+    
+    // 检查API响应状态
+    if (response.data.code !== 0) {
+      console.error('API error:', response.data.msg);
+      throw new Error(response.data.msg || 'API request failed');
+    }
+    
+    return response.data.data;
+    // return getMockTemplateList(page, pageSize);
   } catch (error) {
     console.error('Error fetching templates:', error);
     // 返回模拟数据作为fallback
@@ -24,8 +31,15 @@ export async function getTemplates(page: number = 1, pageSize: number = 12): Pro
  */
 export async function getTemplateScenes(templateId: string): Promise<Scene[]> {
   try {
-    const response = await instance.get(`/templates/${templateId}/scenes`);
-    return response.data;
+    const response = await instance.get<TemplateScenesApiResponse>(`/templates/${templateId}/scenes`);
+    
+    // 检查API响应状态
+    if (response.data.code !== 0) {
+      console.error('API error:', response.data.msg);
+      throw new Error(response.data.msg || 'API request failed');
+    }
+    
+    return response.data.data;
   } catch (error) {
     console.error('Error fetching template scenes:', error);
     // 返回模拟数据作为fallback
@@ -38,8 +52,15 @@ export async function getTemplateScenes(templateId: string): Promise<Scene[]> {
  */
 export async function getTemplateById(id: string): Promise<Template | null> {
   try {
-    const response = await instance.get(`/templates/${id}`);
-    return response.data;
+    const response = await instance.get<TemplateApiResponse>(`/templates/${id}`);
+    
+    // 检查API响应状态
+    if (response.data.code !== 0) {
+      console.error('API error:', response.data.msg);
+      throw new Error(response.data.msg || 'API request failed');
+    }
+    
+    return response.data.data;
   } catch (error) {
     console.error('Error fetching template:', error);
     return null;
@@ -51,8 +72,15 @@ export async function getTemplateById(id: string): Promise<Template | null> {
  */
 export async function getTemplateCategories(): Promise<TemplateCategory[]> {
   try {
-    const response = await instance.get('/templates/categories');
-    return response.data;
+    const response = await instance.get<TemplateCategoriesApiResponse>('/templates/categories');
+    
+    // 检查API响应状态
+    if (response.data.code !== 0) {
+      console.error('API error:', response.data.msg);
+      throw new Error(response.data.msg || 'API request failed');
+    }
+    
+    return response.data.data;
   } catch (error) {
     console.error('Error fetching template categories:', error);
     return getMockCategories();
@@ -131,6 +159,12 @@ function getMockTemplates(): Template[] {
         avatar: null
       },
       tags: ["Compliance", "E-Learning"],
+      language: "en",
+      voiceId: "female-chengshu",
+      voiceSpeed: 1,
+      voiceVolume: 3,
+      voicePitch: 0,
+      voiceEmotion: "neutral",
       category: "Business",
       createdAt: "2024-01-01T00:00:00Z",
       updatedAt: "2024-01-01T00:00:00Z"
@@ -166,6 +200,12 @@ function getMockTemplates(): Template[] {
         avatar: null
       },
       tags: ["Compliance", "E-Learning"],
+      language: "en",
+      voiceId: "female-chengshu",
+      voiceSpeed: 1,
+      voiceVolume: 3,
+      voicePitch: 0,
+      voiceEmotion: "neutral",
       category: "Security",
       createdAt: "2024-01-01T00:00:00Z",
       updatedAt: "2024-01-01T00:00:00Z"
@@ -201,6 +241,12 @@ function getMockTemplates(): Template[] {
         avatar: null
       },
       tags: ["Marketing", "Business"],
+      language: "en",
+      voiceId: "female-chengshu",
+      voiceSpeed: 1,
+      voiceVolume: 3,
+      voicePitch: 0,
+      voiceEmotion: "neutral",
       category: "Marketing",
       createdAt: "2024-01-01T00:00:00Z",
       updatedAt: "2024-01-01T00:00:00Z"
@@ -237,6 +283,12 @@ function getMockTemplates(): Template[] {
         avatar: null
       },
       tags: ["数据", "分析"],
+      language: "zh",
+      voiceId: "female-chengshu",
+      voiceSpeed: 1,
+      voiceVolume: 3,
+      voicePitch: 0,
+      voiceEmotion: "neutral",
       category: "Business",
       createdAt: "2024-01-01T00:00:00Z",
       updatedAt: "2024-01-01T00:00:00Z"
@@ -272,6 +324,12 @@ function getMockTemplates(): Template[] {
         avatar: null
       },
       tags: ["产品", "发布"],
+      language: "zh",
+      voiceId: "female-chengshu",
+      voiceSpeed: 1,
+      voiceVolume: 3,
+      voicePitch: 0,
+      voiceEmotion: "neutral",
       category: "Marketing",
       createdAt: "2024-01-01T00:00:00Z",
       updatedAt: "2024-01-01T00:00:00Z"

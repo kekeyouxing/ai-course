@@ -29,14 +29,27 @@ export function TemplatePreviewModal({
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [loadingScenes, setLoadingScenes] = useState(false);
   const [selectedSceneIndex, setSelectedSceneIndex] = useState<number | null>(null); // null表示显示视频
+  const [gridItemDimensions, setGridItemDimensions] = useState({ width: 120, height: 68 });
   const videoRef = useRef<HTMLVideoElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
+  const rightPanelRef = useRef<HTMLDivElement>(null);
 
   // 监听容器尺寸变化
   useEffect(() => {
     const updateContainerWidth = () => {
       if (leftPanelRef.current) {
         setContainerWidth(leftPanelRef.current.clientWidth);
+      }
+      
+      // 计算右侧网格项尺寸
+      if (rightPanelRef.current) {
+        const rightPanelWidth = rightPanelRef.current.clientWidth;
+        const gridWidth = (rightPanelWidth - 48 - 24) / 3; // 减去padding和gap
+        const gridHeight = gridWidth * 9 / 16; // 16:9比例
+        setGridItemDimensions({
+          width: Math.floor(gridWidth),
+          height: Math.floor(gridHeight)
+        });
       }
     };
 
@@ -117,15 +130,18 @@ export function TemplatePreviewModal({
   // const { width: previewWidth, height: previewHeight } = calculatePreviewDimensions(containerWidth);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div 
+      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+    >
+      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-gray-200">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div>
             <h2 className="text-2xl font-bold">{template.title}</h2>
             <p className="text-gray-600 mt-1">{template.description}</p>
             <div className="flex gap-2 mt-2">
-              {template.tags.map((tag) => (
+              {template.tags?.map((tag) => (
                 <span
                   key={tag}
                   className="px-2 py-1 bg-gray-100 text-gray-700 text-sm rounded"
@@ -208,7 +224,7 @@ export function TemplatePreviewModal({
           </div>
 
           {/* Right Panel - Scenes Grid */}
-          <div className="w-1/2 p-6 border-l flex flex-col">
+          <div ref={rightPanelRef} className="w-1/2 p-6 border-l flex flex-col">
             <h3 className="text-lg font-semibold mb-4">
               场景 ({scenes.length})
             </h3>
@@ -238,17 +254,10 @@ export function TemplatePreviewModal({
                       <div className="w-full h-full bg-gray-50">
                         <ScenePreview
                           scene={scene}
-                          width={120} // 固定小尺寸用于网格预览
-                          height={68}  // 16:9 比例
+                          width={gridItemDimensions.width}
+                          height={gridItemDimensions.height}
                         />
                       </div>
-                      
-                      {/* 场景编号标签 */}
-                      <div className="absolute top-1 left-1 bg-black bg-opacity-60 text-white text-xs px-1.5 py-0.5 rounded">
-                        {index + 1}
-                      </div>
-                      
-
                     </div>
                   ))}
                 </div>
