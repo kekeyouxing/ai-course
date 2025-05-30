@@ -85,26 +85,6 @@ export function TemplatePreviewModal({
     }
   }, [isOpen, template]);
 
-  // 计算场景预览尺寸
-  const calculatePreviewDimensions = (containerWidth: number) => {
-    if (containerWidth === 0) return { width: 0, height: 0 };
-    
-    // 保持16:9比例
-    const aspectRatio = CANVAS_DIMENSIONS["16:9"].width / CANVAS_DIMENSIONS["16:9"].height;
-    const maxWidth = containerWidth - 32; // 留出padding
-    const maxHeight = 180; // 最大高度
-    
-    let width = maxWidth;
-    let height = width / aspectRatio;
-    
-    if (height > maxHeight) {
-      height = maxHeight;
-      width = height * aspectRatio;
-    }
-    
-    return { width: Math.floor(width), height: Math.floor(height) };
-  };
-
   const handlePlayPause = () => {
     if (videoRef.current) {
       if (isPlaying) {
@@ -126,8 +106,6 @@ export function TemplatePreviewModal({
   };
 
   if (!isOpen) return null;
-
-  // const { width: previewWidth, height: previewHeight } = calculatePreviewDimensions(containerWidth);
 
   return (
     <div 
@@ -170,56 +148,61 @@ export function TemplatePreviewModal({
               {selectedSceneIndex !== null && (
                 <button
                   onClick={() => setSelectedSceneIndex(null)}
-                  className="text-sm text-gray-800 hover:text-black"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 rounded-md border border-gray-300 transition-colors duration-200 font-medium"
                 >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
                   返回视频
                 </button>
               )}
             </div>
             
             {/* 16:9 比例容器 */}
-            <div className="relative bg-gray-100 rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
-              {selectedSceneIndex !== null && scenes[selectedSceneIndex] ? (
-                // 显示选中的场景
-                <div className="w-full h-full flex items-center justify-center">
-                  <ScenePreview
-                    scene={scenes[selectedSceneIndex]}
-                    width={containerWidth - 48} // 减去padding
-                    height={(containerWidth - 48) * 9 / 16}
-                  />
-                </div>
-              ) : template.video ? (
-                // 显示视频
-                <>
-                  <video
-                    ref={videoRef}
-                    src={template.video}
-                    className="w-full h-full object-cover"
-                    onTimeUpdate={handleVideoTimeUpdate}
-                    onEnded={() => setIsPlaying(false)}
-                    poster={template.thumbnail}
-                  />
-                  <button
-                    onClick={handlePlayPause}
-                    className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 hover:bg-opacity-40 transition-all"
-                  >
-                    {isPlaying ? (
-                      <Pause className="w-16 h-16 text-white" />
-                    ) : (
-                      <Play className="w-16 h-16 text-white" />
-                    )}
-                  </button>
-                </>
-              ) : (
-                // 显示缩略图
-                <div className="w-full h-full flex items-center justify-center">
-                  <img
-                    src={template.thumbnail}
-                    alt={template.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
+            <div className="relative bg-gray-100 rounded-lg overflow-hidden w-full" style={{ paddingBottom: '56.25%' }}>
+              <div className="absolute inset-0">
+                {selectedSceneIndex !== null && scenes[selectedSceneIndex] ? (
+                  // 显示选中的场景
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ScenePreview
+                      scene={scenes[selectedSceneIndex]}
+                      width={containerWidth - 48} // 减去padding
+                      height={(containerWidth - 48) * 9 / 16}
+                    />
+                  </div>
+                ) : template.video ? (
+                  // 显示视频
+                  <>
+                    <video
+                      ref={videoRef}
+                      className="w-full h-full object-contain bg-black"
+                      controls
+                      onTimeUpdate={handleVideoTimeUpdate}
+                      onEnded={() => setIsPlaying(false)}
+                      onError={(e) => {
+                        console.error('Video load error:', e);
+                        toast.error('视频加载失败');
+                      }}
+                      onLoadStart={() => console.log('Video loading started')}
+                      onCanPlay={() => console.log('Video can play')}
+                      poster={template.thumbnail}
+                      preload="metadata"
+                    >
+                      <source src={template.video} type="video/mp4" />
+                      您的浏览器不支持视频播放。
+                    </video>
+                  </>
+                ) : (
+                  // 显示缩略图
+                  <div className="w-full h-full flex items-center justify-center">
+                    <img
+                      src={template.thumbnail}
+                      alt={template.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -287,4 +270,4 @@ export function TemplatePreviewModal({
       </div>
     </div>
   );
-} 
+}

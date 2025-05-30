@@ -1,12 +1,11 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Template, TemplateListResponse } from '@/types/template';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Template } from '@/types/template';
 import { getTemplates, createProjectFromTemplate } from '@/api/templates';
 import { ScenePreview } from '@/components/workspace/scene-preview';
 import { TemplatePreviewModal } from '@/components/templates/template-preview-modal';
 import { toast } from 'sonner';
-import { CANVAS_DIMENSIONS } from '@/hooks/use-canvas-dimensions';
 import { useNavigate } from 'react-router-dom';
 
 export default function HomePage() {
@@ -117,7 +116,7 @@ export default function HomePage() {
         setIsCreatingProject(true);
         try {
             const result = await createProjectFromTemplate(template.id, `${template.title} Project`);
-            toast.success('项目创建成功！正在跳转到编辑器...');
+            
             
             // 导航到项目编辑器
             navigate(`/app/projects/${result.projectId}`);

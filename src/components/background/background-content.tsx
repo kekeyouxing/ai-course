@@ -5,7 +5,6 @@ import { Play, Trash2, Upload, Search, MoreHorizontal, Edit, X, Check } from "lu
 import { HexColorPicker, RgbaColor, RgbaColorPicker } from "react-colorful"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
 import {
   AlertDialog,
   AlertDialogAction,
