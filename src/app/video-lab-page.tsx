@@ -222,6 +222,18 @@ export default function VideoLabPage() {
                     <p className="text-sm text-gray-500">录制一段30秒的视频，并用你的声音为所有角色和旁白配音</p>
                 </div>
             </div>
+            
+            {/* 重要提示 */}
+            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg max-w-2xl">
+                <div className="flex items-center space-x-3">
+                    <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center">
+                        <span className="text-white text-sm font-bold">!</span>
+                    </div>
+                    <p className="text-sm text-amber-700 flex-1">
+                        一旦创建虚拟形象后声音将无法修改，请确保录制时声音清晰、环境安静，并选择高质量照片。
+                    </p>
+                </div>
+            </div>
 
             {/* 主要内容区域 */}
             <Tabs defaultValue="custom" className="space-y-6 pt-8" onValueChange={setActiveTab}>

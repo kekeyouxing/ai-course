@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Play, Wand2, Bot, Settings, Volume2 } from "lucide-react"
+import { Play, Wand2, Bot, Settings, Volume2, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import CustomEditor from "@/components/script/custom-editor"
 import TimePicker from "@/components/script/time-picker"
@@ -463,38 +463,39 @@ export default function ScriptContent({
         </div>
 
         {/* Bottom: Control Buttons */}
-        <div className="flex justify-center mt-auto">
+        <div className="flex flex-col items-center mt-auto">
+          {/* 提示信息 */}
+          <div className="text-xs text-muted-foreground mb-1 flex items-center">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            <span>修改脚本或设置后，请重新点击 <Volume2 className="h-4 w-4 fill-primary inline-block align-text-bottom mx-0.5" /> 生成语音</span>
+          </div>
           <div className="flex items-center gap-3 bg-background border rounded-full px-4 py-1">
 
-            <TimePicker
-              value={timeValue}
-              onChange={setTimeValue}
-              onInsert={insertTimeTag}
-              isOpen={showTimePicker}
-              onToggle={handleTimePickerToggle}
-            />
-
+            {/* 生成语音按钮 */}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="rounded-full hover:bg-primary/10 h-8 w-8 p-0"
-                    onClick={insertAnimationTag}
+                    className="rounded-full text-primary hover:bg-primary/10 h-8 w-8 p-0"
+                    onClick={handleTextToSpeech}
+                    disabled={ttsLoading}
                   >
-                    <Wand2 className="h-4 w-4" />
+                    {ttsLoading ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    ) : (
+                      <Volume2 className="h-4 w-4 fill-primary" />
+                    )}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>插入动画标记</p>
+                  <p>生成语音，将消耗字符余额</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
 
-            <div className="h-5 w-px bg-border" />
-
-            {/* 设置按钮及弹出框 */}
+            {/* 语音设置按钮 */}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
@@ -588,25 +589,28 @@ export default function ScriptContent({
               </Tooltip>
             </TooltipProvider>
 
+            <TimePicker
+              value={timeValue}
+              onChange={setTimeValue}
+              onInsert={insertTimeTag}
+              isOpen={showTimePicker}
+              onToggle={handleTimePickerToggle}
+            />
+
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="rounded-full text-primary hover:bg-primary/10 h-8 w-8 p-0"
-                    onClick={handleTextToSpeech}
-                    disabled={ttsLoading}
+                    className="rounded-full hover:bg-primary/10 h-8 w-8 p-0"
+                    onClick={insertAnimationTag}
                   >
-                    {ttsLoading ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    ) : (
-                      <Volume2 className="h-4 w-4 fill-primary" />
-                    )}
+                    <Wand2 className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>生成语音，将消耗字符余额</p>
+                  <p>插入动画标记</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
