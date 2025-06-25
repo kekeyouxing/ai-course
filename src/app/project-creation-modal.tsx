@@ -156,7 +156,7 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
             setProcessingStage(`正在处理${fileType.toUpperCase()}文件，这可能需要一点时间...`);
             // 如果没有项目名称，则设置为"未命名项目"
             const finalProjectName = projectName.trim() || "未命名项目";
-            const projectId = await createProject(fileType, fileUrl, finalProjectName);
+            const projectId = await createProject('pdf', fileUrl, finalProjectName);
             onCreate(projectId);
             onClose();
         } catch (error) {
