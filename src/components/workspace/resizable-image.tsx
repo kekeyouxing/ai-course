@@ -67,7 +67,7 @@ export function ResizableImage({
         };
         img.src = src;
     }, [src]);
-
+    
     const handleResizeStop = useCallback(
         (
             e: MouseEvent | TouchEvent,

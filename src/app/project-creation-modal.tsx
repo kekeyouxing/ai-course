@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, FileIcon, UploadCloud, Loader2 } from "lucide-react";
+import { CheckCircle, FileIcon, UploadCloud, Loader2, Clock } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 import instance_oss from "@/api/axios-oss";
@@ -24,8 +24,9 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
     const [fileUrl, setFileUrl] = useState<string>("");
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
     const [processingStage, setProcessingStage] = useState<string>("");
-    const [fileType, setFileType] = useState<"ppt" | "pdf">("ppt");
+    const [fileType, setFileType] = useState<"ppt" | "pdf">("pdf");
     const [projectName, setProjectName] = useState<string>("");
+    const [showProcessingMessage, setShowProcessingMessage] = useState<boolean>(false);
     const INVALID_FILE_ERROR = '文件大小或格式无效!';
     
     const clearData = () => {
@@ -34,6 +35,7 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
         setFileUrl('');
         setFile(null);
         setProjectName('');
+        setShowProcessingMessage(false);
     };
 
     // 从文件名提取项目名称（去掉扩展名）
@@ -136,7 +138,7 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
     };
 
     const handleCreate = async () => {
-        if (!file || !uploadComplete) {
+        if (!file || !fileUrl) {
             toast.error(`请先上传${fileType.toUpperCase()}文件`);
             return;
         }
@@ -153,12 +155,24 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
         setIsProcessing(true);
 
         try {
-            setProcessingStage(`正在处理${fileType.toUpperCase()}文件，这可能需要一点时间...`);
+            // 根据文件类型设置不同的处理阶段提示
+            if (fileType === 'pdf') {
+                setProcessingStage('正在创建项目...');
+            } else {
+                setProcessingStage(`正在处理${fileType.toUpperCase()}文件，这可能需要一点时间...`);
+            }
+            
             // 如果没有项目名称，则设置为"未命名项目"
             const finalProjectName = projectName.trim() || "未命名项目";
             const projectId = await createProject('pdf', fileUrl, finalProjectName);
-            onCreate(projectId);
-            onClose();
+            console.log("fileType", fileType);
+            // 如果是PDF模式，显示处理消息而不是跳转
+            if (fileType === 'pdf') {
+                setShowProcessingMessage(true);
+            } else {
+                onCreate(projectId);
+                onClose();
+            }
         } catch (error) {
             toast.error(error instanceof Error ? error.message : `处理${fileType.toUpperCase()}失败，请重试!`);
         } finally {
@@ -171,9 +185,38 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
                 <DialogHeader className="p-6">
-                    <DialogTitle className="text-xl">导入文件创建项目</DialogTitle>
+                    <DialogTitle className="text-xl">
+                        {showProcessingMessage ? "PDF任务已提交" : "导入文件创建项目"}
+                    </DialogTitle>
                 </DialogHeader>
 
+                {showProcessingMessage ? (
+                    <div className="p-6">
+                        <div className="text-center">
+                            <Clock className="w-16 h-16 mx-auto mb-4 text-blue-500" />
+                            <div className="space-y-3">
+                                <h3 className="text-lg font-medium text-gray-900">PDF文件任务已提交</h3>
+                                <p className="text-gray-600">
+                                    系统正在处理您的PDF文件，预计需要约30秒时间。您无需重复提交，请稍后刷新页面即可看到新创建的项目。
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                    您可以关闭当前对话框，继续使用其他功能。
+                                </p>
+                            </div>
+                            <div className="mt-6">
+                                <Button 
+                                    onClick={() => {
+                                        clearData();
+                                        onClose();
+                                    }}
+                                    className="w-full"
+                                >
+                                    关闭对话框
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
                 <div className="p-6">
                     <Tabs defaultValue="pdf" className="mb-6" onValueChange={(value) => {
                         setFileType(value as "ppt" | "pdf");
@@ -259,7 +302,7 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
                     <div className="flex justify-end">
                         <Button
                             onClick={handleCreate}
-                            disabled={isProcessing || !file || !uploadComplete}
+                            disabled={isProcessing || !file || !fileUrl}
                             className="min-w-[100px]"
                         >
                             {isProcessing ? (
@@ -270,7 +313,18 @@ export function ProjectCreationModal({ isOpen, onClose, onCreate }: ProjectCreat
                             ) : '创建项目'}
                         </Button>
                     </div>
+                    
+                    {/* PDF模式的处理状态提示 */}
+                    {fileType === 'pdf' && isProcessing && (
+                        <div className="flex justify-center items-center py-4">
+                            <div className="flex items-center gap-2 text-blue-600">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>{processingStage || '正在处理...'}</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
+                )}
             </DialogContent>
         </Dialog>
     )
