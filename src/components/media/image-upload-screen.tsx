@@ -83,9 +83,9 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
             return
         }
 
-        // 检查文件大小 (限制为 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error('图片大小不能超过 5MB')
+        // 检查文件大小 (限制为 3MB)
+        if (file.size > 3 * 1024 * 1024) {
+            toast.error('图片大小不能超过 3MB')
             return
         }
 
@@ -204,6 +204,12 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
             }
 
             const file = new File([pngBlob], 'avatar.png', { type: 'image/png' });
+
+            // 检查转换后的文件大小（限制为 3MB）
+            if (file.size > 3 * 1024 * 1024) {
+                toast.error('处理后的图片大小超过 3MB，请选择更小的图片或裁剪更小的区域');
+                return false;
+            }
 
             let result;
 
@@ -355,6 +361,9 @@ export default function ImageUploadScreen({ onBack }: { onBack: () => void }) {
                         </p>
                         <p className="text-gray-600">
                             图像最小边长≥400像素，最大边长≤7000像素。
+                        </p>
+                        <p className="text-gray-600">
+                            图片大小不能超过 3MB。
                         </p>
                         <p className="text-gray-600">
                             希望检测确认的画幅，可选 "1:1"或"3:4"，1:1适用于头像图片，3:4适用于半身像图片。

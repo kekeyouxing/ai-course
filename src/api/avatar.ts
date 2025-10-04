@@ -51,7 +51,8 @@ export async function addAvatar(file: File, ratio: string, name: string): Promis
         const response = await instance.post('/avatars/addAvatar', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
-            }
+            },
+            timeout: 180000 // 180秒超时
         });
         return response.data;
     } catch (error) {
@@ -65,8 +66,8 @@ export async function addAvatar(file: File, ratio: string, name: string): Promis
 
 // 更新头像接口
 export async function updateAvatar(
-  oldImageUrl: string, 
-  name: string, 
+  oldImageUrl: string,
+  name: string,
   file: File,
   ratio: string,
 ): Promise<{
@@ -84,14 +85,15 @@ export async function updateAvatar(
   if (file) {
     formData.append('file', file, file.name);
   }
-  
+
   try {
     const response = await instance.post('/avatars/updateAvatar', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      timeout: 180000 // 180秒超时
     });
-    
+
     return response.data;
   } catch (error) {
     console.error('更新头像失败:', error);
