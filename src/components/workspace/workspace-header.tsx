@@ -210,10 +210,10 @@ export function VideoHeader({
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => window.location.href = "/app/home"}
+                            onClick={() => window.location.href = "/app/projects"}
                         >
                             <ArrowLeft className="h-4 w-4 mr-1" />
-                            返回主页
+                            返回项目列表
                         </Button>
                     </div>
                     <div className="flex items-center space-x-2">
