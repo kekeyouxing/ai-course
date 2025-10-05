@@ -13,7 +13,8 @@ import {
     Clock,
     Text,
     FileText,
-    RefreshCw
+    RefreshCw,
+    ArrowLeft
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AspectRatioType, Scene } from "@/types/scene"
@@ -206,13 +207,14 @@ export function VideoHeader({
             <header className="flex items-center justify-between px-4 py-3 border-b">
                 <div className="flex items-center space-x-4">
                     <div className="flex items-center">
-                        <div 
-                            className="w-8 h-8 rounded-full bg-black flex items-center justify-center cursor-pointer"
+                        <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => window.location.href = "/app/home"}
-                            title="返回主页"
                         >
-                            <div className="w-6 h-6 rounded-full border-2 border-white"></div>
-                        </div>
+                            <ArrowLeft className="h-4 w-4 mr-1" />
+                            返回主页
+                        </Button>
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
