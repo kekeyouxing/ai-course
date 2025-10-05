@@ -160,8 +160,8 @@ export default function SubscriptionModal({
       // 开始轮询支付状态
       startPollingPaymentStatus(orderId);
     } catch (error) {
-      console.error("获取支付信息失败:", error);
-      toast.error("获取支付二维码失败，请稍后再试");
+      console.error("获取支付二维码失败:", error);
+      toast.error(error instanceof Error ? error.message : "获取支付二维码失败，请稍后再试");
     } finally {
       setPaymentLoading(false);
     }

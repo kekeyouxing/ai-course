@@ -19,6 +19,7 @@ export interface TextToSpeechResponse {
     data: {
         audioLength: number;  // 音频长度（毫秒）
         audioUrl: string;     // 音频URL
+        subtitleUrl?: string; // 字幕URL（SRT格式），如果启用字幕则返回
     };
     msg: string;
 }

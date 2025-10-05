@@ -279,7 +279,8 @@ export default function ScriptContent({
         // audioLength已经是毫秒单位，直接使用
         updateScene({
           audioSrc: result.data.audioUrl,
-          duration: result.data.audioLength
+          duration: result.data.audioLength,
+          subtitleUrl: result.data.subtitleUrl
         });
       }
     } catch (error) {

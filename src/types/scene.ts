@@ -187,6 +187,7 @@ export interface Scene {
     shapes?: ShapeElement[] // 添加形状数组
     script?: string  // 添加脚本字段
     audioSrc?: string
+    subtitleUrl?: string  // 字幕文件URL（SRT格式）
     duration?: number
     aspectRatio?: AspectRatioType  // 添加宽高比例字段
 }

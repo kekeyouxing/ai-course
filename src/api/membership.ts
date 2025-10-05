@@ -74,9 +74,9 @@ export async function getMembershipFeatures(): Promise<MembershipFeature[]> {
 export function getMaxAvatarsPerProject(tier: MembershipTier): number {
   const maxAvatarsMap: Record<MembershipTier, number> = {
     Free: 1,
-    Basic: 3,
-    Advanced: 4,
-    Super: 5
+    Basic: 1,
+    Advanced: 1,
+    Super: 1
   };
   
   return maxAvatarsMap[tier] || 1; // 默认返回免费级别限制
@@ -170,7 +170,6 @@ export async function requestMembershipPayment(tier: MembershipTier): Promise<{q
     
     throw new Error(response.data.msg || "获取支付二维码失败");
   } catch (error) {
-    console.error("发起会员支付请求失败:", error);
     throw error;
   }
 }
