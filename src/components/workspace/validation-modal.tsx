@@ -9,7 +9,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { AlertCircle, CheckCircle2, Loader2, AlertTriangle, Info, FileVideo, Star, ExternalLink } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { AlertCircle, CheckCircle2, Loader2, Info, Star, ExternalLink } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
 interface ValidationModalProps {
@@ -17,7 +19,7 @@ interface ValidationModalProps {
   onOpenChange: (open: boolean) => void
   errorMessages: string[]
   hasErrors: boolean
-  onConfirm: () => void
+  onConfirm: (enableSubtitle: boolean) => void
   isGenerating?: boolean
 }
 
@@ -30,11 +32,13 @@ export default function ValidationModal({
   isGenerating = false
 }: ValidationModalProps) {
   const [isLoading, setIsLoading] = useState(true)
-  
+  const [enableSubtitle, setEnableSubtitle] = useState(false)
+
   // 模拟加载效果 - 仅用于初始检查
   useEffect(() => {
     if (open) {
       setIsLoading(true)
+      setEnableSubtitle(false) // 重置字幕开关
       const timer = setTimeout(() => {
         setIsLoading(false)
       }, 800)
@@ -101,6 +105,24 @@ export default function ValidationModal({
                     </div>
                   )}
                   
+                  {/* 字幕开关 */}
+                  <div className="p-3 bg-gray-50 rounded border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Label htmlFor="subtitle-switch" className="text-sm font-medium text-gray-700 cursor-pointer">
+                          开启字幕
+                        </Label>
+                        <p className="text-xs text-gray-500 mt-1">为视频添加字幕，便于观看和理解</p>
+                      </div>
+                      <Switch
+                        id="subtitle-switch"
+                        checked={enableSubtitle}
+                        onCheckedChange={setEnableSubtitle}
+                        disabled={isInLoadingState}
+                      />
+                    </div>
+                  </div>
+
                   <div className="p-3 bg-blue-50 rounded border border-blue-100">
                     <p className="text-sm text-blue-700 flex items-center gap-2 font-medium">
                       <Info className="h-4 w-4 flex-shrink-0" />
@@ -109,7 +131,7 @@ export default function ValidationModal({
                     <ul className="mt-2 space-y-2">
                       <li className="text-sm text-blue-600 flex items-start gap-2">
                         <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                        <span>请先预览视频内容，确认无误后再生成。视频生成将消耗您的账户余额。</span>
+                        <span>请先预览视频内容,确认无误后再生成。视频生成将消耗您的账户余额。</span>
                       </li>
                       <li className="text-sm text-blue-600 flex items-start gap-2">
                         <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
@@ -119,8 +141,8 @@ export default function ValidationModal({
                         <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
                         <span>
                           生成完成后，您可以前往
-                          <a 
-                            href="/app/projects" 
+                          <a
+                            href="/app/projects"
                             className="mx-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-md font-medium hover:bg-blue-200 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -136,8 +158,8 @@ export default function ValidationModal({
                         <Star className="h-4 w-4 flex-shrink-0 mt-0.5" />
                         <span>
                           需要更高质量的定制视频？我们提供专业的一对一服务
-                          <a 
-                            href="/contact" 
+                          <a
+                            href="/contact"
                             className="ml-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-md font-medium hover:bg-blue-200 inline-flex items-center gap-1 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -165,11 +187,11 @@ export default function ValidationModal({
             取消
           </Button>
           <Button
-            onClick={onConfirm}
+            onClick={() => onConfirm(enableSubtitle)}
             disabled={hasErrors || isInLoadingState}
             className={`${
-              isInLoadingState ? "bg-blue-400" : 
-              hasErrors ? "bg-gray-300 cursor-not-allowed" : 
+              isInLoadingState ? "bg-blue-400" :
+              hasErrors ? "bg-gray-300 cursor-not-allowed" :
               "bg-black hover:bg-gray-800"
             }`}
           >

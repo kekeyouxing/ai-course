@@ -121,27 +121,27 @@ export function convertFeaturesToDisplay(features: MembershipFeature[]): TierDis
     // 将分转换为元，并格式化为价格字符串
     const priceInYuan = feature.monthlyPrice;
     const priceString = feature.tier === "Free" ? "免费" : `¥${priceInYuan}`;
-    
+
     // 获取该会员等级的项目最大角色数量
-    const maxAvatarsPerProject = getMaxAvatarsPerProject(feature.tier);
-    
+    // const maxAvatarsPerProject = getMaxAvatarsPerProject(feature.tier);
+
     // 构建特性列表
     const featureList = [
-      { 
-        name: `拥有${feature.maxCharacters}个自定义角色（永久拥有）`,
-        included: feature.maxCharacters > 0 
-      },
       {
-        name: `每个项目可使用${maxAvatarsPerProject}个角色`,
+        name: `拥有${feature.maxCharacters}个自定义角色（永久拥有）`,
+        included: feature.maxCharacters > 0
+      },
+      // {
+      //   name: `每个项目可使用${maxAvatarsPerProject}个角色`,
+      //   included: true
+      // },
+      {
+        name: `视频时长额度${Math.floor(feature.maxVideoDuration / 60)}分钟`,
         included: true
       },
-      { 
-        name: `视频时长额度${Math.floor(feature.maxVideoDuration / 60)}分钟`, 
-        included: true 
-      },
-      { 
-        name: `单场景文本额度${feature.maxTextLength}字符`, 
-        included: true 
+      {
+        name: `单场景文本额度${feature.maxTextLength}字符`,
+        included: true
       },
     ];
     
