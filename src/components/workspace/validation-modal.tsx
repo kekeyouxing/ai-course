@@ -9,8 +9,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
 import { AlertCircle, CheckCircle2, Loader2, Info, Star, ExternalLink } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -19,7 +17,7 @@ interface ValidationModalProps {
   onOpenChange: (open: boolean) => void
   errorMessages: string[]
   hasErrors: boolean
-  onConfirm: (enableSubtitle: boolean) => void
+  onConfirm: () => void
   isGenerating?: boolean
 }
 
@@ -32,13 +30,11 @@ export default function ValidationModal({
   isGenerating = false
 }: ValidationModalProps) {
   const [isLoading, setIsLoading] = useState(true)
-  const [enableSubtitle, setEnableSubtitle] = useState(false)
 
   // 模拟加载效果 - 仅用于初始检查
   useEffect(() => {
     if (open) {
       setIsLoading(true)
-      setEnableSubtitle(false) // 重置字幕开关
       const timer = setTimeout(() => {
         setIsLoading(false)
       }, 800)
@@ -104,24 +100,6 @@ export default function ValidationModal({
                       </p>
                     </div>
                   )}
-                  
-                  {/* 字幕开关 */}
-                  <div className="p-3 bg-gray-50 rounded border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <Label htmlFor="subtitle-switch" className="text-sm font-medium text-gray-700 cursor-pointer">
-                          开启字幕
-                        </Label>
-                        <p className="text-xs text-gray-500 mt-1">为视频添加字幕，便于观看和理解</p>
-                      </div>
-                      <Switch
-                        id="subtitle-switch"
-                        checked={enableSubtitle}
-                        onCheckedChange={setEnableSubtitle}
-                        disabled={isInLoadingState}
-                      />
-                    </div>
-                  </div>
 
                   <div className="p-3 bg-blue-50 rounded border border-blue-100">
                     <p className="text-sm text-blue-700 flex items-center gap-2 font-medium">
@@ -187,7 +165,7 @@ export default function ValidationModal({
             取消
           </Button>
           <Button
-            onClick={() => onConfirm(enableSubtitle)}
+            onClick={onConfirm}
             disabled={hasErrors || isInLoadingState}
             className={`${
               isInLoadingState ? "bg-blue-400" :

@@ -38,11 +38,9 @@ export async function checkVideoGeneration(projectId: string): Promise<CheckVide
  * @param projectId The ID of the project to generate
  * @returns Success status of the operation
  */
-export async function generateVideo(projectId: string, enableSubtitle: boolean = false): Promise<{success: boolean, msg?: string}> {
+export async function generateVideo(projectId: string): Promise<{success: boolean, msg?: string}> {
   try {
-    const response = await instance.post<ApiResponse<any>>(`/video-tasks/${projectId}/generate`, {
-      enableSubtitle
-    });
+    const response = await instance.post<ApiResponse<any>>(`/video-tasks/${projectId}/generate`);
     return {
       success: response.data.code === 0,
       msg: response.data.msg
