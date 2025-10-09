@@ -6,7 +6,8 @@ import {
     Layers,
     Type,
     User,
-    Square
+    Square,
+    AlertTriangle
 } from "lucide-react"
 import { useState } from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -308,7 +309,8 @@ export function VideoTabs({
     }
 
     return (
-        <div className="flex border-b overflow-x-auto VideoTabs">
+        <div className="flex items-center border-b">
+            <div className="flex overflow-x-auto VideoTabs">
             {tabs.map((tab) => {
                 if (tab === "Text" && onSelectTextType) {
                     return (
@@ -367,6 +369,16 @@ export function VideoTabs({
                     );
                 }
             })}
+            </div>
+
+            {/* 业务调整说明 */}
+            <div className="flex items-center gap-2 px-4 py-2 ml-4 bg-blue-50 rounded-md text-xs">
+                <AlertTriangle className="h-3.5 w-3.5 text-blue-600 flex-shrink-0" />
+                <p className="text-blue-800 whitespace-nowrap">
+                    <span className="font-medium">业务调整：</span>
+                    人像功能已下架，价格 <span className="line-through">5元/分钟</span> → <span className="font-semibold">3元/分钟</span>。感谢您的理解与支持！
+                </p>
+            </div>
         </div>
     )
 }
